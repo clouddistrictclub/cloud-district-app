@@ -77,19 +77,22 @@ class Token(BaseModel):
 class Brand(BaseModel):
     id: Optional[str] = None
     name: str
-    image: Optional[str] = None  # base64
+    image: Optional[str] = None  # base64 logo
     isActive: bool = True
+    displayOrder: int = 0
     productCount: int = 0
 
 class BrandCreate(BaseModel):
     name: str
     image: Optional[str] = None
     isActive: bool = True
+    displayOrder: int = 0
 
 class BrandUpdate(BaseModel):
     name: Optional[str] = None
     image: Optional[str] = None
     isActive: Optional[bool] = None
+    displayOrder: Optional[int] = None
 
 # Product Models
 class Product(BaseModel):
@@ -99,39 +102,58 @@ class Product(BaseModel):
     brandName: str  # Denormalized for display
     category: str
     image: str  # base64
+    images: Optional[List[str]] = []  # Multiple images
     puffCount: int
     flavor: str
     nicotinePercent: float
     price: float
     stock: int
+    lowStockThreshold: int = 5
     description: Optional[str] = None
     isActive: bool = True
+    isFeatured: bool = False
+    loyaltyEarnRate: Optional[float] = None  # Override default rate
+    displayOrder: int = 0
 
 class ProductCreate(BaseModel):
     name: str
     brandId: str
     category: str
     image: str
+    images: Optional[List[str]] = []
     puffCount: int
     flavor: str
     nicotinePercent: float
     price: float
     stock: int
+    lowStockThreshold: int = 5
     description: Optional[str] = None
     isActive: bool = True
+    isFeatured: bool = False
+    loyaltyEarnRate: Optional[float] = None
+    displayOrder: int = 0
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     brandId: Optional[str] = None
     category: Optional[str] = None
     image: Optional[str] = None
+    images: Optional[List[str]] = None
     puffCount: Optional[int] = None
     flavor: Optional[str] = None
     nicotinePercent: Optional[float] = None
     price: Optional[float] = None
     stock: Optional[int] = None
+    lowStockThreshold: Optional[int] = None
     description: Optional[str] = None
     isActive: Optional[bool] = None
+    isFeatured: Optional[bool] = None
+    loyaltyEarnRate: Optional[float] = None
+    displayOrder: Optional[int] = None
+
+class StockAdjustment(BaseModel):
+    adjustment: int  # Positive to add, negative to remove
+    reason: Optional[str] = None
 
 # Order Models
 class CartItem(BaseModel):
@@ -486,6 +508,43 @@ async def delete_product(product_id: str, admin = Depends(get_admin_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted successfully"}
+
+@api_router.patch("/products/{product_id}/stock")
+async def adjust_product_stock(product_id: str, adjustment: StockAdjustment, admin = Depends(get_admin_user)):
+    """Manually adjust product inventory"""
+    product = await db.products.find_one({"_id": ObjectId(product_id)})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    new_stock = product["stock"] + adjustment.adjustment
+    if new_stock < 0:
+        raise HTTPException(status_code=400, detail="Stock cannot be negative")
+    
+    await db.products.update_one(
+        {"_id": ObjectId(product_id)},
+        {"$set": {"stock": new_stock}}
+    )
+    
+    # Log the adjustment (optional but recommended)
+    log_entry = {
+        "productId": product_id,
+        "productName": product["name"],
+        "adjustment": adjustment.adjustment,
+        "previousStock": product["stock"],
+        "newStock": new_stock,
+        "reason": adjustment.reason,
+        "adminId": str(admin["_id"]),
+        "timestamp": datetime.utcnow()
+    }
+    await db.inventory_logs.insert_one(log_entry)
+    
+    return {
+        "message": "Stock adjusted successfully",
+        "previousStock": product["stock"],
+        "newStock": new_stock,
+        "adjustment": adjustment.adjustment
+    }
+
 
 # ==================== ORDER ENDPOINTS ====================
 
