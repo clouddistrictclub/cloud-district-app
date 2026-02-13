@@ -509,6 +509,43 @@ async def delete_product(product_id: str, admin = Depends(get_admin_user)):
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted successfully"}
 
+@api_router.patch("/products/{product_id}/stock")
+async def adjust_product_stock(product_id: str, adjustment: StockAdjustment, admin = Depends(get_admin_user)):
+    """Manually adjust product inventory"""
+    product = await db.products.find_one({"_id": ObjectId(product_id)})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    new_stock = product["stock"] + adjustment.adjustment
+    if new_stock < 0:
+        raise HTTPException(status_code=400, detail="Stock cannot be negative")
+    
+    await db.products.update_one(
+        {"_id": ObjectId(product_id)},
+        {"$set": {"stock": new_stock}}
+    )
+    
+    # Log the adjustment (optional but recommended)
+    log_entry = {
+        "productId": product_id,
+        "productName": product["name"],
+        "adjustment": adjustment.adjustment,
+        "previousStock": product["stock"],
+        "newStock": new_stock,
+        "reason": adjustment.reason,
+        "adminId": str(admin["_id"]),
+        "timestamp": datetime.utcnow()
+    }
+    await db.inventory_logs.insert_one(log_entry)
+    
+    return {
+        "message": "Stock adjusted successfully",
+        "previousStock": product["stock"],
+        "newStock": new_stock,
+        "adjustment": adjustment.adjustment
+    }
+
+
 # ==================== ORDER ENDPOINTS ====================
 
 @api_router.post("/orders", response_model=Order)
