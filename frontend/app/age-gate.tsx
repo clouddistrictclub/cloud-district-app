@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,7 @@ export default function AgeGate() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showPicker, setShowPicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(new Date(2002, 0, 1)); // Default to 22 years ago
 
   // Calculate the maximum date (21 years ago from today)
   const maxDate = new Date();
@@ -19,13 +20,33 @@ export default function AgeGate() {
   const minDate = new Date();
   minDate.setFullYear(minDate.getFullYear() - 100);
 
+  const openDatePicker = () => {
+    setTempDate(selectedDate || maxDate);
+    setShowPicker(true);
+  };
+
   const handleDateChange = (event: any, date?: Date) => {
+    // Android automatically closes after selection
     if (Platform.OS === 'android') {
       setShowPicker(false);
+      if (event.type === 'set' && date) {
+        setSelectedDate(date);
+      }
+    } else {
+      // iOS updates temp date while scrolling
+      if (date) {
+        setTempDate(date);
+      }
     }
-    if (date) {
-      setSelectedDate(date);
-    }
+  };
+
+  const handleIOSConfirm = () => {
+    setSelectedDate(tempDate);
+    setShowPicker(false);
+  };
+
+  const handleCancel = () => {
+    setShowPicker(false);
   };
 
   const handleContinue = async () => {
