@@ -10,45 +10,49 @@ export default function PaymentInstructions() {
   const paymentInfo: any = {
     zelle: {
       title: 'Pay with Zelle',
-      username: 'clouddistrictclub@email.com',
+      username: '6084179336',
       instructions: [
         'Open your banking app',
         'Select Zelle',
-        'Send to: clouddistrictclub@email.com',
+        'Send to: 6084179336',
         `Amount: $${amount}`,
-        `Note: Order #${orderId}`,
+        `Memo: Order #${orderId?.slice(-6)}`,
       ],
+      deepLink: null,
     },
     venmo: {
       title: 'Pay with Venmo',
       username: '@CloudDistrictClub',
       instructions: [
-        'Open Venmo app',
-        'Search for @CloudDistrictClub',
-        `Send $${amount}`,
-        `Note: Order #${orderId}`,
+        'Tap "Open Venmo" button below',
+        'Confirm the pre-filled amount',
+        'Add order number to note',
+        'Complete payment',
       ],
+      deepLink: `venmo://paycharge?txn=pay&recipients=CloudDistrictClub&amount=${amount}&note=Order%20${orderId?.slice(-6)}`,
     },
     cashapp: {
       title: 'Pay with Cash App',
       username: '$CloudDistrictClub',
       instructions: [
-        'Open Cash App',
-        'Search for $CloudDistrictClub',
-        `Send $${amount}`,
-        `Note: Order #${orderId}`,
+        'Tap "Open Cash App" button below',
+        'Confirm the pre-filled amount',
+        'Add order number to note',
+        'Complete payment',
       ],
+      deepLink: `https://cash.app/$CloudDistrictClub/${amount}`,
     },
     chime: {
       title: 'Pay with Chime',
-      username: 'clouddistrictclub@email.com',
+      username: '$CloudDistrictClub',
       instructions: [
         'Open Chime app',
         'Select Pay Anyone',
-        'Send to: clouddistrictclub@email.com',
+        'Send to: $CloudDistrictClub',
         `Amount: $${amount}`,
-        `Note: Order #${orderId}`,
+        `Note: Order #${orderId?.slice(-6)}`,
       ],
+      deepLink: null,
     },
   };
 
