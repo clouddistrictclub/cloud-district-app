@@ -1,36 +1,61 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AgeGate() {
   const router = useRouter();
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  const [year, setYear] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Calculate the maximum date (21 years ago from today)
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 21);
+
+  // Calculate minimum reasonable date (100 years ago)
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 100);
+
+  const handleDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
   const handleContinue = async () => {
-    if (!month || !day || !year) {
-      Alert.alert('Error', 'Please enter your complete date of birth');
+    if (!selectedDate) {
+      Alert.alert('Date Required', 'Please select your date of birth');
       return;
     }
 
-    const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     const today = new Date();
-    const age = (today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    const age = (today.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
     if (age < 21) {
       Alert.alert(
-        'Age Requirement',
-        'You must be 21 or older to access this app.',
-        [{ text: 'OK' }]
+        'Access Denied',
+        'You must be 21 or older to access this app. This product is restricted to adults only.',
+        [{ text: 'OK', style: 'default' }]
       );
       return;
     }
 
     await AsyncStorage.setItem('ageVerified', 'true');
     router.replace('/auth/login');
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   return (
