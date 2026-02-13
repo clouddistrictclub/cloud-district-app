@@ -99,39 +99,58 @@ class Product(BaseModel):
     brandName: str  # Denormalized for display
     category: str
     image: str  # base64
+    images: Optional[List[str]] = []  # Multiple images
     puffCount: int
     flavor: str
     nicotinePercent: float
     price: float
     stock: int
+    lowStockThreshold: int = 5
     description: Optional[str] = None
     isActive: bool = True
+    isFeatured: bool = False
+    loyaltyEarnRate: Optional[float] = None  # Override default rate
+    displayOrder: int = 0
 
 class ProductCreate(BaseModel):
     name: str
     brandId: str
     category: str
     image: str
+    images: Optional[List[str]] = []
     puffCount: int
     flavor: str
     nicotinePercent: float
     price: float
     stock: int
+    lowStockThreshold: int = 5
     description: Optional[str] = None
     isActive: bool = True
+    isFeatured: bool = False
+    loyaltyEarnRate: Optional[float] = None
+    displayOrder: int = 0
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     brandId: Optional[str] = None
     category: Optional[str] = None
     image: Optional[str] = None
+    images: Optional[List[str]] = None
     puffCount: Optional[int] = None
     flavor: Optional[str] = None
     nicotinePercent: Optional[float] = None
     price: Optional[float] = None
     stock: Optional[int] = None
+    lowStockThreshold: Optional[int] = None
     description: Optional[str] = None
     isActive: Optional[bool] = None
+    isFeatured: Optional[bool] = None
+    loyaltyEarnRate: Optional[float] = None
+    displayOrder: Optional[int] = None
+
+class StockAdjustment(BaseModel):
+    adjustment: int  # Positive to add, negative to remove
+    reason: Optional[str] = None
 
 # Order Models
 class CartItem(BaseModel):
