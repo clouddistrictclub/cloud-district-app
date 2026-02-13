@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#333',
     borderRadius: 12,
-    padding: 16,
+    padding: 18,
     gap: 12,
   },
   datePickerLabel: {
@@ -279,22 +279,6 @@ const styles = StyleSheet.create({
   datePickerPlaceholder: {
     fontSize: 16,
     color: '#666',
-  },
-  pickerContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    marginTop: 12,
-    overflow: 'hidden',
-  },
-  doneButton: {
-    backgroundColor: '#6366f1',
-    padding: 16,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   button: {
     flexDirection: 'row',
@@ -320,5 +304,43 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  // iOS Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalButton: {
+    fontSize: 16,
+    color: '#6366f1',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  modalButtonDone: {
+    fontWeight: '600',
+  },
+  iosPicker: {
+    height: 200,
   },
 });
