@@ -77,19 +77,22 @@ class Token(BaseModel):
 class Brand(BaseModel):
     id: Optional[str] = None
     name: str
-    image: Optional[str] = None  # base64
+    image: Optional[str] = None  # base64 logo
     isActive: bool = True
+    displayOrder: int = 0
     productCount: int = 0
 
 class BrandCreate(BaseModel):
     name: str
     image: Optional[str] = None
     isActive: bool = True
+    displayOrder: int = 0
 
 class BrandUpdate(BaseModel):
     name: Optional[str] = None
     image: Optional[str] = None
     isActive: Optional[bool] = None
+    displayOrder: Optional[int] = None
 
 # Product Models
 class Product(BaseModel):
