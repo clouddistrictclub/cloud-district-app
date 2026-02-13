@@ -106,7 +106,8 @@ export default function AgeGate() {
 
           <TouchableOpacity 
             style={styles.datePickerButton}
-            onPress={() => setShowPicker(true)}
+            onPress={openDatePicker}
+            activeOpacity={0.7}
           >
             <Ionicons name="calendar" size={24} color="#6366f1" />
             <View style={{ flex: 1 }}>
@@ -119,35 +120,13 @@ export default function AgeGate() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
-
-          {showPicker && (
-            <View style={styles.pickerContainer}>
-              <DateTimePicker
-                value={selectedDate || maxDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleDateChange}
-                maximumDate={new Date()}
-                minimumDate={minDate}
-                textColor="#fff"
-                themeVariant="dark"
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity 
-                  style={styles.doneButton}
-                  onPress={() => setShowPicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </View>
 
         <TouchableOpacity 
           style={[styles.button, !selectedDate && styles.buttonDisabled]} 
           onPress={handleContinue}
           disabled={!selectedDate}
+          activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Verify Age & Continue</Text>
           <Ionicons name="arrow-forward" size={20} color="#fff" />
@@ -157,6 +136,53 @@ export default function AgeGate() {
           By continuing, you confirm that you are 21 years of age or older
         </Text>
       </View>
+
+      {/* iOS Modal Date Picker */}
+      {Platform.OS === 'ios' && showPicker && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={showPicker}
+          onRequestClose={handleCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={handleCancel}>
+                  <Text style={styles.modalButton}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Select Date of Birth</Text>
+                <TouchableOpacity onPress={handleIOSConfirm}>
+                  <Text style={[styles.modalButton, styles.modalButtonDone]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={minDate}
+                textColor="#fff"
+                themeVariant="dark"
+                style={styles.iosPicker}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Android Native Date Picker */}
+      {Platform.OS === 'android' && showPicker && (
+        <DateTimePicker
+          value={tempDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          maximumDate={new Date()}
+          minimumDate={minDate}
+        />
+      )}
     </SafeAreaView>
   );
 }
