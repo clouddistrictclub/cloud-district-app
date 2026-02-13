@@ -61,54 +61,80 @@ export default function AgeGate() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Cloud District Club</Text>
-        <Text style={styles.subtitle}>Age Verification Required</Text>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoCircle}>
+            <Ionicons name="cloud" size={48} color="#6366f1" />
+          </View>
+          <Text style={styles.title}>Cloud District Club</Text>
+          <Text style={styles.subtitle}>Age Verification Required</Text>
+        </View>
         
         <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>⚠️ WARNING</Text>
-          <Text style={styles.warningText}>
-            This product contains nicotine. Nicotine is an addictive chemical.
-          </Text>
+          <Ionicons name="warning" size={24} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.warningTitle}>WARNING</Text>
+            <Text style={styles.warningText}>
+              This product contains nicotine. Nicotine is an addictive chemical.
+            </Text>
+          </View>
         </View>
 
-        <Text style={styles.label}>Enter Your Date of Birth</Text>
-        <Text style={styles.sublabel}>You must be 21 or older to continue</Text>
+        <View style={styles.verificationBox}>
+          <Text style={styles.label}>Confirm Your Date of Birth</Text>
+          <Text style={styles.sublabel}>You must be 21 or older to enter</Text>
 
-        <View style={styles.dateContainer}>
-          <TextInput
-            style={styles.dateInput}
-            placeholder="MM"
-            placeholderTextColor="#666"
-            value={month}
-            onChangeText={setMonth}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-          <Text style={styles.dateSeparator}>/</Text>
-          <TextInput
-            style={styles.dateInput}
-            placeholder="DD"
-            placeholderTextColor="#666"
-            value={day}
-            onChangeText={setDay}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-          <Text style={styles.dateSeparator}>/</Text>
-          <TextInput
-            style={styles.dateInputYear}
-            placeholder="YYYY"
-            placeholderTextColor="#666"
-            value={year}
-            onChangeText={setYear}
-            keyboardType="numeric"
-            maxLength={4}
-          />
+          <TouchableOpacity 
+            style={styles.datePickerButton}
+            onPress={() => setShowPicker(true)}
+          >
+            <Ionicons name="calendar" size={24} color="#6366f1" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.datePickerLabel}>Date of Birth</Text>
+              {selectedDate ? (
+                <Text style={styles.datePickerValue}>{formatDate(selectedDate)}</Text>
+              ) : (
+                <Text style={styles.datePickerPlaceholder}>Tap to select your date of birth</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+
+          {showPicker && (
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={selectedDate || maxDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={minDate}
+                textColor="#fff"
+                themeVariant="dark"
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity 
+                  style={styles.doneButton}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Continue</Text>
+        <TouchableOpacity 
+          style={[styles.button, !selectedDate && styles.buttonDisabled]} 
+          onPress={handleContinue}
+          disabled={!selectedDate}
+        >
+          <Text style={styles.buttonText}>Verify Age & Continue</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
+
+        <Text style={styles.footerText}>
+          By continuing, you confirm that you are 21 years of age or older
+        </Text>
       </View>
     </SafeAreaView>
   );
