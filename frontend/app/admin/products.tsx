@@ -78,9 +78,14 @@ export default function ProductsManagement() {
       ]);
       setProducts(productsRes.data);
       setBrands(brandsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load data:', error);
-      Alert.alert('Error', 'Failed to load products');
+      console.error('Status:', error.response?.status);
+      console.error('Details:', error.response?.data);
+      Alert.alert(
+        'Error Loading Data',
+        `${error.response?.status || 'Network'} Error: ${error.response?.data?.detail || error.message}`
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
