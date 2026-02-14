@@ -77,9 +77,9 @@ export default function BrandsManagement() {
         await axios.post(`${API_URL}/api/brands`, formData);
         Alert.alert('Success', 'Brand created successfully');
       }
-      setShowModal(false);
+      await loadBrands();
       resetForm();
-      loadBrands();
+      setShowModal(false);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to save brand');
     }
