@@ -145,7 +145,7 @@ export default function Home() {
         {user?.isAdmin && (
           <TouchableOpacity 
             style={styles.adminButton}
-            onPress={() => router.push('/admin/dashboard')}
+            onPress={() => router.push('/admin/orders')}
           >
             <Ionicons name="shield" size={20} color="#fff" />
             <Text style={styles.adminButtonText}>Admin Dashboard</Text>
