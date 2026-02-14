@@ -219,18 +219,10 @@ export default function BrandsManagement() {
 
       {/* Add/Edit Brand Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
-              <Text style={styles.modalCancel}>Cancel</Text>
-            </TouchableOpacity>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['bottom']}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 40 }}>
             <Text style={styles.modalTitle}>{editingBrand ? 'Edit Brand' : 'Add Brand'}</Text>
-            <TouchableOpacity onPress={handleSaveBrand}>
-              <Text style={styles.modalSave}>Save</Text>
-            </TouchableOpacity>
-          </View>
 
-          <ScrollView style={styles.modalContent}>
             <TouchableOpacity style={styles.logoUpload} onPress={pickImage}>
               {formData.image ? (
                 <Image source={{ uri: formData.image }} style={styles.uploadedLogo} />
@@ -274,8 +266,17 @@ export default function BrandsManagement() {
                 thumbColor="#fff"
               />
             </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveBrand}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
