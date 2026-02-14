@@ -193,92 +193,94 @@ export default function UsersManagement() {
       </ScrollView>
 
       {/* Edit User Modal */}
-      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-            <Text style={styles.modalTitle}>Edit User</Text>
+          <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>Edit User</Text>
 
-            <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
-              {formData.profilePhoto ? (
-                <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={48} color="#666" />
-                  <Text style={styles.uploadText}>Tap to upload photo</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
+                {formData.profilePhoto ? (
+                  <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons name="person" size={48} color="#666" />
+                    <Text style={styles.uploadText}>Tap to upload photo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-            <Text style={styles.inputLabel}>First Name</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.firstName}
-              onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-              placeholder="First name"
-              placeholderTextColor="#666"
-            />
-
-            <Text style={styles.inputLabel}>Last Name</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.lastName}
-              onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-              placeholder="Last name"
-              placeholderTextColor="#666"
-            />
-
-            <Text style={styles.inputLabel}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              placeholder="email@example.com"
-              placeholderTextColor="#666"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.inputLabel}>Phone</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              placeholder="Phone number"
-              placeholderTextColor="#666"
-              keyboardType="phone-pad"
-            />
-
-            <Text style={styles.inputLabel}>Cloudz Points</Text>
-            <TextInput
-              style={styles.input}
-              value={String(formData.loyaltyPoints)}
-              onChangeText={(text) => setFormData({ ...formData, loyaltyPoints: parseInt(text) || 0 })}
-              keyboardType="numeric"
-              placeholderTextColor="#666"
-            />
-
-            <View style={styles.switchRow}>
-              <View>
-                <Text style={styles.inputLabel}>Admin Access</Text>
-                <Text style={styles.inputSubtext}>Grant full admin privileges</Text>
-              </View>
-              <Switch
-                value={formData.isAdmin}
-                onValueChange={(value) => setFormData({ ...formData, isAdmin: value })}
-                trackColor={{ false: '#333', true: '#dc2626' }}
-                thumbColor="#fff"
+              <Text style={styles.inputLabel}>First Name</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.firstName}
+                onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                placeholder="First name"
+                placeholderTextColor="#666"
               />
-            </View>
 
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveUser}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              <Text style={styles.inputLabel}>Last Name</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.lastName}
+                onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                placeholder="Last name"
+                placeholderTextColor="#666"
+              />
+
+              <Text style={styles.inputLabel}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                placeholder="email@example.com"
+                placeholderTextColor="#666"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <Text style={styles.inputLabel}>Phone</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.phone}
+                onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                placeholder="Phone number"
+                placeholderTextColor="#666"
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.inputLabel}>Cloudz Points</Text>
+              <TextInput
+                style={styles.input}
+                value={String(formData.loyaltyPoints)}
+                onChangeText={(text) => setFormData({ ...formData, loyaltyPoints: parseInt(text) || 0 })}
+                keyboardType="numeric"
+                placeholderTextColor="#666"
+              />
+
+              <View style={styles.switchRow}>
+                <View>
+                  <Text style={styles.inputLabel}>Admin Access</Text>
+                  <Text style={styles.inputSubtext}>Grant full admin privileges</Text>
+                </View>
+                <Switch
+                  value={formData.isAdmin}
+                  onValueChange={(value) => setFormData({ ...formData, isAdmin: value })}
+                  trackColor={{ false: '#333', true: '#dc2626' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveUser}>
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
