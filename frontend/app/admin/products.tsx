@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch, SafeAreaView } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -309,12 +309,14 @@ export default function ProductsManagement() {
 
       {/* Add/Edit Product Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <View style={styles.modalHeader}>
+            // Save / Cancel buttons
             <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
           </View>
 
           <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 100 }}>
+            // form fields
             <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
               {formData.image ? (
                 <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
