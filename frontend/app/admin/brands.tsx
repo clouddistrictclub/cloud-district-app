@@ -407,9 +407,11 @@ const styles = StyleSheet.create({
     color: '#dc2626',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   modalSave: {
     fontSize: 16,
