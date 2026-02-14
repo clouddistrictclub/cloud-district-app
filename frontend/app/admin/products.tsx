@@ -71,6 +71,22 @@ export default function ProductsManagement() {
     loadData();
   }, []);
 
+  // Refresh brands when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchBrands();
+    }, [])
+  );
+
+  const fetchBrands = async () => {
+    try {
+      const brandsRes = await axios.get(`${API_URL}/api/brands?active_only=false`);
+      setBrands(brandsRes.data);
+    } catch (error) {
+      console.error('Failed to fetch brands:', error);
+    }
+  };
+
   const loadData = async () => {
     try {
       const [productsRes, brandsRes] = await Promise.all([
