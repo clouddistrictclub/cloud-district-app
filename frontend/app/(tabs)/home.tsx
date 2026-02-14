@@ -56,13 +56,6 @@ export default function Home() {
     loadProducts();
   };
 
-  const categories = [
-    { name: 'Geek Bar', icon: 'flash' },
-    { name: 'Lost Mary', icon: 'rose' },
-    { name: 'RAZ', icon: 'sparkles' },
-    { name: 'Meloso', icon: 'water' },
-  ];
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
