@@ -489,7 +489,7 @@ export default function ProductsManagement() {
       </Modal>
 
       {/* Stock Adjustment Modal */}
-      <Modal visible={!!stockAdjustProduct} animationType="slide" presentationStyle="fullScreen" transparent onRequestClose={() => setStockAdjustProduct(null)}>
+      <Modal visible={!!stockAdjustProduct} animationType="slide" transparent onRequestClose={() => setStockAdjustProduct(null)}>
         <View style={styles.stockModalOverlay}>
           <View style={styles.stockModalContent}>
             <Text style={styles.stockModalTitle}>Adjust Stock</Text>
