@@ -667,6 +667,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+    marginTop: 10,
     marginBottom: 24,
   },
   modalSave: {
