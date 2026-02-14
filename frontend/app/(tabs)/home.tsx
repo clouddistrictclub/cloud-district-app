@@ -98,14 +98,14 @@ export default function Home() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop by Brand</Text>
           <View style={styles.categoryGrid}>
-            {categories.map((cat, index) => (
+            {brands.map((brand) => (
               <TouchableOpacity 
-                key={index} 
+                key={brand.id} 
                 style={styles.categoryCard}
-                onPress={() => router.push(`/shop?category=${cat.name.toLowerCase().replace(' ', '-')}`)}
+                onPress={() => router.push(`/shop?brand=${brand.id}`)}
               >
-                <Ionicons name={cat.icon as any} size={32} color="#6366f1" />
-                <Text style={styles.categoryName}>{cat.name}</Text>
+                <Ionicons name="flash" size={32} color="#6366f1" />
+                <Text style={styles.categoryName}>{brand.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
