@@ -218,64 +218,66 @@ export default function BrandsManagement() {
       </ScrollView>
 
       {/* Add/Edit Brand Modal */}
-      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.modalTitle}>{editingBrand ? 'Edit Brand' : 'Add Brand'}</Text>
+          <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>{editingBrand ? 'Edit Brand' : 'Add Brand'}</Text>
 
-            <TouchableOpacity style={styles.logoUpload} onPress={pickImage}>
-              {formData.image ? (
-                <Image source={{ uri: formData.image }} style={styles.uploadedLogo} />
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="flash" size={48} color="#666" />
-                  <Text style={styles.uploadText}>Tap to upload logo</Text>
-                  <Text style={styles.uploadSubtext}>(Optional)</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.logoUpload} onPress={pickImage}>
+                {formData.image ? (
+                  <Image source={{ uri: formData.image }} style={styles.uploadedLogo} />
+                ) : (
+                  <View style={styles.uploadPlaceholder}>
+                    <Ionicons name="flash" size={48} color="#666" />
+                    <Text style={styles.uploadText}>Tap to upload logo</Text>
+                    <Text style={styles.uploadSubtext}>(Optional)</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-            <Text style={styles.inputLabel}>Brand Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              placeholder="Enter brand name"
-              placeholderTextColor="#666"
-            />
-
-            <Text style={styles.inputLabel}>Display Order</Text>
-            <TextInput
-              style={styles.input}
-              value={String(formData.displayOrder)}
-              onChangeText={(text) => setFormData({ ...formData, displayOrder: parseInt(text) || 0 })}
-              keyboardType="numeric"
-              placeholder="0 = first, higher = later"
-              placeholderTextColor="#666"
-            />
-
-            <View style={styles.switchRow}>
-              <View>
-                <Text style={styles.inputLabel}>Visible on Storefront</Text>
-                <Text style={styles.inputSubtext}>Show this brand to customers</Text>
-              </View>
-              <Switch
-                value={formData.isActive}
-                onValueChange={(value) => setFormData({ ...formData, isActive: value })}
-                trackColor={{ false: '#333', true: '#10b981' }}
-                thumbColor="#fff"
+              <Text style={styles.inputLabel}>Brand Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.name}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                placeholder="Enter brand name"
+                placeholderTextColor="#666"
               />
-            </View>
 
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveBrand}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              <Text style={styles.inputLabel}>Display Order</Text>
+              <TextInput
+                style={styles.input}
+                value={String(formData.displayOrder)}
+                onChangeText={(text) => setFormData({ ...formData, displayOrder: parseInt(text) || 0 })}
+                keyboardType="numeric"
+                placeholder="0 = first, higher = later"
+                placeholderTextColor="#666"
+              />
+
+              <View style={styles.switchRow}>
+                <View>
+                  <Text style={styles.inputLabel}>Visible on Storefront</Text>
+                  <Text style={styles.inputSubtext}>Show this brand to customers</Text>
+                </View>
+                <Switch
+                  value={formData.isActive}
+                  onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+                  trackColor={{ false: '#333', true: '#10b981' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveBrand}>
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
