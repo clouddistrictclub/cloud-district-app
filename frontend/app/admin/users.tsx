@@ -278,7 +278,7 @@ export default function UsersManagement() {
               />
             </View>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
