@@ -325,164 +325,166 @@ export default function ProductsManagement() {
       </ScrollView>
 
       {/* Add/Edit Product Modal */}
-      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
+          <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
 
-            <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
-              {formData.image ? (
-                <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="camera" size={40} color="#666" />
-                  <Text style={styles.uploadText}>Tap to upload image</Text>
+              <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
+                {formData.image ? (
+                  <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
+                ) : (
+                  <View style={styles.uploadPlaceholder}>
+                    <Ionicons name="camera" size={40} color="#666" />
+                    <Text style={styles.uploadText}>Tap to upload image</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.inputLabel}>Product Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.name}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                placeholder="Enter product name"
+                placeholderTextColor="#666"
+              />
+
+              <Text style={styles.inputLabel}>Brand *</Text>
+              <View style={styles.pickerContainer}>
+                {brands.map((brand) => (
+                  <TouchableOpacity
+                    key={brand.id}
+                    style={[styles.pickerOption, formData.brandId === brand.id && styles.pickerOptionSelected]}
+                    onPress={() => setFormData({ ...formData, brandId: brand.id })}
+                  >
+                    <Text style={[styles.pickerOptionText, formData.brandId === brand.id && styles.pickerOptionTextSelected]}>
+                      {brand.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Flavor *</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.flavor}
+                onChangeText={(text) => setFormData({ ...formData, flavor: text })}
+                placeholder="e.g., Watermelon Ice"
+                placeholderTextColor="#666"
+              />
+
+              <View style={styles.row}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Puff Count</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.puffCount)}
+                    onChangeText={(text) => setFormData({ ...formData, puffCount: parseInt(text) || 0 })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#666"
+                  />
                 </View>
-              )}
-            </TouchableOpacity>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Nicotine %</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.nicotinePercent)}
+                    onChangeText={(text) => setFormData({ ...formData, nicotinePercent: parseFloat(text) || 0 })}
+                    keyboardType="decimal-pad"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+              </View>
 
-            <Text style={styles.inputLabel}>Product Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              placeholder="Enter product name"
-              placeholderTextColor="#666"
-            />
+              <View style={styles.row}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Price ($)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.price)}
+                    onChangeText={(text) => setFormData({ ...formData, price: parseFloat(text) || 0 })}
+                    keyboardType="decimal-pad"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Stock</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.stock)}
+                    onChangeText={(text) => setFormData({ ...formData, stock: parseInt(text) || 0 })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+              </View>
 
-            <Text style={styles.inputLabel}>Brand *</Text>
-            <View style={styles.pickerContainer}>
-              {brands.map((brand) => (
-                <TouchableOpacity
-                  key={brand.id}
-                  style={[styles.pickerOption, formData.brandId === brand.id && styles.pickerOptionSelected]}
-                  onPress={() => setFormData({ ...formData, brandId: brand.id })}
-                >
-                  <Text style={[styles.pickerOptionText, formData.brandId === brand.id && styles.pickerOptionTextSelected]}>
-                    {brand.name}
-                  </Text>
+              <View style={styles.row}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Low Stock Alert</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.lowStockThreshold)}
+                    onChangeText={(text) => setFormData({ ...formData, lowStockThreshold: parseInt(text) || 0 })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>Display Order</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(formData.displayOrder)}
+                    onChangeText={(text) => setFormData({ ...formData, displayOrder: parseInt(text) || 0 })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.switchRow}>
+                <Text style={styles.inputLabel}>Active</Text>
+                <Switch
+                  value={formData.isActive}
+                  onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+                  trackColor={{ false: '#333', true: '#10b981' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <Text style={styles.inputLabel}>Featured</Text>
+                <Switch
+                  value={formData.isFeatured}
+                  onValueChange={(value) => setFormData({ ...formData, isFeatured: value })}
+                  trackColor={{ false: '#333', true: '#fbbf24' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <Text style={styles.inputLabel}>Description (Optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={formData.description}
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
+                placeholder="Product description..."
+                placeholderTextColor="#666"
+                multiline
+                numberOfLines={4}
+              />
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.inputLabel}>Flavor *</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.flavor}
-              onChangeText={(text) => setFormData({ ...formData, flavor: text })}
-              placeholder="e.g., Watermelon Ice"
-              placeholderTextColor="#666"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Puff Count</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.puffCount)}
-                  onChangeText={(text) => setFormData({ ...formData, puffCount: parseInt(text) || 0 })}
-                  keyboardType="numeric"
-                  placeholderTextColor="#666"
-                />
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct}>
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Nicotine %</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.nicotinePercent)}
-                  onChangeText={(text) => setFormData({ ...formData, nicotinePercent: parseFloat(text) || 0 })}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor="#666"
-                />
-              </View>
-            </View>
-
-            <View style={styles.row}>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Price ($)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.price)}
-                  onChangeText={(text) => setFormData({ ...formData, price: parseFloat(text) || 0 })}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor="#666"
-                />
-              </View>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Stock</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.stock)}
-                  onChangeText={(text) => setFormData({ ...formData, stock: parseInt(text) || 0 })}
-                  keyboardType="numeric"
-                  placeholderTextColor="#666"
-                />
-              </View>
-            </View>
-
-            <View style={styles.row}>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Low Stock Alert</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.lowStockThreshold)}
-                  onChangeText={(text) => setFormData({ ...formData, lowStockThreshold: parseInt(text) || 0 })}
-                  keyboardType="numeric"
-                  placeholderTextColor="#666"
-                />
-              </View>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Display Order</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(formData.displayOrder)}
-                  onChangeText={(text) => setFormData({ ...formData, displayOrder: parseInt(text) || 0 })}
-                  keyboardType="numeric"
-                  placeholderTextColor="#666"
-                />
-              </View>
-            </View>
-
-            <View style={styles.switchRow}>
-              <Text style={styles.inputLabel}>Active</Text>
-              <Switch
-                value={formData.isActive}
-                onValueChange={(value) => setFormData({ ...formData, isActive: value })}
-                trackColor={{ false: '#333', true: '#10b981' }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.switchRow}>
-              <Text style={styles.inputLabel}>Featured</Text>
-              <Switch
-                value={formData.isFeatured}
-                onValueChange={(value) => setFormData({ ...formData, isFeatured: value })}
-                trackColor={{ false: '#333', true: '#fbbf24' }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <Text style={styles.inputLabel}>Description (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={formData.description}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
-              placeholder="Product description..."
-              placeholderTextColor="#666"
-              multiline
-              numberOfLines={4}
-            />
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 
