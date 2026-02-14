@@ -194,18 +194,8 @@ export default function UsersManagement() {
 
       {/* Edit User Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
-              <Text style={styles.modalCancel}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit User</Text>
-            <TouchableOpacity onPress={handleSaveUser}>
-              <Text style={styles.modalSave}>Save</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
+        <SafeAreaView style={styles.modalContainer} edges={['top','bottom','left','right']}>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
             <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
               {formData.profilePhoto ? (
                 <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
