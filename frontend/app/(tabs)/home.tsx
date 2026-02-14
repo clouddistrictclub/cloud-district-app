@@ -27,13 +27,18 @@ export default function Home() {
   const user = useAuthStore(state => state.user);
   const itemCount = useCartStore(state => state.getItemCount());
   const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadProducts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/products`);
-      setProducts(response.data.slice(0, 6)); // Featured products
+      const [productsRes, brandsRes] = await Promise.all([
+        axios.get(`${API_URL}/api/products`),
+        axios.get(`${API_URL}/api/brands?active_only=true`)
+      ]);
+      setProducts(productsRes.data.slice(0, 6)); // Featured products
+      setBrands(brandsRes.data.slice(0, 4)); // Top 4 brands
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
