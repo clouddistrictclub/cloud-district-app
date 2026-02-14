@@ -194,8 +194,10 @@ export default function UsersManagement() {
 
       {/* Edit User Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={styles.modalContainer} edges={['top','bottom','left','right']}>
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['bottom']}>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            <Text style={styles.modalTitle}>Edit User</Text>
+
             <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
               {formData.profilePhoto ? (
                 <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
@@ -266,6 +268,15 @@ export default function UsersManagement() {
                 trackColor={{ false: '#333', true: '#dc2626' }}
                 thumbColor="#fff"
               />
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveUser}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </SafeAreaView>
