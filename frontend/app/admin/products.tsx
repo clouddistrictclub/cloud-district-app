@@ -310,14 +310,10 @@ export default function ProductsManagement() {
 
       {/* Add/Edit Product Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-          <View style={styles.modalHeader}>
-            // Save / Cancel buttons
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['bottom']}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 40 }}>
             <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
-          </View>
 
-          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 100 }}>
-            // form fields
             <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
               {formData.image ? (
                 <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
