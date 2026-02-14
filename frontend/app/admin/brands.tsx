@@ -218,7 +218,7 @@ export default function BrandsManagement() {
       </ScrollView>
 
       {/* Add/Edit Brand Modal */}
-      <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowModal(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
           <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 40 }}>
             <Text style={styles.modalTitle}>{editingBrand ? 'Edit Brand' : 'Add Brand'}</Text>

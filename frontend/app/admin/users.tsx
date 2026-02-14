@@ -193,7 +193,7 @@ export default function UsersManagement() {
       </ScrollView>
 
       {/* Edit User Modal */}
-      <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
+      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowModal(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
             <Text style={styles.modalTitle}>Edit User</Text>
