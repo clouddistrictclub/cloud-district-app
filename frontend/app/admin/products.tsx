@@ -305,18 +305,12 @@ export default function ProductsManagement() {
 
       {/* Add/Edit Product Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top']}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
-              <Text style={styles.modalCancel}>Cancel</Text>
-            </TouchableOpacity>
             <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
-            <TouchableOpacity onPress={handleSaveProduct}>
-              <Text style={styles.modalSave}>Save</Text>
-            </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: 100 }}>
             <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
               {formData.image ? (
                 <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
