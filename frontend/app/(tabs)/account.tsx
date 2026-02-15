@@ -30,6 +30,13 @@ interface RedemptionRecord {
   createdAt: string;
 }
 
+interface StreakInfo {
+  streak: number;
+  currentBonus: number;
+  nextBonus: number;
+  daysUntilExpiry: number;
+}
+
 const TIER_ACCENT: Record<string, string> = {
   tier_1: '#CD7F32',
   tier_2: '#C0C0C0',
