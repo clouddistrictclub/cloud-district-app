@@ -132,10 +132,16 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - **Payment Instructions** (`/payment-instructions`): For digital payment methods (Zelle, Venmo, Cash App, Chime) — shows payment details, deep links, copy-to-clipboard
 - Routing logic in `checkout.tsx` lines 104-108
 
+## Push Notifications
+- `POST /api/push/register`: Stores Expo push tokens (keyed by userId, upsert)
+- Dispatched via Expo Push API (`exp.host/--/api/v2/push/send`) when admin updates order status
+- Frontend: Token registered on login/register/loadToken (mobile only, skipped on web)
+- Root layout (`_layout.tsx`): Notification handler + received listener configured
+
 ## Prioritized Backlog
 ### P1 - Growth (Next)
 - [ ] Phase 3: Share incentives + streak bonus
-- [ ] Phase 4: Push notifications
+- [x] Phase 4: Push notifications (Feb 2026)
 
 ### P2 - Future
 - [ ] Phase 5: Paid ads / influencer seeding
