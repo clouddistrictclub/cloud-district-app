@@ -30,7 +30,14 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Admin Cloudz Ledger (Feb 15, 2026 - Latest)
+### Leaderboard (Feb 15, 2026 - Latest)
+- [x] `GET /api/leaderboard` endpoint with projection-only query (no full docs)
+- [x] Returns `{byPoints, byReferrals}` top 20 each, sorted descending
+- [x] Display name privacy (firstName + last initial), tier resolution, isCurrentUser flag
+- [x] Frontend screen with Points/Referrals tabs, rank medals, tier badges, current user highlight
+- [x] Account page "Leaderboard" menu item with trophy icon
+
+### Admin Cloudz Ledger (Feb 15, 2026)
 - [x] `GET /api/admin/ledger` admin-only endpoint with pagination (skip/limit), userId and type filters
 - [x] User email joined from users collection for each entry
 - [x] Admin "Ledger" tab in dashboard with filter chips, userId search, +/- color formatting
