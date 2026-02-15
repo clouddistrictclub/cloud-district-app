@@ -632,7 +632,7 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
         "total": order_data.total,
         "pickupTime": order_data.pickupTime,
         "paymentMethod": order_data.paymentMethod,
-        "status": "Pending Payment",
+        "status": "Awaiting Pickup (Cash)" if order_data.paymentMethod == "Cash on Pickup" else "Pending Payment",
         "loyaltyPointsEarned": points_earned,
         "loyaltyPointsUsed": reward_points_used,
         "rewardId": order_data.rewardId,
@@ -673,7 +673,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         raise HTTPException(status_code=404, detail="Order not found")
     
     # If marking as "Paid", award loyalty points and reduce inventory
-    if status_update.status == "Paid" and order["status"] == "Pending Payment":
+    if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
         # Award loyalty points
         await db.users.update_one(
             {"_id": ObjectId(order["userId"])},

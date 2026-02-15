@@ -19,6 +19,7 @@ interface ActiveReward {
 }
 
 const paymentMethods = [
+  { id: 'cash_on_pickup', name: 'Cash on Pickup', fee: 0, icon: 'wallet' },
   { id: 'zelle', name: 'Zelle', fee: 0, icon: 'flash' },
   { id: 'venmo', name: 'Venmo', fee: 0.03, icon: 'logo-venmo' },
   { id: 'cashapp', name: 'Cash App', fee: 0.03, icon: 'cash' },
