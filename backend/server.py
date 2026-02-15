@@ -759,6 +759,13 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
     
+    # Track loyalty point changes for ledger
+    old_points = None
+    if "loyaltyPoints" in update_dict:
+        old_user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if old_user:
+            old_points = old_user.get("loyaltyPoints", 0)
+
     result = await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": update_dict}
@@ -767,6 +774,15 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Log admin grant/adjustment to ledger
+    if old_points is not None:
+        delta = update_dict["loyaltyPoints"] - old_points
+        if delta != 0:
+            await log_cloudz_transaction(
+                user_id, "admin_adjustment", delta,
+                f"Admin set balance to {update_dict['loyaltyPoints']}"
+            )
+
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     return build_user_response(user)
 
