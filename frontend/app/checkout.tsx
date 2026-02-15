@@ -37,7 +37,7 @@ const pickupTimes = [
 export default function Checkout() {
   const router = useRouter();
   const { items, getTotal, clearCart } = useCartStore();
-  const { user, refreshUser } = useAuthStore();
+  const { user, refreshUser, token } = useAuthStore();
   const [selectedPickupTime, setSelectedPickupTime] = useState<string>('');
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [selectedReward, setSelectedReward] = useState<ActiveReward | null>(null);
@@ -45,13 +45,15 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [loadingRewards, setLoadingRewards] = useState(true);
 
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
   useEffect(() => {
     loadActiveRewards();
   }, []);
 
   const loadActiveRewards = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/loyalty/rewards`);
+      const res = await axios.get(`${API_URL}/api/loyalty/rewards`, { headers: { Authorization: `Bearer ${token}` } });
       setActiveRewards(res.data);
     } catch (error) {
       console.error('Failed to load rewards:', error);
@@ -92,7 +94,7 @@ export default function Checkout() {
         rewardId: selectedReward?.id || null,
       };
 
-      const response = await axios.post(`${API_URL}/api/orders`, orderData);
+      const response = await axios.post(`${API_URL}/api/orders`, orderData, authHeaders);
       const orderId = response.data.id;
 
       clearCart();
