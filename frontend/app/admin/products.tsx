@@ -339,7 +339,15 @@ export default function ProductsManagement() {
       <Modal visible={showModal && modalReady} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-            <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowModal(false)}>
+                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalHeaderTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
+              <TouchableOpacity onPress={handleSaveProduct}>
+                <Text style={{ color: '#4CAF50', fontSize: 16 }}>Save</Text>
+              </TouchableOpacity>
+            </View>
 
               <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
                 {formData.image ? (
