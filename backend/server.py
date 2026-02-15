@@ -725,19 +725,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
 @api_router.get("/admin/users", response_model=List[UserResponse])
 async def get_all_users(admin = Depends(get_admin_user)):
     users = await db.users.find().to_list(1000)
-    return [
-        UserResponse(
-            id=str(u["_id"]),
-            email=u["email"],
-            firstName=u["firstName"],
-            lastName=u["lastName"],
-            dateOfBirth=u["dateOfBirth"],
-            phone=u.get("phone"),
-            isAdmin=u.get("isAdmin", False),
-            loyaltyPoints=u.get("loyaltyPoints", 0),
-            profilePhoto=u.get("profilePhoto")
-        ) for u in users
-    ]
+    return [build_user_response(u) for u in users]
 
 @api_router.patch("/admin/users/{user_id}", response_model=UserResponse)
 async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = Depends(get_admin_user)):
@@ -755,17 +743,7 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
         raise HTTPException(status_code=404, detail="User not found")
     
     user = await db.users.find_one({"_id": ObjectId(user_id)})
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
-    )
+    return build_user_response(user)
 
 # ==================== LOYALTY TIER SYSTEM ====================
 
