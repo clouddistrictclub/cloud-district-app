@@ -84,7 +84,7 @@ export default function AgeGate() {
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Ionicons name="cloud" size={48} color="#6366f1" />
+            <Ionicons name="cloud" size={48} color="#2E6BFF" />
           </View>
           <Text style={styles.title}>Cloud District Club</Text>
           <Text style={styles.subtitle}>Age Verification Required</Text>
@@ -109,7 +109,7 @@ export default function AgeGate() {
             onPress={openDatePicker}
             activeOpacity={0.7}
           >
-            <Ionicons name="calendar" size={24} color="#6366f1" />
+            <Ionicons name="calendar" size={24} color="#2E6BFF" />
             <View style={{ flex: 1 }}>
               <Text style={styles.datePickerLabel}>Date of Birth</Text>
               {selectedDate ? (
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -219,14 +219,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#999',
+    color: '#A0A0A0',
     textAlign: 'center',
   },
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 32,
     gap: 12,
     alignItems: 'flex-start',
@@ -253,16 +253,16 @@ const styles = StyleSheet.create({
   },
   sublabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
     marginBottom: 20,
   },
   datePickerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     borderWidth: 2,
     borderColor: '#333',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 18,
     gap: 12,
   },
@@ -282,9 +282,9 @@ const styles = StyleSheet.create({
   },
   button: {
     flexDirection: 'row',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     padding: 18,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 40,
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#2E6BFF',
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
