@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 export default function AdminLayout() {
   return (
@@ -7,12 +8,12 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1a1a1a',
-          borderTopColor: '#333',
+          backgroundColor: theme.colors.card,
+          borderTopColor: theme.colors.cardBorder,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: '#dc2626',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: theme.colors.tabActive,
+        tabBarInactiveTintColor: theme.colors.tabInactive,
       }}
     >
       <Tabs.Screen
