@@ -362,17 +362,7 @@ async def login(user_data: UserLogin):
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user = Depends(get_current_user)):
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
-    )
+    return build_user_response(user)
 
 # ==================== USER PROFILE ENDPOINTS ====================
 
@@ -385,31 +375,10 @@ async def update_profile(profile_data: UserProfileUpdate, user = Depends(get_cur
             {"_id": user["_id"]},
             {"$set": update_dict}
         )
-        
         updated_user = await db.users.find_one({"_id": user["_id"]})
-        return UserResponse(
-            id=str(updated_user["_id"]),
-            email=updated_user["email"],
-            firstName=updated_user["firstName"],
-            lastName=updated_user["lastName"],
-            dateOfBirth=updated_user["dateOfBirth"],
-            phone=updated_user.get("phone"),
-            isAdmin=updated_user.get("isAdmin", False),
-            loyaltyPoints=updated_user.get("loyaltyPoints", 0),
-            profilePhoto=updated_user.get("profilePhoto")
-        )
+        return build_user_response(updated_user)
     
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
-    )
+    return build_user_response(user)
 
 # ==================== BRAND ENDPOINTS ====================
 
