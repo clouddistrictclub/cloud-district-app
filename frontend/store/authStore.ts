@@ -12,6 +12,8 @@ interface User {
   dateOfBirth: string;
   isAdmin: boolean;
   loyaltyPoints: number;
+  phone?: string;
+  profilePhoto?: string;
 }
 
 interface AuthState {
