@@ -613,6 +613,57 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.primary,
   },
+  streakCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f9731630',
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  streakTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  streakBadge: {
+    backgroundColor: '#f9731620',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  streakBadgeText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#f97316',
+  },
+  streakBody: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginBottom: 6,
+  },
+  streakCount: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#f97316',
+  },
+  streakUnit: {
+    fontSize: 16,
+    color: theme.colors.textMuted,
+  },
+  streakFooter: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    lineHeight: 18,
+  },
   logoutText: {
     fontSize: 16,
     color: theme.colors.primary,
