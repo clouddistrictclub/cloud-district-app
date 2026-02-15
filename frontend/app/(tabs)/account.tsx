@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 export default function Account() {
   const router = useRouter();
@@ -30,15 +31,23 @@ export default function Account() {
   };
 
   const menuItems = [
+    {
+      icon: 'star',
+      label: 'Cloudz Rewards',
+      onPress: () => router.push('/cloudz'),
+      color: '#fbbf24',
+    },
     ...(user?.isAdmin ? [
       { 
         icon: 'shield', 
         label: 'Admin Dashboard', 
         onPress: () => router.push('/admin/orders'),
-        color: '#2E6BFF'
+        color: theme.colors.primary,
       }
     ] : []),
   ];
+
+  const userPoints = user?.loyaltyPoints || 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -57,14 +66,20 @@ export default function Account() {
           <Text style={styles.profileEmail}>{user?.email}</Text>
         </View>
 
-        <View style={styles.loyaltyCard}>
+        <TouchableOpacity
+          style={styles.loyaltyCard}
+          onPress={() => router.push('/cloudz')}
+          activeOpacity={0.8}
+          data-testid="loyalty-card-link"
+        >
           <View style={styles.loyaltyHeader}>
             <Ionicons name="star" size={32} color="#fbbf24" />
             <Text style={styles.loyaltyTitle}>Cloudz Points</Text>
+            <Ionicons name="chevron-forward" size={20} color="#e0e7ff" style={{ marginLeft: 'auto' }} />
           </View>
-          <Text style={styles.loyaltyPoints}>{user?.loyaltyPoints || 0}</Text>
-          <Text style={styles.loyaltySubtext}>Earn 1 point per dollar spent</Text>
-        </View>
+          <Text style={styles.loyaltyPoints} data-testid="account-points-display">{userPoints.toLocaleString()}</Text>
+          <Text style={styles.loyaltySubtext}>Tap to view reward tiers</Text>
+        </TouchableOpacity>
 
         <View style={styles.section}>
           {menuItems.map((item, index) => (
@@ -72,6 +87,7 @@ export default function Account() {
               key={index}
               style={styles.menuItem}
               onPress={item.onPress}
+              data-testid={`menu-item-${item.label.toLowerCase().replace(/\s/g, '-')}`}
             >
               <View style={styles.menuItemLeft}>
                 <Ionicons name={item.icon as any} size={24} color={item.color || '#fff'} />
@@ -95,20 +111,20 @@ export default function Account() {
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Age Verified</Text>
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
               <Text style={styles.verifiedText}>21+</Text>
             </View>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={20} color="#2E6BFF" />
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} data-testid="logout-btn">
+          <Ionicons name="log-out" size={20} color={theme.colors.primary} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Cloud District Club</Text>
-          <Text style={styles.footerSubtext}>Local Pickup Only • 21+ Only</Text>
+          <Text style={styles.footerSubtext}>Local Pickup Only - 21+ Only</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
