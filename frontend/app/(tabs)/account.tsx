@@ -284,6 +284,18 @@ export default function Account() {
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/support')}
+            data-testid="menu-item-contact-support"
+          >
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="chatbubble-ellipses" size={24} color="#06b6d4" />
+              <Text style={[styles.menuItemText, { color: '#06b6d4' }]}>Contact & Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
 
         {/* Refer & Earn */}
