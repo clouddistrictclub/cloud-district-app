@@ -679,6 +679,10 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             {"_id": ObjectId(order["userId"])},
             {"$inc": {"loyaltyPoints": order["loyaltyPointsEarned"]}}
         )
+        await log_cloudz_transaction(
+            order["userId"], "purchase_reward", order["loyaltyPointsEarned"],
+            f"Order #{order_id[:8]}"
+        )
         
         # Reduce inventory for each item
         for item in order["items"]:
@@ -696,10 +700,16 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                 {"_id": ObjectId(order["userId"])},
                 {"$inc": {"loyaltyPoints": 1000}, "$set": {"referralRewardIssued": True}}
             )
+            await log_cloudz_transaction(
+                order["userId"], "referral_bonus", 1000, "Welcome bonus (referred)"
+            )
             # Grant 2,000 Cloudz to referrer + increment count
             await db.users.update_one(
                 {"_id": ObjectId(referrer_id)},
                 {"$inc": {"loyaltyPoints": 2000, "referralCount": 1, "referralRewardsEarned": 2000}}
+            )
+            await log_cloudz_transaction(
+                referrer_id, "referral_bonus", 2000, f"Referral reward for user #{order['userId'][:8]}"
             )
             # Log rewards for both users in loyalty history
             now = datetime.utcnow()
@@ -811,6 +821,10 @@ async def redeem_tier(req: TierRedeemRequest, user = Depends(get_current_user)):
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$inc": {"loyaltyPoints": -tier["pointsRequired"]}}
+    )
+    await log_cloudz_transaction(
+        str(user["_id"]), "tier_redemption", -tier["pointsRequired"],
+        f"Redeemed {tier['name']} (${tier['reward']:.2f} off)"
     )
 
     # Create reward record
