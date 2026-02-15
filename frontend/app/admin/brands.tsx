@@ -219,8 +219,9 @@ export default function BrandsManagement() {
 
       {/* Add/Edit Brand Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['bottom']}>
+          <View style={{ flex: 1, paddingTop: 50 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
