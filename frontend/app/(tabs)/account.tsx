@@ -73,11 +73,28 @@ export default function Account() {
     }, [loadAccountData])
   );
 
+  const referralLink = user?.referralCode
+    ? `https://clouddistrict.club/register?ref=${user.referralCode}`
+    : '';
+
   const handleCopyCode = async () => {
     if (user?.referralCode) {
       await Clipboard.setStringAsync(user.referralCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShareLink = async () => {
+    if (!referralLink) return;
+    try {
+      await Share.share({
+        message: `Join Cloud District Club and get 1,000 Cloudz points on your first purchase! Use my link: ${referralLink}`,
+        url: referralLink,
+        title: 'Cloud District Club - Referral',
+      });
+    } catch (error) {
+      // User cancelled or share failed silently
     }
   };
 
