@@ -200,6 +200,18 @@ export default function Account() {
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/cloudz-history')}
+            data-testid="menu-item-cloudz-history"
+          >
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="receipt" size={24} color="#a78bfa" />
+              <Text style={[styles.menuItemText, { color: '#a78bfa' }]}>Cloudz History</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+
           {user?.isAdmin && (
             <TouchableOpacity
               style={styles.menuItem}
