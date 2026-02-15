@@ -8,6 +8,7 @@ import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import axios from 'axios';
+import * as Clipboard from 'expo-clipboard';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
