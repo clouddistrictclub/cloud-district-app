@@ -245,6 +245,19 @@ export default function Account() {
                 </View>
               </View>
 
+              {/* Share Link Preview + Button */}
+              <View style={styles.shareLinkPreview} data-testid="share-link-preview">
+                <Text style={styles.shareLinkUrl} numberOfLines={1}>{referralLink}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={handleShareLink}
+                data-testid="share-referral-link-btn"
+              >
+                <Ionicons name="share-social" size={20} color="#fff" />
+                <Text style={styles.shareButtonText}>Share Referral Link</Text>
+              </TouchableOpacity>
+
               <View style={styles.referralStats}>
                 <View style={styles.referralStat}>
                   <Text style={styles.referralStatValue} data-testid="referral-count">{user.referralCount || 0}</Text>
