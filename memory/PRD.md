@@ -153,12 +153,19 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ### P2 - Future
 - [ ] Phase 5: Paid ads / influencer seeding
-- [ ] Build Contact/Support Section
+- [x] Build Contact/Support Section (Feb 2026)
 - [ ] Live chat feature
 
 ### P3 - Polish
 - [ ] Refactor server.py into separate API routers
 - [ ] Admin screen component refactoring
+
+## Contact & Support
+- `POST /api/support/tickets`: Creates ticket (subject, message) in `support_tickets` collection
+- `GET /api/admin/support/tickets`: Admin-only paginated list with `?status=` filter
+- Frontend: `/support` screen with contact info + "Send Message" form
+- Account tab: "Contact & Support" menu item
+- Contact: support@clouddistrictclub.com, (555) 123-4567, Mon–Sat 10AM–8PM
 
 ## Credentials
 - **Admin:** admin@clouddistrictclub.com / Admin123! (Referral code: STAV20H)
