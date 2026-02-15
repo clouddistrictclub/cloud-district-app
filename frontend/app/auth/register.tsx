@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
-import { useState } from 'react';
-import { useRouter, Link } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -8,7 +8,9 @@ import { theme } from '../../theme';
 
 export default function Register() {
   const router = useRouter();
+  const { ref } = useLocalSearchParams<{ ref?: string }>();
   const register = useAuthStore(state => state.register);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -18,6 +20,12 @@ export default function Register() {
   const [year, setYear] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (ref && !isAuthenticated) {
+      setReferralCode(ref.toUpperCase());
+    }
+  }, [ref, isAuthenticated]);
 
   const handleRegister = async () => {
     if (!email || !password || !firstName || !lastName || !month || !day || !year) {
