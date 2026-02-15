@@ -259,6 +259,19 @@ async def register(user_data: UserRegister):
     if age < 21:
         raise HTTPException(status_code=400, detail="Must be 21 or older")
     
+    # Handle referral code
+    referred_by = None
+    if user_data.referralCode:
+        referrer = await db.users.find_one({"referralCode": user_data.referralCode.upper().strip()})
+        if not referrer:
+            raise HTTPException(status_code=400, detail="Invalid referral code")
+        referred_by = str(referrer["_id"])
+
+    # Generate unique referral code for new user
+    ref_code = generate_referral_code()
+    while await db.users.find_one({"referralCode": ref_code}):
+        ref_code = generate_referral_code()
+
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
         "email": user_data.email,
@@ -270,11 +283,20 @@ async def register(user_data: UserRegister):
         "isAdmin": False,
         "loyaltyPoints": 0,
         "profilePhoto": None,
+        "referralCode": ref_code,
+        "referredBy": referred_by,
+        "referralCount": 0,
+        "referralRewardsEarned": 0,
+        "referralRewardIssued": False,
         "createdAt": datetime.utcnow()
     }
     
     result = await db.users.insert_one(user_dict)
     user_id = str(result.inserted_id)
+
+    # Prevent self-referral (edge case: code belonged to same email re-registered)
+    if referred_by == user_id:
+        await db.users.update_one({"_id": result.inserted_id}, {"$set": {"referredBy": None}})
     
     access_token = create_access_token(data={"sub": user_id})
     
@@ -287,7 +309,10 @@ async def register(user_data: UserRegister):
         phone=user_data.phone,
         isAdmin=False,
         loyaltyPoints=0,
-        profilePhoto=None
+        profilePhoto=None,
+        referralCode=ref_code,
+        referralCount=0,
+        referralRewardsEarned=0
     )
     
     return Token(access_token=access_token, token_type="bearer", user=user_response)
