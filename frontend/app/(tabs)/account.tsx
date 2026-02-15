@@ -73,6 +73,14 @@ export default function Account() {
     }, [loadAccountData])
   );
 
+  const handleCopyCode = async () => {
+    if (user?.referralCode) {
+      await Clipboard.setStringAsync(user.referralCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const handleLogout = () => {
     const doLogout = async () => {
       await logout();
