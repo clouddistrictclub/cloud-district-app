@@ -526,7 +526,8 @@ export default function ProductsManagement() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
