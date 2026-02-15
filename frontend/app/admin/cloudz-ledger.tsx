@@ -57,8 +57,8 @@ export default function AdminCloudzLedger() {
   }, [token]);
 
   useEffect(() => {
-    loadData(page, typeFilter, appliedUserId);
-  }, [page, typeFilter, appliedUserId]);
+    if (token) loadData(page, typeFilter, appliedUserId);
+  }, [page, typeFilter, appliedUserId, token]);
 
   const handleApplyUserId = () => {
     setPage(0);
