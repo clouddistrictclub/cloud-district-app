@@ -482,7 +482,8 @@ export default function ProductsManagement() {
                 multiline
                 numberOfLines={4}
               />
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
 

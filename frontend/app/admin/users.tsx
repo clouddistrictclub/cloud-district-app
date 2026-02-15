@@ -278,7 +278,8 @@ export default function UsersManagement() {
                   thumbColor="#fff"
                 />
               </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>

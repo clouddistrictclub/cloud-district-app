@@ -275,7 +275,8 @@ export default function BrandsManagement() {
                   thumbColor="#fff"
                 />
               </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
