@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,7 +26,6 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [screenReady, setScreenReady] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const [formData, setFormData] = useState({
@@ -42,19 +41,6 @@ export default function UsersManagement() {
   useEffect(() => {
     loadUsers();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      const timeout = setTimeout(() => {
-        setScreenReady(true);
-      }, 50);
-
-      return () => {
-        clearTimeout(timeout);
-        setScreenReady(false);
-      };
-    }, [])
-  );
 
   const loadUsers = async () => {
     try {
