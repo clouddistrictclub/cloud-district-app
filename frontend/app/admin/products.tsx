@@ -492,16 +492,7 @@ export default function ProductsManagement() {
                 multiline
                 numberOfLines={4}
               />
-
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct}>
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+          </ScrollView>
         </SafeAreaView>
       </Modal>
 
