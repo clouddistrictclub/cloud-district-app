@@ -207,6 +207,21 @@ class AdminUserUpdate(BaseModel):
     loyaltyPoints: Optional[int] = None
     profilePhoto: Optional[str] = None
 
+# ==================== CLOUDZ LEDGER ====================
+
+async def log_cloudz_transaction(user_id: str, tx_type: str, amount: int, reference: str = ""):
+    """Log every Cloudz balance change to the ledger collection."""
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    balance_after = user.get("loyaltyPoints", 0) if user else 0
+    await db.cloudz_ledger.insert_one({
+        "userId": user_id,
+        "type": tx_type,
+        "amount": amount,
+        "balanceAfter": balance_after,
+        "reference": reference,
+        "createdAt": datetime.utcnow(),
+    })
+
 # ==================== AUTH UTILITIES ====================
 
 def verify_password(plain_password, hashed_password):
