@@ -101,7 +101,11 @@ export default function Checkout() {
       clearCart();
       await refreshUser();
 
-      router.replace(`/payment-instructions?orderId=${orderId}&method=${selectedPayment}&amount=${total.toFixed(2)}`);
+      if (selectedPayment === 'cash_on_pickup') {
+        router.replace(`/order-confirmation?orderId=${orderId}&status=${encodeURIComponent(response.data.status)}&paymentMethod=${encodeURIComponent(selectedMethod?.name || '')}&total=${total.toFixed(2)}&pickupTime=${encodeURIComponent(selectedPickupTime)}`);
+      } else {
+        router.replace(`/payment-instructions?orderId=${orderId}&method=${selectedPayment}&amount=${total.toFixed(2)}`);
+      }
     } catch (error: any) {
       console.error('Failed to place order:', error);
       Alert.alert('Order Failed', error.response?.data?.detail || 'Failed to place order');
