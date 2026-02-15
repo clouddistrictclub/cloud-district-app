@@ -10,7 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 
 # Backend URL
-BASE_URL = "https://pickup-platform-test.preview.emergentagent.com/api"
+BASE_URL = "https://premium-pickup-test.preview.emergentagent.com/api"
 
 # MongoDB connection
 MONGO_URL = "mongodb://localhost:27017"

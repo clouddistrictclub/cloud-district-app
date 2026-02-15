@@ -14,7 +14,7 @@ import os
 from passlib.context import CryptContext
 
 # Backend URL
-BASE_URL = "https://pickup-platform-test.preview.emergentagent.com/api"
+BASE_URL = "https://premium-pickup-test.preview.emergentagent.com/api"
 
 # MongoDB connection (from backend .env)
 MONGO_URL = "mongodb://localhost:27017"
