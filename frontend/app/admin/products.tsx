@@ -70,16 +70,6 @@ export default function ProductsManagement() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (showModal) {
-      requestAnimationFrame(() => {
-        setModalReady(true);
-      });
-    } else {
-      setModalReady(false);
-    }
-  }, [showModal]);
-
   // Refresh brands when screen gains focus
   useFocusEffect(
     useCallback(() => {

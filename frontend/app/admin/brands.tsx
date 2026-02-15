@@ -36,16 +36,6 @@ export default function BrandsManagement() {
     loadBrands();
   }, []);
 
-  useEffect(() => {
-    if (showModal) {
-      requestAnimationFrame(() => {
-        setModalReady(true);
-      });
-    } else {
-      setModalReady(false);
-    }
-  }, [showModal]);
-
   const loadBrands = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/brands?active_only=false`);

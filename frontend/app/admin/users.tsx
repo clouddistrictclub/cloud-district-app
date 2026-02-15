@@ -42,16 +42,6 @@ export default function UsersManagement() {
     loadUsers();
   }, []);
 
-  useEffect(() => {
-    if (showModal) {
-      requestAnimationFrame(() => {
-        setModalReady(true);
-      });
-    } else {
-      setModalReady(false);
-    }
-  }, [showModal]);
-
   const loadUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/admin/users`);
