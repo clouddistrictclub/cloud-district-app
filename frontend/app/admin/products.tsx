@@ -71,6 +71,20 @@ export default function ProductsManagement() {
     loadData();
   }, []);
 
+  // Screen ready state for modal rendering
+  useFocusEffect(
+    useCallback(() => {
+      const timeout = setTimeout(() => {
+        setScreenReady(true);
+      }, 50);
+
+      return () => {
+        clearTimeout(timeout);
+        setScreenReady(false);
+      };
+    }, [])
+  );
+
   // Refresh brands when screen gains focus
   useFocusEffect(
     useCallback(() => {
