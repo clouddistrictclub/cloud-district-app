@@ -678,6 +678,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 24,
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   modalSave: {
     fontSize: 16,
     fontWeight: '600',
