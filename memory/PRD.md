@@ -3,23 +3,10 @@
 ## Original Problem Statement
 Build a mobile app called "Cloud District Club" for local pickup of disposable vape products for adults 21+.
 
-## Core Features
-- **Age Verification:** Mandatory 21+ gate (web + native)
-- **Design:** Dark premium theme, fast, and simple
-- **Home Screen:** Featured products, shop by brand, loyalty points, "Order for Local Pickup" button
-- **Product Catalog:** Categories, product details
-- **Checkout Flow:** Local pickup only, payment via Zelle, Venmo, Cash App, Chime
-- **Order Status System:** With push notifications
-- **Loyalty Program:** "Cloudz Points" with tier-based redemption
-- **User Profile:** Edit name, email, phone, profile photo
-- **User Accounts:** Order history, loyalty tracking
-- **Admin Dashboard:** Inventory, order management, payment confirmation, and full CRUD
-
 ## Tech Stack
 - **Frontend:** React Native (Expo), TypeScript, Expo Router, Zustand
 - **Backend:** Python, FastAPI
 - **Database:** MongoDB
-- **UI:** react-native-safe-area-context, expo-linear-gradient, expo-image-picker
 
 ## Architecture
 ```
@@ -30,7 +17,7 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 │   ├── app/
 │   │   ├── (tabs)/            # Main user tabs (home, shop, orders, account)
 │   │   ├── admin/             # Admin tabs (orders, products, brands, users)
-│   │   ├── auth/              # Login, register
+│   │   ├── auth/              # Login, register (w/ referral code)
 │   │   ├── age-gate.tsx       # 21+ verification (web HTML input + native DateTimePicker)
 │   │   ├── cloudz.tsx         # Cloudz tier rewards page
 │   │   ├── profile.tsx        # Edit profile page
@@ -43,28 +30,32 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Feb 15, 2026 — Session 1 (Cloudz Loyalty + Admin Fix)
-- [x] Fixed admin dashboard route (/admin/dashboard → /admin/orders)
-- [x] Cloudz tier-based loyalty system (5 tiers: Bronze/Silver/Gold/Platinum/Diamond)
-- [x] Checkout updated to use tier-based rewards instead of per-point $0.10 slider
-- [x] Backend: /api/loyalty/tiers, /redeem, /rewards, /history endpoints
-- [x] Auth token fix for all loyalty API calls
+### Referral Program (Feb 15, 2026 - Latest)
+- [x] Auto-generated 7-char referral codes for all users
+- [x] Optional referral code field on registration
+- [x] Referral reward trigger on first paid order: referrer +2,000 Cloudz, referred +1,000 Cloudz
+- [x] Abuse protection: invalid code rejection, referralRewardIssued flag prevents double rewards
+- [x] Refer & Earn section on Account page: code display, copy button, referral count, Cloudz earned
+- [x] Case-insensitive referral code matching
 
-### Feb 15, 2026 — Session 2 (Profile + Age Gate)
-- [x] User Profile Management UI (edit name, email, phone, profile photo)
-- [x] Account page: Cloudz balance, unlocked tier badge, redemption history
-- [x] Age Gate web fix: HTML date input on web, native DateTimePicker on iOS/Android
-- [x] Profile edit page with expo-image-picker for photos
+### Cloudz Tier Loyalty System (Feb 15, 2026)
+- [x] 5 tiers: Bronze Cloud (1k/$5), Silver Storm (5k/$30), Gold Thunder (10k/$75), Platinum Haze (20k/$175), Diamond Sky (30k/$300)
+- [x] Redeem full tier amount only
+- [x] Active rewards applied at checkout
 
-### Earlier (Pre-fork)
-- [x] Age verification gate (21+ DOB check)
-- [x] User authentication (register, login, JWT)
-- [x] Product catalog with brand filtering
-- [x] Shopping cart
-- [x] Checkout flow with payment methods
-- [x] Order management (user & admin)
-- [x] Admin Dashboard (CRUD for products, brands, users, orders)
-- [x] Dark premium theme with centralized theme file
+### User Profile Management (Feb 15, 2026)
+- [x] Edit name, email, phone, profile photo
+- [x] Tier badge display on account page
+- [x] Redemption history
+
+### Age Gate Web Fix (Feb 15, 2026)
+- [x] HTML date input on web, native DateTimePicker on iOS/Android
+
+### Core Features (Pre-fork)
+- [x] Age verification, auth, product catalog, shopping cart
+- [x] Checkout (Zelle, Venmo, Cash App, Chime)
+- [x] Order management, Admin CRUD dashboard
+- [x] Dark premium theme
 
 ## Loyalty Tier System
 | Tier | Points | Reward |
@@ -75,19 +66,19 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 | Platinum Haze | 20,000 | $175.00 |
 | Diamond Sky | 30,000 | $300.00 |
 
+## Referral System
+- Referrer: +2,000 Cloudz per successful referral
+- Referred: +1,000 Cloudz after first paid order
+- One-time reward per referred user (referralRewardIssued flag)
+
 ## Key API Endpoints
-- Auth: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
+- Auth: `/api/auth/register` (w/ referralCode), `/api/auth/login`, `/api/auth/me`
 - Products: `/api/products`, `/api/products/{id}`
-- Brands: `/api/brands`
-- Orders: `/api/orders`
+- Orders: `/api/orders`, `PATCH /api/admin/orders/{id}/status` (triggers referral rewards)
 - Loyalty: `/api/loyalty/tiers`, `/api/loyalty/redeem`, `/api/loyalty/rewards`, `/api/loyalty/history`
 - Profile: `PATCH /api/profile`
-- Admin: `/api/admin/orders`, `/api/admin/users`, etc.
 
 ## Prioritized Backlog
-### P1 - Next
-- [ ] Implement Referral Program (UI + backend for tracking referrals)
-
 ### P2 - Future
 - [ ] Build Contact/Support Section
 - [ ] Push notifications for order status
@@ -97,4 +88,4 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - [ ] Admin screen component refactoring
 
 ## Credentials
-- **Admin:** admin@clouddistrictclub.com / Admin123!
+- **Admin:** admin@clouddistrictclub.com / Admin123! (Referral code: STAV20H)
