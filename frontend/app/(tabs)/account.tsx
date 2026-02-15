@@ -196,6 +196,43 @@ export default function Account() {
           </View>
         </TouchableOpacity>
 
+        {/* Streak Bonus Card */}
+        {streakInfo && (
+          <View style={styles.streakCard} data-testid="streak-card">
+            <View style={styles.streakHeader}>
+              <Ionicons name="flame" size={24} color="#f97316" />
+              <Text style={styles.streakTitle}>Weekly Streak</Text>
+              {streakInfo.streak >= 2 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakBadgeText}>+{streakInfo.currentBonus}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.streakBody}>
+              <Text style={styles.streakCount} data-testid="streak-count">
+                {streakInfo.streak}
+              </Text>
+              <Text style={styles.streakUnit}>
+                {streakInfo.streak === 1 ? 'week' : 'weeks'}
+              </Text>
+            </View>
+            {streakInfo.streak >= 1 ? (
+              <Text style={styles.streakFooter} data-testid="streak-footer">
+                {streakInfo.streak >= 2
+                  ? `Earning +${streakInfo.currentBonus} Cloudz this week`
+                  : `Purchase next week for +${streakInfo.nextBonus} Cloudz bonus`}
+                {streakInfo.daysUntilExpiry > 0
+                  ? ` \u00B7 ${streakInfo.daysUntilExpiry}d left this week`
+                  : ' \u00B7 Last day this week!'}
+              </Text>
+            ) : (
+              <Text style={styles.streakFooter} data-testid="streak-footer">
+                Make a purchase to start your streak!
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Menu Items */}
         <View style={styles.section}>
           <TouchableOpacity
