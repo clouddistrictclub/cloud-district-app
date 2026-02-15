@@ -117,10 +117,15 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 ## Key API Endpoints
 - Auth: `/api/auth/register` (w/ referralCode), `/api/auth/login`, `/api/auth/me`
 - Products: `/api/products`, `/api/products/{id}`
-- Orders: `/api/orders`, `PATCH /api/admin/orders/{id}/status` (triggers referral rewards + ledger)
+- Orders: `/api/orders` (supports "Cash on Pickup" + digital methods), `PATCH /api/admin/orders/{id}/status` (triggers referral rewards + ledger)
 - Loyalty: `/api/loyalty/tiers`, `/api/loyalty/redeem`, `/api/loyalty/rewards`, `/api/loyalty/history`, `/api/loyalty/ledger`
 - Admin Ledger: `GET /api/admin/ledger` (paginated, ?userId=, ?type=, admin-only)
 - Profile: `PATCH /api/profile`
+
+## Payment Methods
+- Supported: Zelle, Venmo, Cash App, Chime, Cash on Pickup
+- "Cash on Pickup" sets order status to "Awaiting Pickup (Cash)"; others set "Pending Payment"
+- Verified working: Feb 2026
 
 ## Prioritized Backlog
 ### P1 - Growth (Next)
