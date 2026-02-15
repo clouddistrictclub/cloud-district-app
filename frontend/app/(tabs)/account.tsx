@@ -1,113 +1,225 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, ActivityIndicator, Platform } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+import axios from 'axios';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+interface TierInfo {
+  id: string;
+  name: string;
+  pointsRequired: number;
+  reward: number;
+  unlocked: boolean;
+}
+
+interface RedemptionRecord {
+  id: string;
+  tierId: string;
+  tierName: string;
+  rewardAmount: number;
+  pointsSpent: number;
+  used: boolean;
+  createdAt: string;
+}
+
+const TIER_ACCENT: Record<string, string> = {
+  tier_1: '#CD7F32',
+  tier_2: '#C0C0C0',
+  tier_3: '#FFD700',
+  tier_4: '#A8B8D0',
+  tier_5: '#B9F2FF',
+};
 
 export default function Account() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, token, refreshUser } = useAuthStore();
   const clearCart = useCartStore(state => state.clearCart);
+  const [highestTier, setHighestTier] = useState<TierInfo | null>(null);
+  const [history, setHistory] = useState<RedemptionRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+  const loadAccountData = useCallback(async () => {
+    try {
+      const [tiersRes, historyRes] = await Promise.all([
+        axios.get(`${API_URL}/api/loyalty/tiers`, authHeaders),
+        axios.get(`${API_URL}/api/loyalty/history`, authHeaders),
+      ]);
+      // Find highest unlocked tier
+      const unlocked = (tiersRes.data.tiers as TierInfo[]).filter(t => t.unlocked);
+      setHighestTier(unlocked.length > 0 ? unlocked[unlocked.length - 1] : null);
+      setHistory(historyRes.data.slice(0, 5)); // Show last 5
+    } catch (error) {
+      console.error('Failed to load account data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+      loadAccountData();
+    }, [loadAccountData])
+  );
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
+    const doLogout = async () => {
+      await logout();
+      clearCart();
+      router.replace('/auth/login');
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirm('Are you sure you want to logout?')) {
+        doLogout();
+      }
+    } else {
+      Alert.alert('Logout', 'Are you sure you want to logout?', [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            clearCart();
-            router.replace('/auth/login');
-          }
-        }
-      ]
-    );
+        { text: 'Logout', style: 'destructive', onPress: doLogout },
+      ]);
+    }
   };
 
-  const menuItems = [
-    {
-      icon: 'star',
-      label: 'Cloudz Rewards',
-      onPress: () => router.push('/cloudz'),
-      color: '#fbbf24',
-    },
-    ...(user?.isAdmin ? [
-      { 
-        icon: 'shield', 
-        label: 'Admin Dashboard', 
-        onPress: () => router.push('/admin/orders'),
-        color: theme.colors.primary,
-      }
-    ] : []),
-  ];
-
   const userPoints = user?.loyaltyPoints || 0;
+  const tierColor = highestTier ? TIER_ACCENT[highestTier.id] || theme.colors.primary : theme.colors.textMuted;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Account</Text>
+        <TouchableOpacity onPress={() => router.push('/profile')} data-testid="edit-profile-btn">
+          <Ionicons name="create-outline" size={22} color={theme.colors.primary} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.firstName.charAt(0)}{user?.lastName.charAt(0)}
-            </Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Profile Card */}
+        <TouchableOpacity
+          style={styles.profileCard}
+          onPress={() => router.push('/profile')}
+          activeOpacity={0.8}
+          data-testid="profile-card"
+        >
+          {user?.profilePhoto ? (
+            <Image source={{ uri: user.profilePhoto }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </Text>
+            </View>
+          )}
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.firstName} {user?.lastName}</Text>
+            <Text style={styles.profileEmail}>{user?.email}</Text>
+            {user?.phone ? <Text style={styles.profilePhone}>{user.phone}</Text> : null}
           </View>
-          <Text style={styles.profileName}>{user?.firstName} {user?.lastName}</Text>
-          <Text style={styles.profileEmail}>{user?.email}</Text>
-        </View>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
 
+        {/* Cloudz Balance + Tier Badge */}
         <TouchableOpacity
           style={styles.loyaltyCard}
           onPress={() => router.push('/cloudz')}
           activeOpacity={0.8}
           data-testid="loyalty-card-link"
         >
-          <View style={styles.loyaltyHeader}>
-            <Ionicons name="star" size={32} color="#fbbf24" />
-            <Text style={styles.loyaltyTitle}>Cloudz Points</Text>
-            <Ionicons name="chevron-forward" size={20} color="#e0e7ff" style={{ marginLeft: 'auto' }} />
+          <View style={styles.loyaltyRow}>
+            <View style={{ flex: 1 }}>
+              <View style={styles.loyaltyHeader}>
+                <Ionicons name="star" size={28} color="#fbbf24" />
+                <Text style={styles.loyaltyTitle}>Cloudz Points</Text>
+              </View>
+              <Text style={styles.loyaltyPoints} data-testid="account-points-display">
+                {userPoints.toLocaleString()}
+              </Text>
+            </View>
+            {highestTier && (
+              <View style={[styles.tierBadge, { borderColor: tierColor }]} data-testid="tier-badge">
+                <Ionicons name="diamond" size={18} color={tierColor} />
+                <Text style={[styles.tierBadgeText, { color: tierColor }]}>{highestTier.name}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.loyaltyPoints} data-testid="account-points-display">{userPoints.toLocaleString()}</Text>
-          <Text style={styles.loyaltySubtext}>Tap to view reward tiers</Text>
+          <View style={styles.loyaltyFooter}>
+            <Text style={styles.loyaltySubtext}>
+              {highestTier ? `${highestTier.name} Member` : 'Earn points with every purchase'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color="#e0e7ff" />
+          </View>
         </TouchableOpacity>
 
+        {/* Menu Items */}
         <View style={styles.section}>
-          {menuItems.map((item, index) => (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/cloudz')}
+            data-testid="menu-item-cloudz-rewards"
+          >
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="star" size={24} color="#fbbf24" />
+              <Text style={[styles.menuItemText, { color: '#fbbf24' }]}>Cloudz Rewards</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+
+          {user?.isAdmin && (
             <TouchableOpacity
-              key={index}
               style={styles.menuItem}
-              onPress={item.onPress}
-              data-testid={`menu-item-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+              onPress={() => router.push('/admin/orders')}
+              data-testid="menu-item-admin-dashboard"
             >
               <View style={styles.menuItemLeft}>
-                <Ionicons name={item.icon as any} size={24} color={item.color || '#fff'} />
-                <Text style={[styles.menuItemText, item.color && { color: item.color }]}>
-                  {item.label}
-                </Text>
+                <Ionicons name="shield" size={24} color={theme.colors.primary} />
+                <Text style={[styles.menuItemText, { color: theme.colors.primary }]}>Admin Dashboard</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
-          ))}
+          )}
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Member Since</Text>
-            <Text style={styles.infoValue}>
-              {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </Text>
+        {/* Redemption History */}
+        {history.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Redemptions</Text>
+            {history.map((item) => (
+              <View key={item.id} style={styles.historyRow} data-testid={`redemption-${item.id}`}>
+                <View style={[styles.historyDot, { backgroundColor: TIER_ACCENT[item.tierId] || '#666' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.historyName}>{item.tierName}</Text>
+                  <Text style={styles.historyDate}>
+                    {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+                <Text style={styles.historyPoints}>-{item.pointsSpent.toLocaleString()}</Text>
+                <View style={[
+                  styles.historyStatus,
+                  { backgroundColor: item.used ? '#333' : theme.colors.success + '22' }
+                ]}>
+                  <Text style={[
+                    styles.historyStatusText,
+                    { color: item.used ? '#666' : theme.colors.success }
+                  ]}>
+                    {item.used ? 'Used' : 'Active'}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
-          
+        )}
+
+        {/* Info Cards */}
+        <View style={styles.section}>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Age Verified</Text>
             <View style={styles.verifiedBadge}>
@@ -117,6 +229,7 @@ export default function Account() {
           </View>
         </View>
 
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} data-testid="logout-btn">
           <Ionicons name="log-out" size={20} color={theme.colors.primary} />
           <Text style={styles.logoutText}>Logout</Text>
@@ -134,14 +247,17 @@ export default function Account() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: theme.colors.background,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
     paddingTop: 8,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
   },
@@ -150,74 +266,113 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   profileCard: {
-    backgroundColor: '#151515',
-    borderRadius: 18,
-    padding: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
     marginBottom: 16,
+    gap: 14,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#2E6BFF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  avatarPlaceholder: {
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  profileInfo: {
+    flex: 1,
   },
   profileName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 4,
   },
   profileEmail: {
-    fontSize: 14,
-    color: '#A0A0A0',
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  profilePhone: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   loyaltyCard: {
-    backgroundColor: 'linear-gradient(135deg, #2E6BFF 0%, #8b5cf6 100%)',
-    backgroundColor: '#2E6BFF',
-    borderRadius: 18,
-    padding: 24,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.lg,
+    padding: 20,
     marginBottom: 16,
+  },
+  loyaltyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   loyaltyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 4,
   },
   loyaltyTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#e0e7ff',
   },
   loyaltyPoints: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 8,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  tierBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  loyaltyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
   loyaltySubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#e0e7ff',
   },
   section: {
     marginBottom: 16,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#151515',
+    backgroundColor: theme.colors.card,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: theme.borderRadius.lg,
     marginBottom: 8,
   },
   menuItemLeft: {
@@ -230,23 +385,56 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.md,
+    padding: 12,
+    marginBottom: 6,
+    gap: 10,
+  },
+  historyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  historyName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  historyDate: {
+    color: '#666',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  historyPoints: {
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  historyStatus: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  historyStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   infoCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#151515',
+    backgroundColor: theme.colors.card,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: theme.borderRadius.lg,
     marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#A0A0A0',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
+    color: theme.colors.textMuted,
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -255,7 +443,7 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     fontSize: 14,
-    color: '#10b981',
+    color: theme.colors.success,
     fontWeight: '600',
   },
   logoutButton: {
@@ -263,15 +451,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#151515',
+    backgroundColor: theme.colors.card,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#2E6BFF',
+    borderColor: theme.colors.primary,
   },
   logoutText: {
     fontSize: 16,
-    color: '#2E6BFF',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   footer: {
