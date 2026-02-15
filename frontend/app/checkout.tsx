@@ -133,7 +133,7 @@ export default function Checkout() {
               <View style={styles.radioOuter}>
                 {selectedPayment === method.id && <View style={styles.radioInner} />}
               </View>
-              <Ionicons name={method.icon as any} size={20} color="#6366f1" />
+              <Ionicons name={method.icon as any} size={20} color="#2E6BFF" />
               <Text style={styles.optionText}>{method.name}</Text>
               {method.fee > 0 && (
                 <Text style={styles.feeText}>+{(method.fee * 100).toFixed(0)}% fee</Text>
@@ -260,16 +260,16 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 8,
     borderWidth: 2,
     borderColor: 'transparent',
     gap: 12,
   },
   optionCardSelected: {
-    borderColor: '#6366f1',
+    borderColor: '#2E6BFF',
     backgroundColor: '#1e1e2e',
   },
   radioOuter: {
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#6366f1',
+    borderColor: '#2E6BFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
   },
   optionText: {
     flex: 1,
@@ -297,9 +297,9 @@ const styles = StyleSheet.create({
     color: '#fbbf24',
   },
   loyaltyCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   loyaltyInfo: {
     flexDirection: 'row',
@@ -343,9 +343,9 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   summaryCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 16,
   },
   summaryTitle: {
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
   },
   summaryValue: {
     fontSize: 14,
@@ -390,14 +390,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
   placeOrderButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   buttonDisabled: {

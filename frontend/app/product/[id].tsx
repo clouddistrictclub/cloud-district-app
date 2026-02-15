@@ -121,7 +121,7 @@ export default function ProductDetail() {
 
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
-              <Ionicons name="cloud" size={20} color="#6366f1" />
+              <Ionicons name="cloud" size={20} color="#2E6BFF" />
               <Text style={styles.detailLabel}>Puff Count</Text>
               <Text style={styles.detailValue}>{product.puffCount} puffs</Text>
             </View>
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#999',
+    color: '#A0A0A0',
     textAlign: 'center',
     marginTop: 100,
   },
@@ -199,17 +199,17 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: 300,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
   },
   infoSection: {
     padding: 16,
   },
   brandBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 12,
   },
   brandText: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   productFlavor: {
     fontSize: 16,
-    color: '#999',
+    color: '#A0A0A0',
     marginBottom: 16,
   },
   priceContainer: {
@@ -240,10 +240,10 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   outOfStockBadge: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   outOfStockText: {
     fontSize: 12,
@@ -251,8 +251,8 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   detailsCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
   },
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   detailLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
     marginLeft: 12,
   },
   detailValue: {
@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 18,
     gap: 12,
   },
   warningText: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     borderTopWidth: 1,
     borderTopColor: '#333',
     gap: 12,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0c0c0c',
-    borderRadius: 8,
+    borderRadius: 18,
     padding: 8,
     gap: 16,
   },
@@ -321,8 +321,8 @@ const styles = StyleSheet.create({
   },
   addToCartButton: {
     flex: 1,
-    backgroundColor: '#6366f1',
-    borderRadius: 8,
+    backgroundColor: '#2E6BFF',
+    borderRadius: 18,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',

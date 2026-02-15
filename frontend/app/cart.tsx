@@ -91,7 +91,7 @@ export default function Cart() {
                   style={styles.removeButton}
                   onPress={() => handleRemoveItem(item.productId, item.name)}
                 >
-                  <Ionicons name="trash" size={20} color="#dc2626" />
+                  <Ionicons name="trash" size={20} color="#2E6BFF" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 14,
-    color: '#dc2626',
+    color: '#2E6BFF',
     fontWeight: '600',
   },
   content: {
@@ -160,15 +160,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#999',
+    color: '#A0A0A0',
     marginTop: 16,
     marginBottom: 32,
   },
   shopButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 8,
+    borderRadius: 18,
   },
   shopButtonText: {
     color: '#fff',
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   },
   cartItem: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     padding: 12,
     marginBottom: 12,
     gap: 12,
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   itemImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
+    borderRadius: 18,
     backgroundColor: '#2a2a2a',
   },
   itemInfo: {
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontSize: 16,
-    color: '#6366f1',
+    color: '#2E6BFF',
     fontWeight: 'bold',
   },
   quantityContainer: {
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   summaryCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     padding: 16,
     marginTop: 16,
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
@@ -275,9 +275,9 @@ const styles = StyleSheet.create({
   },
   checkoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
