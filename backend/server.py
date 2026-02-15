@@ -76,6 +76,9 @@ class UserResponse(BaseModel):
     loyaltyPoints: int
     phone: Optional[str] = None
     profilePhoto: Optional[str] = None
+    referralCode: Optional[str] = None
+    referralCount: int = 0
+    referralRewardsEarned: int = 0
 
 class Token(BaseModel):
     access_token: str
