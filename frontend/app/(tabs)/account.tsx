@@ -45,6 +45,7 @@ export default function Account() {
   const [highestTier, setHighestTier] = useState<TierInfo | null>(null);
   const [history, setHistory] = useState<RedemptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
