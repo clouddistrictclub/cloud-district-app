@@ -30,7 +30,13 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Cloudz Transaction Ledger + History UI (Feb 15, 2026 - Latest)
+### Admin Cloudz Ledger (Feb 15, 2026 - Latest)
+- [x] `GET /api/admin/ledger` admin-only endpoint with pagination (skip/limit), userId and type filters
+- [x] User email joined from users collection for each entry
+- [x] Admin "Ledger" tab in dashboard with filter chips, userId search, +/- color formatting
+- [x] Non-admin requests blocked (403)
+
+### Cloudz Transaction Ledger + History UI (Feb 15, 2026)
 - [x] `cloudz_ledger` MongoDB collection logging every Cloudz change
 - [x] All 5 mutation points instrumented: purchase_reward, referral_bonus (x2), tier_redemption, admin_adjustment
 - [x] `GET /api/loyalty/ledger` endpoint returns chronological transactions
@@ -100,6 +106,7 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - Products: `/api/products`, `/api/products/{id}`
 - Orders: `/api/orders`, `PATCH /api/admin/orders/{id}/status` (triggers referral rewards + ledger)
 - Loyalty: `/api/loyalty/tiers`, `/api/loyalty/redeem`, `/api/loyalty/rewards`, `/api/loyalty/history`, `/api/loyalty/ledger`
+- Admin Ledger: `GET /api/admin/ledger` (paginated, ?userId=, ?type=, admin-only)
 - Profile: `PATCH /api/profile`
 
 ## Prioritized Backlog
