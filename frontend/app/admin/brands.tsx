@@ -280,7 +280,8 @@ export default function BrandsManagement() {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
