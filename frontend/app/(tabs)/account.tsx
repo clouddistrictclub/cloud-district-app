@@ -198,6 +198,51 @@ export default function Account() {
           )}
         </View>
 
+        {/* Refer & Earn */}
+        {user?.referralCode && (
+          <View style={styles.section}>
+            <View style={styles.referralCard} data-testid="referral-section">
+              <View style={styles.referralHeader}>
+                <Ionicons name="people" size={28} color={theme.colors.primary} />
+                <Text style={styles.referralTitle}>Refer & Earn</Text>
+              </View>
+
+              <Text style={styles.referralDesc}>
+                You earn 2,000 Cloudz. Your friend earns 1,000 after their first purchase.
+              </Text>
+
+              <View style={styles.referralCodeRow}>
+                <Text style={styles.referralCodeLabel}>Your Code</Text>
+                <View style={styles.referralCodeBox}>
+                  <Text style={styles.referralCodeText} data-testid="referral-code-display">{user.referralCode}</Text>
+                  <TouchableOpacity
+                    onPress={handleCopyCode}
+                    style={styles.copyButton}
+                    data-testid="copy-referral-code-btn"
+                  >
+                    <Ionicons name={copied ? 'checkmark' : 'copy'} size={18} color={copied ? theme.colors.success : '#fff'} />
+                    <Text style={[styles.copyButtonText, copied && { color: theme.colors.success }]}>
+                      {copied ? 'Copied!' : 'Copy'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.referralStats}>
+                <View style={styles.referralStat}>
+                  <Text style={styles.referralStatValue} data-testid="referral-count">{user.referralCount || 0}</Text>
+                  <Text style={styles.referralStatLabel}>Referrals</Text>
+                </View>
+                <View style={styles.referralStatDivider} />
+                <View style={styles.referralStat}>
+                  <Text style={styles.referralStatValue} data-testid="referral-earnings">{(user.referralRewardsEarned || 0).toLocaleString()}</Text>
+                  <Text style={styles.referralStatLabel}>Cloudz Earned</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Redemption History */}
         {history.length > 0 && (
           <View style={styles.section}>
