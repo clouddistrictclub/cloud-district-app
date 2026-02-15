@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useState } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { theme } from '../../theme';
 
 export default function Register() {
   const router = useRouter();
@@ -15,11 +16,13 @@ export default function Register() {
   const [month, setMonth] = useState('');
   const [day, setDay] = useState('');
   const [year, setYear] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!email || !password || !firstName || !lastName || !month || !day || !year) {
-      Alert.alert('Error', 'Please fill in all fields');
+      const msg = 'Please fill in all required fields';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       return;
     }
 
@@ -27,10 +30,11 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName, dateOfBirth);
+      await register(email, password, firstName, lastName, dateOfBirth, referralCode.trim() || undefined);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.detail || 'An error occurred');
+      const msg = error.response?.data?.detail || 'An error occurred';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Registration Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -51,6 +55,7 @@ export default function Register() {
               placeholderTextColor="#666"
               value={firstName}
               onChangeText={setFirstName}
+              data-testid="register-first-name"
             />
 
             <Text style={styles.label}>Last Name</Text>
@@ -60,6 +65,7 @@ export default function Register() {
               placeholderTextColor="#666"
               value={lastName}
               onChangeText={setLastName}
+              data-testid="register-last-name"
             />
 
             <Text style={styles.label}>Email</Text>
@@ -71,16 +77,18 @@ export default function Register() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              data-testid="register-email"
             />
 
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="Create a password"
               placeholderTextColor="#666"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              data-testid="register-password"
             />
 
             <Text style={styles.label}>Date of Birth (Must be 21+)</Text>
@@ -93,6 +101,7 @@ export default function Register() {
                 onChangeText={setMonth}
                 keyboardType="numeric"
                 maxLength={2}
+                data-testid="register-dob-month"
               />
               <Text style={styles.dateSeparator}>/</Text>
               <TextInput
@@ -103,6 +112,7 @@ export default function Register() {
                 onChangeText={setDay}
                 keyboardType="numeric"
                 maxLength={2}
+                data-testid="register-dob-day"
               />
               <Text style={styles.dateSeparator}>/</Text>
               <TextInput
@@ -113,13 +123,27 @@ export default function Register() {
                 onChangeText={setYear}
                 keyboardType="numeric"
                 maxLength={4}
+                data-testid="register-dob-year"
               />
             </View>
+
+            <Text style={styles.label}>Referral Code <Text style={styles.optional}>(optional)</Text></Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter a friend's referral code"
+              placeholderTextColor="#666"
+              value={referralCode}
+              onChangeText={(text) => setReferralCode(text.toUpperCase())}
+              autoCapitalize="characters"
+              maxLength={8}
+              data-testid="register-referral-code"
+            />
 
             <TouchableOpacity 
               style={[styles.button, loading && styles.buttonDisabled]} 
               onPress={handleRegister}
               disabled={loading}
+              data-testid="register-submit-btn"
             >
               <Text style={styles.buttonText}>{loading ? 'Creating Account...' : 'Sign Up'}</Text>
             </TouchableOpacity>
@@ -142,7 +166,7 @@ export default function Register() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -161,7 +185,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#A0A0A0',
+    color: theme.colors.textMuted,
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -174,11 +198,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: -8,
   },
+  optional: {
+    color: theme.colors.textMuted,
+    fontWeight: '400',
+  },
   input: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.inputBackground,
     borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 18,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: theme.borderRadius.lg,
     padding: 16,
     color: '#fff',
     fontSize: 16,
@@ -189,10 +217,10 @@ const styles = StyleSheet.create({
   },
   dateInput: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.inputBackground,
     borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 18,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: theme.borderRadius.lg,
     padding: 16,
     color: '#fff',
     fontSize: 16,
@@ -200,10 +228,10 @@ const styles = StyleSheet.create({
   },
   dateInputYear: {
     flex: 1.5,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.inputBackground,
     borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 18,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: theme.borderRadius.lg,
     padding: 16,
     color: '#fff',
     fontSize: 16,
@@ -215,9 +243,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   button: {
-    backgroundColor: '#2E6BFF',
+    backgroundColor: theme.colors.primary,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     marginTop: 8,
   },
@@ -235,11 +263,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerText: {
-    color: '#A0A0A0',
+    color: theme.colors.textMuted,
     fontSize: 14,
   },
   link: {
-    color: '#2E6BFF',
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
