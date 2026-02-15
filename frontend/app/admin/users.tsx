@@ -288,15 +288,6 @@ export default function UsersManagement() {
                   thumbColor="#fff"
                 />
               </View>
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveUser}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
