@@ -34,7 +34,7 @@ export default function Account() {
       { 
         icon: 'shield', 
         label: 'Admin Dashboard', 
-        onPress: () => router.push('/admin/dashboard'),
+        onPress: () => router.push('/admin/orders'),
         color: '#2E6BFF'
       }
     ] : []),

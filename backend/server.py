@@ -683,6 +683,115 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
         profilePhoto=user.get("profilePhoto")
     )
 
+# ==================== LOYALTY TIER SYSTEM ====================
+
+LOYALTY_TIERS = [
+    {"id": "tier_1", "name": "Bronze Cloud", "pointsRequired": 1000, "reward": 5.00, "icon": "cloud-outline"},
+    {"id": "tier_2", "name": "Silver Storm", "pointsRequired": 5000, "reward": 30.00, "icon": "cloud"},
+    {"id": "tier_3", "name": "Gold Thunder", "pointsRequired": 10000, "reward": 75.00, "icon": "thunderstorm-outline"},
+    {"id": "tier_4", "name": "Platinum Haze", "pointsRequired": 20000, "reward": 175.00, "icon": "thunderstorm"},
+    {"id": "tier_5", "name": "Diamond Sky", "pointsRequired": 30000, "reward": 300.00, "icon": "diamond"},
+]
+
+class TierRedeemRequest(BaseModel):
+    tierId: str
+
+@api_router.get("/loyalty/tiers")
+async def get_loyalty_tiers(user = Depends(get_current_user)):
+    user_points = user.get("loyaltyPoints", 0)
+    tiers = []
+    for tier in LOYALTY_TIERS:
+        tiers.append({
+            **tier,
+            "unlocked": user_points >= tier["pointsRequired"],
+            "pointsNeeded": max(0, tier["pointsRequired"] - user_points),
+        })
+    return {
+        "userPoints": user_points,
+        "tiers": tiers,
+    }
+
+@api_router.post("/loyalty/redeem")
+async def redeem_tier(req: TierRedeemRequest, user = Depends(get_current_user)):
+    tier = next((t for t in LOYALTY_TIERS if t["id"] == req.tierId), None)
+    if not tier:
+        raise HTTPException(status_code=404, detail="Tier not found")
+
+    user_points = user.get("loyaltyPoints", 0)
+    if user_points < tier["pointsRequired"]:
+        raise HTTPException(status_code=400, detail="Not enough points to redeem this tier")
+
+    # Check if user already has an active (unused) reward for this tier
+    existing = await db.loyalty_rewards.find_one({
+        "userId": str(user["_id"]),
+        "tierId": req.tierId,
+        "used": False,
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have an active reward for this tier. Use it at checkout first.")
+
+    # Deduct points
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$inc": {"loyaltyPoints": -tier["pointsRequired"]}}
+    )
+
+    # Create reward record
+    reward_doc = {
+        "userId": str(user["_id"]),
+        "tierId": tier["id"],
+        "tierName": tier["name"],
+        "pointsSpent": tier["pointsRequired"],
+        "rewardAmount": tier["reward"],
+        "used": False,
+        "createdAt": datetime.utcnow(),
+    }
+    result = await db.loyalty_rewards.insert_one(reward_doc)
+
+    return {
+        "message": f"Redeemed {tier['name']} for ${tier['reward']:.2f} off!",
+        "rewardId": str(result.inserted_id),
+        "rewardAmount": tier["reward"],
+        "pointsSpent": tier["pointsRequired"],
+        "remainingPoints": user_points - tier["pointsRequired"],
+    }
+
+@api_router.get("/loyalty/rewards")
+async def get_active_rewards(user = Depends(get_current_user)):
+    rewards = await db.loyalty_rewards.find({
+        "userId": str(user["_id"]),
+        "used": False,
+    }).to_list(100)
+    return [
+        {
+            "id": str(r["_id"]),
+            "tierId": r["tierId"],
+            "tierName": r["tierName"],
+            "rewardAmount": r["rewardAmount"],
+            "pointsSpent": r["pointsSpent"],
+            "createdAt": r["createdAt"].isoformat() if isinstance(r["createdAt"], datetime) else r["createdAt"],
+        }
+        for r in rewards
+    ]
+
+@api_router.get("/loyalty/history")
+async def get_redemption_history(user = Depends(get_current_user)):
+    rewards = await db.loyalty_rewards.find({
+        "userId": str(user["_id"]),
+    }).sort("createdAt", -1).to_list(100)
+    return [
+        {
+            "id": str(r["_id"]),
+            "tierId": r["tierId"],
+            "tierName": r["tierName"],
+            "rewardAmount": r["rewardAmount"],
+            "pointsSpent": r["pointsSpent"],
+            "used": r["used"],
+            "createdAt": r["createdAt"].isoformat() if isinstance(r["createdAt"], datetime) else r["createdAt"],
+        }
+        for r in rewards
+    ]
+
 # ==================== CATEGORIES ENDPOINT ====================
 
 @api_router.get("/categories")
