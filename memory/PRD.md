@@ -140,8 +140,16 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## Prioritized Backlog
 ### P1 - Growth (Next)
-- [ ] Phase 3: Share incentives + streak bonus
+- [x] Phase 3: Streak bonus (Feb 2026) — +50/+100/+200/+500 Cloudz for consecutive weekly purchases
 - [x] Phase 4: Push notifications (Feb 2026)
+
+## Streak Bonus System
+- Tracks consecutive ISO weeks (Mon–Sun) with at least one Paid order
+- Bonus scale: Week 2: +50, Week 3: +100, Week 4: +200, Week 5+: +500 Cloudz
+- Awarded once per ISO week via `maybe_award_streak_bonus()` when first order marked Paid
+- Logged to `cloudz_ledger` as type `streak_bonus` with `isoYear` + `isoWeek` for idempotency
+- `GET /api/loyalty/streak`: Returns streak count, currentBonus, nextBonus, daysUntilExpiry
+- Frontend: Streak card on Account tab between Cloudz Points and menu items
 
 ### P2 - Future
 - [ ] Phase 5: Paid ads / influencer seeding
