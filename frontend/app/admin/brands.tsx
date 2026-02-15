@@ -23,6 +23,7 @@ export default function BrandsManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalReady, setModalReady] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   
   const [formData, setFormData] = useState({
@@ -35,6 +36,16 @@ export default function BrandsManagement() {
   useEffect(() => {
     loadBrands();
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      requestAnimationFrame(() => {
+        setModalReady(true);
+      });
+    } else {
+      setModalReady(false);
+    }
+  }, [showModal]);
 
   const loadBrands = async () => {
     try {
