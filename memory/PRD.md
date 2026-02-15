@@ -30,7 +30,15 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Referral Program (Feb 15, 2026 - Latest)
+### Referral Deep Linking - Phase 2 (Feb 15, 2026 - Latest)
+- [x] Universal link format: `https://clouddistrict.club/register?ref=CODE`
+- [x] Auto-fill referral code from URL `?ref=` param on register page
+- [x] Ignore ref param if user is already logged in
+- [x] "Share Referral Link" button on Account page with native Share API
+- [x] Full link preview displayed before share button
+- [x] URL scheme set to `clouddistrict` in app.json
+
+### Referral Program - Phase 1 (Feb 15, 2026)
 - [x] Auto-generated 7-char referral codes for all users
 - [x] Optional referral code field on registration
 - [x] Referral reward trigger on first paid order: referrer +2,000 Cloudz, referred +1,000 Cloudz
@@ -70,6 +78,15 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - Referrer: +2,000 Cloudz per successful referral
 - Referred: +1,000 Cloudz after first paid order
 - One-time reward per referred user (referralRewardIssued flag)
+- Deep link format: `https://clouddistrict.club/register?ref=CODE`
+- Share via native Share API from Account page
+
+## Growth Strategy Roadmap
+- [x] Phase 1: Referral code system (DONE)
+- [x] Phase 2: Deep link sharing (DONE)
+- [ ] Phase 3: Share incentives + streak bonus
+- [ ] Phase 4: Push notifications
+- [ ] Phase 5: Paid ads / influencer seeding
 
 ## Key API Endpoints
 - Auth: `/api/auth/register` (w/ referralCode), `/api/auth/login`, `/api/auth/me`
@@ -79,12 +96,17 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - Profile: `PATCH /api/profile`
 
 ## Prioritized Backlog
+### P1 - Growth (Next)
+- [ ] Phase 3: Share incentives + streak bonus
+- [ ] Phase 4: Push notifications
+
 ### P2 - Future
+- [ ] Phase 5: Paid ads / influencer seeding
 - [ ] Build Contact/Support Section
-- [ ] Push notifications for order status
 - [ ] Live chat feature
 
 ### P3 - Polish
+- [ ] Refactor server.py into separate API routers
 - [ ] Admin screen component refactoring
 
 ## Credentials
