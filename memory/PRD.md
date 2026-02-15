@@ -30,7 +30,14 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Referral Deep Linking - Phase 2 (Feb 15, 2026 - Latest)
+### Cloudz Transaction Ledger + History UI (Feb 15, 2026 - Latest)
+- [x] `cloudz_ledger` MongoDB collection logging every Cloudz change
+- [x] All 5 mutation points instrumented: purchase_reward, referral_bonus (x2), tier_redemption, admin_adjustment
+- [x] `GET /api/loyalty/ledger` endpoint returns chronological transactions
+- [x] Cloudz History screen with type labels, +/- color formatting, balanceAfter tracking
+- [x] Account page menu link to Cloudz History
+
+### Referral Deep Linking - Phase 2 (Feb 15, 2026)
 - [x] Universal link format: `https://clouddistrict.club/register?ref=CODE`
 - [x] Auto-fill referral code from URL `?ref=` param on register page
 - [x] Ignore ref param if user is already logged in
@@ -91,8 +98,8 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 ## Key API Endpoints
 - Auth: `/api/auth/register` (w/ referralCode), `/api/auth/login`, `/api/auth/me`
 - Products: `/api/products`, `/api/products/{id}`
-- Orders: `/api/orders`, `PATCH /api/admin/orders/{id}/status` (triggers referral rewards)
-- Loyalty: `/api/loyalty/tiers`, `/api/loyalty/redeem`, `/api/loyalty/rewards`, `/api/loyalty/history`
+- Orders: `/api/orders`, `PATCH /api/admin/orders/{id}/status` (triggers referral rewards + ledger)
+- Loyalty: `/api/loyalty/tiers`, `/api/loyalty/redeem`, `/api/loyalty/rewards`, `/api/loyalty/history`, `/api/loyalty/ledger`
 - Profile: `PATCH /api/profile`
 
 ## Prioritized Backlog
