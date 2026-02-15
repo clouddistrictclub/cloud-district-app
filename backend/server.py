@@ -335,7 +335,10 @@ async def login(user_data: UserLogin):
         phone=user.get("phone"),
         isAdmin=user.get("isAdmin", False),
         loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
+        profilePhoto=user.get("profilePhoto"),
+        referralCode=user.get("referralCode"),
+        referralCount=user.get("referralCount", 0),
+        referralRewardsEarned=user.get("referralRewardsEarned", 0)
     )
     
     return Token(access_token=access_token, token_type="bearer", user=user_response)
