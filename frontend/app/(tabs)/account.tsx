@@ -212,6 +212,18 @@ export default function Account() {
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/leaderboard')}
+            data-testid="menu-item-leaderboard"
+          >
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="trophy" size={24} color="#f59e0b" />
+              <Text style={[styles.menuItemText, { color: '#f59e0b' }]}>Leaderboard</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+
           {user?.isAdmin && (
             <TouchableOpacity
               style={styles.menuItem}

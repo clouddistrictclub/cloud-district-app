@@ -943,6 +943,55 @@ async def get_cloudz_ledger(user = Depends(get_current_user)):
 
 # ==================== CATEGORIES ENDPOINT ====================
 
+TIER_COLORS = {
+    "tier_1": "#CD7F32",
+    "tier_2": "#C0C0C0",
+    "tier_3": "#FFD700",
+    "tier_4": "#A8B8D0",
+    "tier_5": "#B9F2FF",
+}
+
+def resolve_tier(points: int):
+    tier_name = None
+    tier_id = None
+    for t in LOYALTY_TIERS:
+        if points >= t["pointsRequired"]:
+            tier_name = t["name"]
+            tier_id = t["id"]
+    return tier_name, TIER_COLORS.get(tier_id, "#666") if tier_id else ("#666")
+
+@api_router.get("/leaderboard")
+async def get_leaderboard(user = Depends(get_current_user)):
+    projection = {"_id": 1, "firstName": 1, "lastName": 1, "loyaltyPoints": 1, "referralCount": 1}
+    current_uid = str(user["_id"])
+
+    by_points_cursor = db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20)
+    by_referrals_cursor = db.users.find({}, projection).sort("referralCount", -1).limit(20)
+
+    by_points_raw = await by_points_cursor.to_list(20)
+    by_referrals_raw = await by_referrals_cursor.to_list(20)
+
+    def build_entry(doc, rank):
+        first = doc.get("firstName", "")
+        last = doc.get("lastName", "")
+        display = f"{first} {last[0]}." if last else first
+        pts = doc.get("loyaltyPoints", 0)
+        tier_name, tier_color = resolve_tier(pts)
+        return {
+            "rank": rank,
+            "displayName": display,
+            "points": pts,
+            "referralCount": doc.get("referralCount", 0),
+            "tier": tier_name,
+            "tierColor": tier_color,
+            "isCurrentUser": str(doc["_id"]) == current_uid,
+        }
+
+    return {
+        "byPoints": [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)],
+        "byReferrals": [build_entry(d, i + 1) for i, d in enumerate(by_referrals_raw)],
+    }
+
 @api_router.get("/categories")
 async def get_categories():
     return [
