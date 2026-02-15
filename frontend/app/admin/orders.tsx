@@ -191,7 +191,8 @@ export default function AdminDashboard() {
           ))
         )}
       </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
