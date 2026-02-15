@@ -246,6 +246,23 @@ async def get_admin_user(user = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+def build_user_response(user_doc: dict) -> UserResponse:
+    uid = str(user_doc["_id"]) if "_id" in user_doc else user_doc.get("id", "")
+    return UserResponse(
+        id=uid,
+        email=user_doc["email"],
+        firstName=user_doc["firstName"],
+        lastName=user_doc["lastName"],
+        dateOfBirth=user_doc["dateOfBirth"],
+        phone=user_doc.get("phone"),
+        isAdmin=user_doc.get("isAdmin", False),
+        loyaltyPoints=user_doc.get("loyaltyPoints", 0),
+        profilePhoto=user_doc.get("profilePhoto"),
+        referralCode=user_doc.get("referralCode"),
+        referralCount=user_doc.get("referralCount", 0),
+        referralRewardsEarned=user_doc.get("referralRewardsEarned", 0),
+    )
+
 # ==================== AUTH ENDPOINTS ====================
 
 @api_router.post("/auth/register", response_model=Token)
