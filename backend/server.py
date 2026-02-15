@@ -168,6 +168,7 @@ class OrderCreate(BaseModel):
     pickupTime: str
     paymentMethod: str
     loyaltyPointsUsed: int = 0
+    rewardId: Optional[str] = None
 
 class Order(BaseModel):
     id: Optional[str] = None
