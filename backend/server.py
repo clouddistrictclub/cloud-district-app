@@ -880,6 +880,41 @@ async def get_user_streak(user=Depends(get_current_user)):
         "isoYear": iso_year,
     }
 
+# ==================== SUPPORT TICKETS ====================
+
+class SupportTicketCreate(BaseModel):
+    subject: str
+    message: str
+
+@api_router.post("/support/tickets")
+async def create_support_ticket(ticket: SupportTicketCreate, user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    doc = {
+        "userId": user_id,
+        "userName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
+        "userEmail": user.get("email", ""),
+        "subject": ticket.subject,
+        "message": ticket.message,
+        "status": "open",
+        "createdAt": datetime.utcnow(),
+    }
+    result = await db.support_tickets.insert_one(doc)
+    return {"id": str(result.inserted_id), "message": "Support ticket created"}
+
+@api_router.get("/admin/support/tickets")
+async def get_support_tickets(
+    skip: int = 0,
+    limit: int = 50,
+    status: str = None,
+    admin=Depends(get_admin_user),
+):
+    query = {}
+    if status:
+        query["status"] = status
+    tickets = await db.support_tickets.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.support_tickets.count_documents(query)
+    return {"tickets": tickets, "total": total}
+
 # ==================== ADMIN USER MANAGEMENT ====================
 
 @api_router.get("/admin/users", response_model=List[UserResponse])
