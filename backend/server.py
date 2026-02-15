@@ -752,6 +752,38 @@ async def get_all_users(admin = Depends(get_admin_user)):
     users = await db.users.find().to_list(1000)
     return [build_user_response(u) for u in users]
 
+@api_router.get("/admin/ledger")
+async def get_admin_ledger(
+    skip: int = 0,
+    limit: int = 50,
+    userId: str = None,
+    type: str = None,
+    admin = Depends(get_admin_user),
+):
+    query = {}
+    if userId:
+        query["userId"] = userId
+    if type:
+        query["type"] = type
+
+    entries = await db.cloudz_ledger.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.cloudz_ledger.count_documents(query)
+
+    # Batch-fetch user emails
+    user_ids = list({e["userId"] for e in entries})
+    users_map = {}
+    if user_ids:
+        users_cursor = db.users.find({"_id": {"$in": [ObjectId(uid) for uid in user_ids]}}, {"_id": 1, "email": 1})
+        async for u in users_cursor:
+            users_map[str(u["_id"])] = u.get("email", "unknown")
+
+    for e in entries:
+        e["userEmail"] = users_map.get(e["userId"], "unknown")
+        if isinstance(e.get("createdAt"), datetime):
+            e["createdAt"] = e["createdAt"].isoformat()
+
+    return {"entries": entries, "total": total, "skip": skip, "limit": limit}
+
 @api_router.patch("/admin/users/{user_id}", response_model=UserResponse)
 async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = Depends(get_admin_user)):
     update_dict = {k: v for k, v in user_data.dict().items() if v is not None}

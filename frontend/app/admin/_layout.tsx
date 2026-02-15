@@ -44,6 +44,13 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="cloudz-ledger"
+        options={{
+          title: 'Ledger',
+          tabBarIcon: ({ color, size }) => <Ionicons name="analytics" size={size} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
