@@ -26,6 +26,7 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalReady, setModalReady] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const [formData, setFormData] = useState({
@@ -41,6 +42,16 @@ export default function UsersManagement() {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      requestAnimationFrame(() => {
+        setModalReady(true);
+      });
+    } else {
+      setModalReady(false);
+    }
+  }, [showModal]);
 
   const loadUsers = async () => {
     try {
