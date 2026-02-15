@@ -207,7 +207,15 @@ export default function UsersManagement() {
       <Modal visible={showModal && modalReady} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-            <Text style={styles.modalTitle}>Edit User</Text>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowModal(false)}>
+                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalHeaderTitle}>Edit User</Text>
+              <TouchableOpacity onPress={handleSaveUser}>
+                <Text style={{ color: '#4CAF50', fontSize: 16 }}>Save</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
               {formData.profilePhoto ? (
