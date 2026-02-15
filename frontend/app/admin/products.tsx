@@ -483,7 +483,6 @@ export default function ProductsManagement() {
                 </TouchableOpacity>
               </View>
             </ScrollView>
-          </View>
         </SafeAreaView>
       </Modal>
 
