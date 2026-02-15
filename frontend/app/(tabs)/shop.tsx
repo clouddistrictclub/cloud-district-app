@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#999',
+    color: '#A0A0A0',
     textAlign: 'center',
   },
   emptySubtext: {
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
   productCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     overflow: 'hidden',
   },
   productImage: {
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   productBrand: {
     fontSize: 12,
-    color: '#6366f1',
+    color: '#2E6BFF',
     fontWeight: '600',
     marginBottom: 4,
   },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   productFlavor: {
     fontSize: 12,
-    color: '#999',
+    color: '#A0A0A0',
     marginBottom: 8,
   },
   productFooter: {
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   outOfStock: {
     marginTop: 8,
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     padding: 4,
     borderRadius: 4,
   },

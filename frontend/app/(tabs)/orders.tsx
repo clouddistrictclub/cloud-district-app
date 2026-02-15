@@ -50,7 +50,7 @@ export default function Orders() {
       case 'Paid': return '#3b82f6';
       case 'Ready for Pickup': return '#10b981';
       case 'Completed': return '#6b7280';
-      default: return '#999';
+      default: return '#A0A0A0';
     }
   };
 
@@ -72,7 +72,7 @@ export default function Orders() {
 
       <ScrollView 
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2E6BFF" />}
       >
         {loading ? (
           <Text style={styles.emptyText}>Loading orders...</Text>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#999',
+    color: '#A0A0A0',
     textAlign: 'center',
     marginTop: 16,
   },
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   orderCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
   },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   statusText: {
     fontSize: 12,

@@ -35,7 +35,7 @@ export default function Account() {
         icon: 'shield', 
         label: 'Admin Dashboard', 
         onPress: () => router.push('/admin/dashboard'),
-        color: '#dc2626'
+        color: '#2E6BFF'
       }
     ] : []),
   ];
@@ -102,7 +102,7 @@ export default function Account() {
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={20} color="#dc2626" />
+          <Ionicons name="log-out" size={20} color="#2E6BFF" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   profileCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2E6BFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -162,12 +162,12 @@ const styles = StyleSheet.create({
   },
   profileEmail: {
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
   },
   loyaltyCard: {
-    backgroundColor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
+    backgroundColor: 'linear-gradient(135deg, #2E6BFF 0%, #8b5cf6 100%)',
+    backgroundColor: '#2E6BFF',
+    borderRadius: 18,
     padding: 24,
     marginBottom: 16,
   },
@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 8,
   },
   menuItemLeft: {
@@ -218,14 +218,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
   },
   infoValue: {
     fontSize: 14,
@@ -247,15 +247,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#dc2626',
+    borderColor: '#2E6BFF',
   },
   logoutText: {
     fontSize: 16,
-    color: '#dc2626',
+    color: '#2E6BFF',
     fontWeight: '600',
   },
   footer: {
