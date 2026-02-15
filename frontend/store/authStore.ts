@@ -14,6 +14,9 @@ interface User {
   loyaltyPoints: number;
   phone?: string;
   profilePhoto?: string;
+  referralCode?: string;
+  referralCount?: number;
+  referralRewardsEarned?: number;
 }
 
 interface AuthState {
@@ -42,13 +45,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, token: access_token, isAuthenticated: true });
   },
 
-  register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string) => {
+  register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, referralCode?: string) => {
     const response = await axios.post(`${API_URL}/api/auth/register`, {
       email,
       password,
       firstName,
       lastName,
-      dateOfBirth
+      dateOfBirth,
+      referralCode: referralCode || undefined,
     });
     const { access_token, user } = response.data;
     await AsyncStorage.setItem('token', access_token);
