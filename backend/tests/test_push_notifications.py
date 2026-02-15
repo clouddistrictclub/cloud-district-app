@@ -19,7 +19,8 @@ if not BASE_URL:
 # Test credentials
 ADMIN_EMAIL = "admin@clouddistrictclub.com"
 ADMIN_PASSWORD = "Admin123!"
-TEST_PRODUCT_ID = "698f61dc072c07937d8c460e"
+# Use a product with stock for testing
+TEST_PRODUCT_ID = "6990e43720bc90d09dba30bf"  # Onions product with stock
 
 
 class TestPushNotificationEndpoints:
