@@ -37,6 +37,19 @@ export default function BrandsManagement() {
     loadBrands();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      const timeout = setTimeout(() => {
+        setScreenReady(true);
+      }, 50);
+
+      return () => {
+        clearTimeout(timeout);
+        setScreenReady(false);
+      };
+    }, [])
+  );
+
   const loadBrands = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/brands?active_only=false`);

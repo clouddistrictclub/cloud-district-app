@@ -43,6 +43,19 @@ export default function UsersManagement() {
     loadUsers();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      const timeout = setTimeout(() => {
+        setScreenReady(true);
+      }, 50);
+
+      return () => {
+        clearTimeout(timeout);
+        setScreenReady(false);
+      };
+    }, [])
+  );
+
   const loadUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/admin/users`);
