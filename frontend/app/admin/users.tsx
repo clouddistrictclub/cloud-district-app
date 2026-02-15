@@ -195,20 +195,19 @@ export default function UsersManagement() {
       {/* Edit User Modal */}
       <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top', 'bottom']}>
-          <View style={{ flex: 1 }}>
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-              <Text style={styles.modalTitle}>Edit User</Text>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <Text style={styles.modalTitle}>Edit User</Text>
 
-              <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
-                {formData.profilePhoto ? (
-                  <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={48} color="#666" />
-                    <Text style={styles.uploadText}>Tap to upload photo</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+            <TouchableOpacity style={styles.avatarUpload} onPress={pickImage}>
+              {formData.profilePhoto ? (
+                <Image source={{ uri: formData.profilePhoto }} style={styles.uploadedAvatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={48} color="#666" />
+                  <Text style={styles.uploadText}>Tap to upload photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
               <Text style={styles.inputLabel}>First Name</Text>
               <TextInput
