@@ -207,7 +207,7 @@ export default function UsersManagement() {
       </ScrollView>
 
       {/* Edit User Modal */}
-      <Modal visible={showModal} animationType="slide" presentationStyle="fullScreen">
+      <Modal visible={showModal && screenReady} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['bottom']}>
           <View style={{ flex: 1, paddingTop: 50 }}>
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
