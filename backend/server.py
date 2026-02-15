@@ -738,6 +738,9 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                     "pointsEarned": 2000,
                 },
             ])
+
+        # Streak bonus: award once per ISO week
+        streak_bonus = await maybe_award_streak_bonus(order["userId"], order_id)
     
     await db.orders.update_one(
         {"_id": ObjectId(order_id)},
