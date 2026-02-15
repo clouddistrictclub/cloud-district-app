@@ -791,6 +791,8 @@ async def register_push_token(payload: PushTokenRegister, user=Depends(get_curre
     )
     return {"message": "Push token registered"}
 
+# ==================== ADMIN USER MANAGEMENT ====================
+
 @api_router.get("/admin/users", response_model=List[UserResponse])
 async def get_all_users(admin = Depends(get_admin_user)):
     users = await db.users.find().to_list(1000)
