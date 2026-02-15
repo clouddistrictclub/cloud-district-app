@@ -39,19 +39,21 @@ const TIER_COLORS: Record<string, { bg: string; border: string; accent: string }
 
 export default function Cloudz() {
   const router = useRouter();
-  const { user, refreshUser } = useAuthStore();
+  const { user, refreshUser, token } = useAuthStore();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [history, setHistory] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
   const loadData = useCallback(async () => {
     try {
       const [tiersRes, rewardsRes, historyRes] = await Promise.all([
-        axios.get(`${API_URL}/api/loyalty/tiers`),
-        axios.get(`${API_URL}/api/loyalty/rewards`),
-        axios.get(`${API_URL}/api/loyalty/history`),
+        axios.get(`${API_URL}/api/loyalty/tiers`, authHeaders),
+        axios.get(`${API_URL}/api/loyalty/rewards`, authHeaders),
+        axios.get(`${API_URL}/api/loyalty/history`, authHeaders),
       ]);
       setTiers(tiersRes.data.tiers);
       setRewards(rewardsRes.data);
@@ -61,7 +63,7 @@ export default function Cloudz() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadData();
@@ -86,7 +88,7 @@ export default function Cloudz() {
           onPress: async () => {
             setRedeeming(tier.id);
             try {
-              await axios.post(`${API_URL}/api/loyalty/redeem`, { tierId: tier.id });
+              await axios.post(`${API_URL}/api/loyalty/redeem`, { tierId: tier.id }, authHeaders);
               await refreshUser();
               await loadData();
               Alert.alert('Redeemed!', `You now have a $${tier.reward.toFixed(2)} reward ready to use at checkout.`);
