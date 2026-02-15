@@ -42,6 +42,7 @@ export default function ProductsManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalReady, setModalReady] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null);
   
@@ -69,6 +70,16 @@ export default function ProductsManagement() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      requestAnimationFrame(() => {
+        setModalReady(true);
+      });
+    } else {
+      setModalReady(false);
+    }
+  }, [showModal]);
 
   // Refresh brands when screen gains focus
   useFocusEffect(
