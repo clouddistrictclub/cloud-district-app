@@ -30,7 +30,13 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 
 ## What's Implemented
 
-### Leaderboard (Feb 15, 2026 - Latest)
+### Cash on Pickup Payment Method (Feb 15, 2026 - Latest)
+- [x] "Cash on Pickup" added as first payment option, no processing fee
+- [x] Order status set to "Awaiting Pickup (Cash)" on creation
+- [x] Cloudz points awarded only when admin marks order as "Paid"
+- [x] Existing digital payment logic (Zelle, Venmo, Cash App, Chime) unchanged
+
+### Leaderboard (Feb 15, 2026)
 - [x] `GET /api/leaderboard` endpoint with projection-only query (no full docs)
 - [x] Returns `{byPoints, byReferrals}` top 20 each, sorted descending
 - [x] Display name privacy (firstName + last initial), tier resolution, isCurrentUser flag
