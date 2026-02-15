@@ -744,9 +744,52 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         {"$set": {"status": status_update.status}}
     )
     
+    # Send push notification to the user about order status change
+    await send_push_notification(
+        order["userId"],
+        "Order Update",
+        f"Order #{order_id[-6:].upper()} is now: {status_update.status}",
+    )
+    
     return {"message": "Order status updated"}
 
-# ==================== ADMIN USER MANAGEMENT ====================
+# ==================== PUSH NOTIFICATIONS ====================
+
+class PushTokenRegister(BaseModel):
+    token: str
+
+async def send_push_notification(user_id: str, title: str, body: str):
+    tokens = await db.push_tokens.find({"userId": user_id}, {"_id": 0, "token": 1}).to_list(10)
+    if not tokens:
+        return
+    messages = [
+        {"to": t["token"], "sound": "default", "title": title, "body": body}
+        for t in tokens if t.get("token", "").startswith("ExponentPushToken")
+    ]
+    if not messages:
+        return
+    try:
+        async with httpx.AsyncClient() as client_http:
+            await client_http.post(
+                "https://exp.host/--/api/v2/push/send",
+                json=messages,
+                headers={"Accept": "application/json", "Content-Type": "application/json"},
+                timeout=10,
+            )
+    except Exception as e:
+        logger.error(f"Push notification failed: {e}")
+
+@api_router.post("/push/register")
+async def register_push_token(payload: PushTokenRegister, user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    if not payload.token.startswith("ExponentPushToken"):
+        raise HTTPException(status_code=400, detail="Invalid Expo push token")
+    await db.push_tokens.update_one(
+        {"userId": user_id, "token": payload.token},
+        {"$set": {"userId": user_id, "token": payload.token, "updatedAt": datetime.utcnow()}},
+        upsert=True,
+    )
+    return {"message": "Push token registered"}
 
 @api_router.get("/admin/users", response_model=List[UserResponse])
 async def get_all_users(admin = Depends(get_admin_user)):
