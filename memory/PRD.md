@@ -127,6 +127,11 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - "Cash on Pickup" sets order status to "Awaiting Pickup (Cash)"; others set "Pending Payment"
 - Verified working: Feb 2026
 
+## Post-Checkout Screens
+- **Order Confirmation** (`/order-confirmation`): For "Cash on Pickup" orders — shows order #, status, pickup instructions, store address, "Open in Maps" + "View My Orders" buttons
+- **Payment Instructions** (`/payment-instructions`): For digital payment methods (Zelle, Venmo, Cash App, Chime) — shows payment details, deep links, copy-to-clipboard
+- Routing logic in `checkout.tsx` lines 104-108
+
 ## Prioritized Backlog
 ### P1 - Growth (Next)
 - [ ] Phase 3: Share incentives + streak bonus
