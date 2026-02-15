@@ -51,6 +51,7 @@ export default function Account() {
   const clearCart = useCartStore(state => state.clearCart);
   const [highestTier, setHighestTier] = useState<TierInfo | null>(null);
   const [history, setHistory] = useState<RedemptionRecord[]>([]);
+  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
