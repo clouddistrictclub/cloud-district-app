@@ -31,6 +31,7 @@ interface AuthState {
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  registerPushToken: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
