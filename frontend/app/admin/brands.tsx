@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
@@ -23,7 +23,6 @@ export default function BrandsManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [screenReady, setScreenReady] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   
   const [formData, setFormData] = useState({
@@ -36,19 +35,6 @@ export default function BrandsManagement() {
   useEffect(() => {
     loadBrands();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      const timeout = setTimeout(() => {
-        setScreenReady(true);
-      }, 50);
-
-      return () => {
-        clearTimeout(timeout);
-        setScreenReady(false);
-      };
-    }, [])
-  );
 
   const loadBrands = async () => {
     try {
