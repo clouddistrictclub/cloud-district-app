@@ -59,14 +59,16 @@ export default function Account() {
 
   const loadAccountData = useCallback(async () => {
     try {
-      const [tiersRes, historyRes] = await Promise.all([
+      const [tiersRes, historyRes, streakRes] = await Promise.all([
         axios.get(`${API_URL}/api/loyalty/tiers`, authHeaders),
         axios.get(`${API_URL}/api/loyalty/history`, authHeaders),
+        axios.get(`${API_URL}/api/loyalty/streak`, authHeaders),
       ]);
       // Find highest unlocked tier
       const unlocked = (tiersRes.data.tiers as TierInfo[]).filter(t => t.unlocked);
       setHighestTier(unlocked.length > 0 ? unlocked[unlocked.length - 1] : null);
       setHistory(historyRes.data.slice(0, 5)); // Show last 5
+      setStreakInfo(streakRes.data);
     } catch (error) {
       console.error('Failed to load account data:', error);
     } finally {
