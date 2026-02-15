@@ -563,6 +563,25 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
             )
     
     points_earned = int(order_data.total)
+    reward_discount = 0.0
+    reward_points_used = 0
+
+    # Handle tier-based reward redemption at checkout
+    if order_data.rewardId:
+        reward = await db.loyalty_rewards.find_one({
+            "_id": ObjectId(order_data.rewardId),
+            "userId": str(user["_id"]),
+            "used": False,
+        })
+        if not reward:
+            raise HTTPException(status_code=400, detail="Invalid or already used reward")
+        reward_discount = reward["rewardAmount"]
+        reward_points_used = reward["pointsSpent"]
+        # Mark reward as used
+        await db.loyalty_rewards.update_one(
+            {"_id": ObjectId(order_data.rewardId)},
+            {"$set": {"used": True, "usedAt": datetime.utcnow()}}
+        )
     
     order_dict = {
         "userId": str(user["_id"]),
@@ -572,18 +591,13 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
         "paymentMethod": order_data.paymentMethod,
         "status": "Pending Payment",
         "loyaltyPointsEarned": points_earned,
-        "loyaltyPointsUsed": order_data.loyaltyPointsUsed,
+        "loyaltyPointsUsed": reward_points_used,
+        "rewardId": order_data.rewardId,
+        "rewardDiscount": reward_discount,
         "createdAt": datetime.utcnow()
     }
     
     result = await db.orders.insert_one(order_dict)
-    
-    # Deduct used loyalty points
-    if order_data.loyaltyPointsUsed > 0:
-        await db.users.update_one(
-            {"_id": user["_id"]},
-            {"$inc": {"loyaltyPoints": -order_data.loyaltyPointsUsed}}
-        )
     
     order_dict["id"] = str(result.inserted_id)
     return Order(**order_dict)
