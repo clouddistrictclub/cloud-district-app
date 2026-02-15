@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: '#999',
+    color: '#A0A0A0',
   },
   userName: {
     fontSize: 24,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   loyaltyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     borderRadius: 10,
     width: 20,
     height: 20,
@@ -219,8 +219,8 @@ const styles = StyleSheet.create({
   promoBox: {
     margin: 16,
     padding: 24,
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
+    backgroundColor: '#2E6BFF',
+    borderRadius: 18,
   },
   promoTitle: {
     fontSize: 24,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: '#6366f1',
+    color: '#2E6BFF',
     fontWeight: '600',
   },
   categoryGrid: {
@@ -259,9 +259,9 @@ const styles = StyleSheet.create({
   categoryCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151515',
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     gap: 8,
   },
@@ -278,21 +278,21 @@ const styles = StyleSheet.create({
   productCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: '#151515',
+    borderRadius: 18,
     overflow: 'hidden',
   },
   productImage: {
     width: '100%',
     height: 120,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#222222',
   },
   productInfo: {
     padding: 12,
   },
   productBrand: {
     fontSize: 12,
-    color: '#6366f1',
+    color: '#2E6BFF',
     fontWeight: '600',
     marginBottom: 4,
   },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   productFlavor: {
     fontSize: 12,
-    color: '#999',
+    color: '#A0A0A0',
     marginBottom: 8,
   },
   productFooter: {
@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     gap: 8,
     margin: 16,
     padding: 16,
-    backgroundColor: '#dc2626',
-    borderRadius: 8,
+    backgroundColor: '#2E6BFF',
+    borderRadius: 18,
   },
   adminButtonText: {
     color: '#fff',
