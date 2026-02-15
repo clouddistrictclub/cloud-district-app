@@ -671,6 +671,47 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                 {"_id": ObjectId(item["productId"])},
                 {"$inc": {"stock": -item["quantity"]}}
             )
+
+        # Referral reward trigger: first paid order for referred user
+        buyer = await db.users.find_one({"_id": ObjectId(order["userId"])})
+        if buyer and buyer.get("referredBy") and not buyer.get("referralRewardIssued", False):
+            referrer_id = buyer["referredBy"]
+            # Grant 1,000 Cloudz to new user
+            await db.users.update_one(
+                {"_id": ObjectId(order["userId"])},
+                {"$inc": {"loyaltyPoints": 1000}, "$set": {"referralRewardIssued": True}}
+            )
+            # Grant 2,000 Cloudz to referrer + increment count
+            await db.users.update_one(
+                {"_id": ObjectId(referrer_id)},
+                {"$inc": {"loyaltyPoints": 2000, "referralCount": 1, "referralRewardsEarned": 2000}}
+            )
+            # Log rewards for both users in loyalty history
+            now = datetime.utcnow()
+            await db.loyalty_rewards.insert_many([
+                {
+                    "userId": order["userId"],
+                    "tierId": "referral_bonus",
+                    "tierName": "Referral Welcome Bonus",
+                    "pointsSpent": 0,
+                    "rewardAmount": 0,
+                    "used": True,
+                    "createdAt": now,
+                    "type": "referral_earned",
+                    "pointsEarned": 1000,
+                },
+                {
+                    "userId": referrer_id,
+                    "tierId": "referral_reward",
+                    "tierName": "Referral Reward",
+                    "pointsSpent": 0,
+                    "rewardAmount": 0,
+                    "used": True,
+                    "createdAt": now,
+                    "type": "referral_earned",
+                    "pointsEarned": 2000,
+                },
+            ])
     
     await db.orders.update_one(
         {"_id": ObjectId(order_id)},
