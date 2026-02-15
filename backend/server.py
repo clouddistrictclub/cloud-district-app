@@ -39,6 +39,12 @@ api_router = APIRouter(prefix="/api")
 
 # ==================== MODELS ====================
 
+def generate_referral_code():
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(sec_module.choice(chars) for _ in range(7))
+        return code
+
 # User Models
 class UserRegister(BaseModel):
     email: EmailStr
@@ -47,6 +53,7 @@ class UserRegister(BaseModel):
     lastName: str
     dateOfBirth: str
     phone: Optional[str] = None
+    referralCode: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
