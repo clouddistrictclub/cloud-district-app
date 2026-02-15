@@ -26,6 +26,7 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [screenReady, setScreenReady] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const [formData, setFormData] = useState({

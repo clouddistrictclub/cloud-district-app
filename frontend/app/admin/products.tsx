@@ -42,6 +42,7 @@ export default function ProductsManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [screenReady, setScreenReady] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null);
   
