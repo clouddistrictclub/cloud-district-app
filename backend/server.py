@@ -899,6 +899,16 @@ async def get_redemption_history(user = Depends(get_current_user)):
         for r in rewards
     ]
 
+@api_router.get("/loyalty/ledger")
+async def get_cloudz_ledger(user = Depends(get_current_user)):
+    entries = await db.cloudz_ledger.find(
+        {"userId": str(user["_id"])}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(200)
+    for e in entries:
+        if isinstance(e.get("createdAt"), datetime):
+            e["createdAt"] = e["createdAt"].isoformat()
+    return entries
+
 # ==================== CATEGORIES ENDPOINT ====================
 
 @api_router.get("/categories")
