@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
   },
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   statusText: {
     fontSize: 11,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#0c0c0c',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#6366f1',
   },

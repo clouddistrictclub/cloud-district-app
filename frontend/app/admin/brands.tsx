@@ -156,13 +156,13 @@ export default function BrandsManagement() {
         </TouchableOpacity>
         <Text style={styles.title}>Brands</Text>
         <TouchableOpacity onPress={() => { resetForm(); setShowModal(true); }}>
-          <Ionicons name="add-circle" size={28} color="#dc2626" />
+          <Ionicons name="add-circle" size={28} color="#2E6BFF" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBrands(); }} tintColor="#dc2626" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBrands(); }} tintColor="#2E6BFF" />}
       >
         {loading ? (
           <Text style={styles.emptyText}>Loading...</Text>
@@ -209,7 +209,7 @@ export default function BrandsManagement() {
                   onPress={() => handleDeleteBrand(brand)}
                   disabled={brand.productCount > 0}
                 >
-                  <Ionicons name="trash" size={18} color={brand.productCount > 0 ? "#333" : "#dc2626"} />
+                  <Ionicons name="trash" size={18} color={brand.productCount > 0 ? "#333" : "#2E6BFF"} />
                   <Text style={[styles.actionButtonText, brand.productCount > 0 && { color: '#333' }]}>Delete</Text>
                 </TouchableOpacity>
               </View>
@@ -225,7 +225,7 @@ export default function BrandsManagement() {
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
+                <Text style={{ color: '#FF3B3B', fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.modalHeaderTitle}>{editingBrand ? 'Edit Brand' : 'Add Brand'}</Text>
               <TouchableOpacity onPress={handleSaveBrand}>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   brandCard: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
   },
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   statusText: {
     fontSize: 11,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#0c0c0c',
-    borderRadius: 8,
+    borderRadius: 18,
   },
   actionButtonDisabled: {
     opacity: 0.4,
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   modalCancel: {
     fontSize: 16,
-    color: '#dc2626',
+    color: '#2E6BFF',
   },
   modalTitle: {
     fontSize: 24,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     padding: 12,
     color: '#fff',
     fontSize: 16,
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#10b981',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   saveButtonText: {

@@ -132,7 +132,7 @@ export default function UsersManagement() {
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadUsers(); }} tintColor="#dc2626" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadUsers(); }} tintColor="#2E6BFF" />}
       >
         {loading ? (
           <Text style={styles.emptyText}>Loading...</Text>
@@ -156,7 +156,7 @@ export default function UsersManagement() {
                     <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
                     {user.isAdmin && (
                       <View style={styles.adminBadge}>
-                        <Ionicons name="shield" size={12} color="#dc2626" />
+                        <Ionicons name="shield" size={12} color="#2E6BFF" />
                         <Text style={styles.adminBadgeText}>Admin</Text>
                       </View>
                     )}
@@ -182,8 +182,8 @@ export default function UsersManagement() {
                   style={[styles.actionButton, user.isAdmin && styles.adminActionButton]}
                   onPress={() => toggleAdmin(user)}
                 >
-                  <Ionicons name="shield" size={18} color={user.isAdmin ? "#dc2626" : "#10b981"} />
-                  <Text style={[styles.actionButtonText, user.isAdmin && { color: '#dc2626' }]}>
+                  <Ionicons name="shield" size={18} color={user.isAdmin ? "#2E6BFF" : "#10b981"} />
+                  <Text style={[styles.actionButtonText, user.isAdmin && { color: '#2E6BFF' }]}>
                     {user.isAdmin ? 'Revoke Admin' : 'Make Admin'}
                   </Text>
                 </TouchableOpacity>
@@ -200,7 +200,7 @@ export default function UsersManagement() {
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
+                <Text style={{ color: '#FF3B3B', fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.modalHeaderTitle}>Edit User</Text>
               <TouchableOpacity onPress={handleSaveUser}>
@@ -275,7 +275,7 @@ export default function UsersManagement() {
                 <Switch
                   value={formData.isAdmin}
                   onValueChange={(value) => setFormData({ ...formData, isAdmin: value })}
-                  trackColor={{ false: '#333', true: '#dc2626' }}
+                  trackColor={{ false: '#333', true: '#2E6BFF' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   userCard: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
   },
@@ -362,10 +362,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   adminBadgeText: {
     fontSize: 10,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2a2a1a',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   loyaltyText: {
     fontSize: 12,
@@ -414,11 +414,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#0c0c0c',
-    borderRadius: 8,
+    borderRadius: 18,
   },
   adminActionButton: {
     borderWidth: 1,
-    borderColor: '#dc2626',
+    borderColor: '#2E6BFF',
   },
   actionButtonText: {
     fontSize: 12,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   modalCancel: {
     fontSize: 16,
-    color: '#dc2626',
+    color: '#2E6BFF',
   },
   modalTitle: {
     fontSize: 18,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     padding: 12,
     color: '#fff',
     fontSize: 16,
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#10b981',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   saveButtonText: {

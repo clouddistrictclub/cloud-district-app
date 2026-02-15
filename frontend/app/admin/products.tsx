@@ -254,13 +254,13 @@ export default function ProductsManagement() {
         </TouchableOpacity>
         <Text style={styles.title}>Products</Text>
         <TouchableOpacity onPress={() => { resetForm(); setShowModal(true); }}>
-          <Ionicons name="add-circle" size={28} color="#dc2626" />
+          <Ionicons name="add-circle" size={28} color="#2E6BFF" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#dc2626" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#2E6BFF" />}
       >
         {loading ? (
           <Text style={styles.emptyText}>Loading...</Text>
@@ -317,7 +317,7 @@ export default function ProductsManagement() {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionButton} onPress={() => handleDeleteProduct(product)}>
-                  <Ionicons name="trash" size={18} color="#dc2626" />
+                  <Ionicons name="trash" size={18} color="#2E6BFF" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -332,7 +332,7 @@ export default function ProductsManagement() {
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
+                <Text style={{ color: '#FF3B3B', fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.modalHeaderTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
               <TouchableOpacity onPress={handleSaveProduct}>
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 12,
     marginBottom: 12,
   },
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
+    borderRadius: 18,
     backgroundColor: '#2a2a2a',
   },
   productInfo: {
@@ -613,13 +613,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#10b981',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   stockBadgeLow: {
     backgroundColor: '#fbbf24',
   },
   stockBadgeEmpty: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#2E6BFF',
   },
   stockText: {
     fontSize: 11,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     backgroundColor: '#0c0c0c',
-    borderRadius: 8,
+    borderRadius: 18,
   },
   actionButtonText: {
     fontSize: 12,
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   },
   modalCancel: {
     fontSize: 16,
-    color: '#dc2626',
+    color: '#2E6BFF',
   },
   modalTitle: {
     fontSize: 24,
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   imageUpload: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 20,
   },
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     padding: 12,
     color: '#fff',
     fontSize: 16,
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   stockModalCancelText: {
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     backgroundColor: '#10b981',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   stockModalSaveText: {
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#10b981',
-    borderRadius: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
   saveButtonText: {
