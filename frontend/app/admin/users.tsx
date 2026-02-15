@@ -283,7 +283,8 @@ export default function UsersManagement() {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
