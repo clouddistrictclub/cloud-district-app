@@ -46,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     set({ user, token: access_token, isAuthenticated: true });
+    get().registerPushToken();
   },
 
   register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, referralCode?: string) => {
@@ -61,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('token', access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     set({ user, token: access_token, isAuthenticated: true });
+    get().registerPushToken();
   },
 
   logout: async () => {
