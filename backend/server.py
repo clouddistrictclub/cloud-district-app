@@ -791,6 +791,92 @@ async def register_push_token(payload: PushTokenRegister, user=Depends(get_curre
     )
     return {"message": "Push token registered"}
 
+# ==================== STREAK BONUS ====================
+
+STREAK_BONUS = {2: 50, 3: 100, 4: 200}  # week: bonus; 5+ = 500
+
+async def calculate_streak(user_id: str) -> int:
+    """Return the number of consecutive ISO weeks (ending at current) with a Paid order."""
+    paid_orders = await db.orders.find(
+        {"userId": user_id, "status": "Paid"},
+        {"_id": 0, "createdAt": 1},
+    ).sort("createdAt", -1).to_list(5000)
+    if not paid_orders:
+        return 0
+    weeks_with_orders: set = set()
+    for o in paid_orders:
+        dt = o["createdAt"]
+        weeks_with_orders.add(dt.isocalendar()[:2])  # (year, week)
+    now = datetime.utcnow()
+    current = now.isocalendar()[:2]
+    streak = 0
+    yr, wk = current
+    while (yr, wk) in weeks_with_orders:
+        streak += 1
+        # Go to previous ISO week
+        prev_day = datetime.fromisocalendar(yr, wk, 1) - timedelta(days=1)
+        yr, wk = prev_day.isocalendar()[:2]
+    return streak
+
+def get_streak_bonus(streak: int) -> int:
+    if streak < 2:
+        return 0
+    return STREAK_BONUS.get(streak, 500)
+
+async def maybe_award_streak_bonus(user_id: str, order_id: str):
+    """Award streak bonus once per ISO week when the first order is marked Paid."""
+    now = datetime.utcnow()
+    iso_year, iso_week = now.isocalendar()[:2]
+    existing = await db.cloudz_ledger.find_one({
+        "userId": user_id,
+        "type": "streak_bonus",
+        "isoYear": iso_year,
+        "isoWeek": iso_week,
+    })
+    if existing:
+        return 0
+    streak = await calculate_streak(user_id)
+    bonus = get_streak_bonus(streak)
+    if bonus <= 0:
+        return 0
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$inc": {"loyaltyPoints": bonus}},
+    )
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    balance_after = user.get("loyaltyPoints", 0) if user else 0
+    await db.cloudz_ledger.insert_one({
+        "userId": user_id,
+        "type": "streak_bonus",
+        "amount": bonus,
+        "balanceAfter": balance_after,
+        "reference": f"Week {iso_week} streak ({streak} weeks) - Order #{order_id[:8]}",
+        "isoYear": iso_year,
+        "isoWeek": iso_week,
+        "createdAt": now,
+    })
+    return bonus
+
+@api_router.get("/loyalty/streak")
+async def get_user_streak(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    streak = await calculate_streak(user_id)
+    bonus = get_streak_bonus(streak)
+    next_bonus = get_streak_bonus(streak + 1)
+    now = datetime.utcnow()
+    iso_year, iso_week = now.isocalendar()[:2]
+    # Days until end of current ISO week (Sunday)
+    current_weekday = now.isocalendar()[2]  # 1=Mon .. 7=Sun
+    days_left = 7 - current_weekday
+    return {
+        "streak": streak,
+        "currentBonus": bonus,
+        "nextBonus": next_bonus,
+        "daysUntilExpiry": days_left,
+        "isoWeek": iso_week,
+        "isoYear": iso_year,
+    }
+
 # ==================== ADMIN USER MANAGEMENT ====================
 
 @api_router.get("/admin/users", response_model=List[UserResponse])
