@@ -42,7 +42,6 @@ export default function ProductsManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [screenReady, setScreenReady] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [stockAdjustProduct, setStockAdjustProduct] = useState<Product | null>(null);
   
@@ -70,20 +69,6 @@ export default function ProductsManagement() {
   useEffect(() => {
     loadData();
   }, []);
-
-  // Screen ready state for modal rendering
-  useFocusEffect(
-    useCallback(() => {
-      const timeout = setTimeout(() => {
-        setScreenReady(true);
-      }, 50);
-
-      return () => {
-        clearTimeout(timeout);
-        setScreenReady(false);
-      };
-    }, [])
-  );
 
   // Refresh brands when screen gains focus
   useFocusEffect(
