@@ -78,6 +78,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const response = await axios.get(`${API_URL}/api/auth/me`);
         set({ user: response.data, token, isAuthenticated: true, isLoading: false });
+        get().registerPushToken();
       } else {
         set({ isLoading: false });
       }
@@ -94,5 +95,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.error('Failed to refresh user:', error);
     }
-  }
+  },
+
+  registerPushToken: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      const { status: existing } = await Notifications.getPermissionsAsync();
+      let finalStatus = existing;
+      if (existing !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') return;
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const pushToken = tokenData.data;
+      if (pushToken) {
+        await axios.post(`${API_URL}/api/push/register`, { token: pushToken });
+      }
+    } catch (error) {
+      console.log('Push token registration skipped:', error);
+    }
+  },
 }));
