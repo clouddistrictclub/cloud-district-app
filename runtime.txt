@@ -1,1 +1,5 @@
-python-2.11.9
+python-3.11.9
+
+Not 3.12
+Not 3.13
+Exactly 3.11.9
