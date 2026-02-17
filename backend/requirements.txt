@@ -10,3 +10,4 @@ psycopg2-binary==2.9.9
 pandas==2.1.4
 numpy==1.26.4
 requests==2.31.0
+motor==3.3.2
