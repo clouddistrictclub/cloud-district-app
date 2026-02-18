@@ -468,16 +468,33 @@ async def get_products(
     brand_id: Optional[str] = None,
     active_only: bool = True
 ):
-    query = {}
-    if active_only:
-        query["isActive"] = True
-    if category:
-        query["category"] = category
-    if brand_id:
-        query["brandId"] = brand_id
-    
-    products = await db.products.find(query).to_list(1000)
-    return [Product(id=str(p["_id"]), **{k: v for k, v in p.items() if k != "_id"}) for p in products]
+    try:
+        query = {}
+
+        if active_only:
+            query["isActive"] = True
+        if category:
+            query["category"] = category
+        if brand_id:
+            query["brandId"] = brand_id
+
+        products = await db.products.find(query).to_list(1000)
+
+        # If database is empty, return empty list instead of crashing
+        if not products:
+            return []
+
+        return [
+            Product(
+                id=str(p["_id"]),
+                **{k: v for k, v in p.items() if k != "_id"}
+            )
+            for p in products
+        ]
+
+    except Exception as e:
+        print("PRODUCTS ERROR:", e)
+        return []
 
 @api_router.get("/products/{product_id}", response_model=Product)
 async def get_product(product_id: str):
