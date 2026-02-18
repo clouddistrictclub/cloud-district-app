@@ -697,6 +697,7 @@ async def get_categories():
 @app.get(”/”)
 async def root():
 return {“message”: “Cloud District API is live”}
+
 app.include_router(api_router)
 
 app.add_middleware(
