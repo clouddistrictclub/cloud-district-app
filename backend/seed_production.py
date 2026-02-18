@@ -64,7 +64,7 @@ BRANDS = [
 
 brand_ids = {}
 for b in BRANDS:
-    r = requests.post(f"{API}/api/admin/brands", json=b, headers=HEADERS)
+    r = requests.post(f"{API}/api/brands", json=b, headers=HEADERS)
     if r.status_code == 200:
         brand_data = r.json()
         brand_ids[b["name"]] = brand_data.get("id", "")
@@ -220,7 +220,7 @@ for p in PRODUCTS:
         continue
     p["brandId"] = bid
     p["image"] = ""  # Placeholder — add images via admin dashboard later
-    r = requests.post(f"{API}/api/admin/products", json=p, headers=HEADERS)
+    r = requests.post(f"{API}/api/products", json=p, headers=HEADERS)
     if r.status_code == 200:
         pid = r.json().get("id", "")
         print(f"  Created product: {p['name']} ({p['flavor']}) — ${p['price']} (id: {pid})")
