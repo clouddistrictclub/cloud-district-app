@@ -27,26 +27,6 @@ DB_NAME = os.environ["DB_NAME"]
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
-# ---------- SAFE DB BOOTSTRAP ----------
-async def ensure_collections():
-    existing = await db.list_collection_names()
-
-    collections_needed = [
-        "users",
-        "products",
-        "brands",
-        "orders",
-        "support_tickets"
-    ]
-
-    for name in collections_needed:
-        if name not in existing:
-            await db.create_collection(name)
-
-@app.on_event("startup")
-async def startup_db():
-    await ensure_collections()
-
 # JWT Configuration
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 ALGORITHM = "HS256"
@@ -749,6 +729,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------- SAFE DB BOOTSTRAP ----------
+async def ensure_collections():
+    existing = await db.list_collection_names()
+
+    collections_needed = [
+        "users",
+        "products",
+        "brands",
+        "orders",
+        "support_tickets"
+    ]
+
+    for name in collections_needed:
+        if name not in existing:
+            await db.create_collection(name)
+
+@app.on_event("startup")
+async def startup_db():
+    await ensure_collections()
 
 # Configure logging
 logging.basicConfig(
