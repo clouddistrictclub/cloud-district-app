@@ -167,5 +167,14 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - Account tab: "Contact & Support" menu item
 - Contact: support@clouddistrictclub.com, (555) 123-4567, Mon–Sat 10AM–8PM
 
+## Production Deployment
+- **API**: https://api.clouddistrict.club (Railway)
+- **Frontend env**: EXPO_PUBLIC_BACKEND_URL=https://api.clouddistrict.club
+- **Admin**: jkaatz@gmail.com (isAdmin: true)
+- **Seeded Data**: 5 brands (Geek Bar, Lost Mary, RAZ, Elf Bar, Flum) + 10 products
+- **Seed script**: /app/backend/seed_production.py
+- **Note**: Production API runs older code version — some newer endpoints (loyalty, streak, push, support, admin ledger) may not be available until Railway is redeployed with latest code
+
 ## Credentials
-- **Admin:** admin@clouddistrictclub.com / Admin123! (Referral code: STAV20H)
+- **Admin:** jkaatz@gmail.com (production)
+- **Dev Admin:** admin@clouddistrictclub.com / Admin123! (local preview only)
