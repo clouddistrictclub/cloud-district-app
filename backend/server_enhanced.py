@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import jwt
 from bson import ObjectId
+import string
+import secrets as sec_module
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,6 +40,12 @@ api_router = APIRouter(prefix="/api")
 
 # ==================== MODELS ====================
 
+def generate_referral_code():
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(sec_module.choice(chars) for _ in range(7))
+        return code
+
 # User Models
 class UserRegister(BaseModel):
     email: EmailStr
@@ -45,6 +54,7 @@ class UserRegister(BaseModel):
     lastName: str
     dateOfBirth: str
     phone: Optional[str] = None
+    referralCode: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -67,6 +77,9 @@ class UserResponse(BaseModel):
     loyaltyPoints: int
     phone: Optional[str] = None
     profilePhoto: Optional[str] = None
+    referralCode: Optional[str] = None
+    referralCount: int = 0
+    referralRewardsEarned: int = 0
 
 class Token(BaseModel):
     access_token: str
@@ -168,6 +181,7 @@ class OrderCreate(BaseModel):
     pickupTime: str
     paymentMethod: str
     loyaltyPointsUsed: int = 0
+    rewardId: Optional[str] = None
 
 class Order(BaseModel):
     id: Optional[str] = None
@@ -194,6 +208,21 @@ class AdminUserUpdate(BaseModel):
     loyaltyPoints: Optional[int] = None
     profilePhoto: Optional[str] = None
 
+# ==================== CLOUDZ LEDGER ====================
+
+async def log_cloudz_transaction(user_id: str, tx_type: str, amount: int, reference: str = ""):
+    """Log every Cloudz balance change to the ledger collection."""
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    balance_after = user.get("loyaltyPoints", 0) if user else 0
+    await db.cloudz_ledger.insert_one({
+        "userId": user_id,
+        "type": tx_type,
+        "amount": amount,
+        "balanceAfter": balance_after,
+        "reference": reference,
+        "createdAt": datetime.utcnow(),
+    })
+
 # ==================== AUTH UTILITIES ====================
 
 def verify_password(plain_password, hashed_password):
@@ -218,7 +247,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="Invalid token")
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
+    except jwt.exceptions.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     user = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -230,6 +261,23 @@ async def get_admin_user(user = Depends(get_current_user)):
     if not user.get("isAdmin", False):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+def build_user_response(user_doc: dict) -> UserResponse:
+    uid = str(user_doc["_id"]) if "_id" in user_doc else user_doc.get("id", "")
+    return UserResponse(
+        id=uid,
+        email=user_doc["email"],
+        firstName=user_doc["firstName"],
+        lastName=user_doc["lastName"],
+        dateOfBirth=user_doc["dateOfBirth"],
+        phone=user_doc.get("phone"),
+        isAdmin=user_doc.get("isAdmin", False),
+        loyaltyPoints=user_doc.get("loyaltyPoints", 0),
+        profilePhoto=user_doc.get("profilePhoto"),
+        referralCode=user_doc.get("referralCode"),
+        referralCount=user_doc.get("referralCount", 0),
+        referralRewardsEarned=user_doc.get("referralRewardsEarned", 0),
+    )
 
 # ==================== AUTH ENDPOINTS ====================
 
@@ -244,6 +292,19 @@ async def register(user_data: UserRegister):
     if age < 21:
         raise HTTPException(status_code=400, detail="Must be 21 or older")
     
+    # Handle referral code
+    referred_by = None
+    if user_data.referralCode:
+        referrer = await db.users.find_one({"referralCode": user_data.referralCode.upper().strip()})
+        if not referrer:
+            raise HTTPException(status_code=400, detail="Invalid referral code")
+        referred_by = str(referrer["_id"])
+
+    # Generate unique referral code for new user
+    ref_code = generate_referral_code()
+    while await db.users.find_one({"referralCode": ref_code}):
+        ref_code = generate_referral_code()
+
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
         "email": user_data.email,
@@ -255,11 +316,20 @@ async def register(user_data: UserRegister):
         "isAdmin": False,
         "loyaltyPoints": 0,
         "profilePhoto": None,
+        "referralCode": ref_code,
+        "referredBy": referred_by,
+        "referralCount": 0,
+        "referralRewardsEarned": 0,
+        "referralRewardIssued": False,
         "createdAt": datetime.utcnow()
     }
     
     result = await db.users.insert_one(user_dict)
     user_id = str(result.inserted_id)
+
+    # Prevent self-referral (edge case: code belonged to same email re-registered)
+    if referred_by == user_id:
+        await db.users.update_one({"_id": result.inserted_id}, {"$set": {"referredBy": None}})
     
     access_token = create_access_token(data={"sub": user_id})
     
@@ -272,7 +342,10 @@ async def register(user_data: UserRegister):
         phone=user_data.phone,
         isAdmin=False,
         loyaltyPoints=0,
-        profilePhoto=None
+        profilePhoto=None,
+        referralCode=ref_code,
+        referralCount=0,
+        referralRewardsEarned=0
     )
     
     return Token(access_token=access_token, token_type="bearer", user=user_response)
@@ -295,24 +368,17 @@ async def login(user_data: UserLogin):
         phone=user.get("phone"),
         isAdmin=user.get("isAdmin", False),
         loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
+        profilePhoto=user.get("profilePhoto"),
+        referralCode=user.get("referralCode"),
+        referralCount=user.get("referralCount", 0),
+        referralRewardsEarned=user.get("referralRewardsEarned", 0)
     )
     
     return Token(access_token=access_token, token_type="bearer", user=user_response)
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user = Depends(get_current_user)):
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
-    )
+    return build_user_response(user)
 
 # ==================== USER PROFILE ENDPOINTS ====================
 
@@ -325,31 +391,10 @@ async def update_profile(profile_data: UserProfileUpdate, user = Depends(get_cur
             {"_id": user["_id"]},
             {"$set": update_dict}
         )
-        
         updated_user = await db.users.find_one({"_id": user["_id"]})
-        return UserResponse(
-            id=str(updated_user["_id"]),
-            email=updated_user["email"],
-            firstName=updated_user["firstName"],
-            lastName=updated_user["lastName"],
-            dateOfBirth=updated_user["dateOfBirth"],
-            phone=updated_user.get("phone"),
-            isAdmin=updated_user.get("isAdmin", False),
-            loyaltyPoints=updated_user.get("loyaltyPoints", 0),
-            profilePhoto=updated_user.get("profilePhoto")
-        )
+        return build_user_response(updated_user)
     
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
-    )
+    return build_user_response(user)
 
 # ==================== BRAND ENDPOINTS ====================
 
@@ -562,6 +607,25 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
             )
     
     points_earned = int(order_data.total)
+    reward_discount = 0.0
+    reward_points_used = 0
+
+    # Handle tier-based reward redemption at checkout
+    if order_data.rewardId:
+        reward = await db.loyalty_rewards.find_one({
+            "_id": ObjectId(order_data.rewardId),
+            "userId": str(user["_id"]),
+            "used": False,
+        })
+        if not reward:
+            raise HTTPException(status_code=400, detail="Invalid or already used reward")
+        reward_discount = reward["rewardAmount"]
+        reward_points_used = reward["pointsSpent"]
+        # Mark reward as used
+        await db.loyalty_rewards.update_one(
+            {"_id": ObjectId(order_data.rewardId)},
+            {"$set": {"used": True, "usedAt": datetime.utcnow()}}
+        )
     
     order_dict = {
         "userId": str(user["_id"]),
@@ -569,20 +633,15 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
         "total": order_data.total,
         "pickupTime": order_data.pickupTime,
         "paymentMethod": order_data.paymentMethod,
-        "status": "Pending Payment",
+        "status": "Awaiting Pickup (Cash)" if order_data.paymentMethod == "Cash on Pickup" else "Pending Payment",
         "loyaltyPointsEarned": points_earned,
-        "loyaltyPointsUsed": order_data.loyaltyPointsUsed,
+        "loyaltyPointsUsed": reward_points_used,
+        "rewardId": order_data.rewardId,
+        "rewardDiscount": reward_discount,
         "createdAt": datetime.utcnow()
     }
     
     result = await db.orders.insert_one(order_dict)
-    
-    # Deduct used loyalty points
-    if order_data.loyaltyPointsUsed > 0:
-        await db.users.update_one(
-            {"_id": user["_id"]},
-            {"$inc": {"loyaltyPoints": -order_data.loyaltyPointsUsed}}
-        )
     
     order_dict["id"] = str(result.inserted_id)
     return Order(**order_dict)
@@ -615,11 +674,15 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         raise HTTPException(status_code=404, detail="Order not found")
     
     # If marking as "Paid", award loyalty points and reduce inventory
-    if status_update.status == "Paid" and order["status"] == "Pending Payment":
+    if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
         # Award loyalty points
         await db.users.update_one(
             {"_id": ObjectId(order["userId"])},
             {"$inc": {"loyaltyPoints": order["loyaltyPointsEarned"]}}
+        )
+        await log_cloudz_transaction(
+            order["userId"], "purchase_reward", order["loyaltyPointsEarned"],
+            f"Order #{order_id[:8]}"
         )
         
         # Reduce inventory for each item
@@ -628,32 +691,268 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                 {"_id": ObjectId(item["productId"])},
                 {"$inc": {"stock": -item["quantity"]}}
             )
+
+        # Referral reward trigger: first paid order for referred user
+        buyer = await db.users.find_one({"_id": ObjectId(order["userId"])})
+        if buyer and buyer.get("referredBy") and not buyer.get("referralRewardIssued", False):
+            referrer_id = buyer["referredBy"]
+            # Grant 1,000 Cloudz to new user
+            await db.users.update_one(
+                {"_id": ObjectId(order["userId"])},
+                {"$inc": {"loyaltyPoints": 1000}, "$set": {"referralRewardIssued": True}}
+            )
+            await log_cloudz_transaction(
+                order["userId"], "referral_bonus", 1000, "Welcome bonus (referred)"
+            )
+            # Grant 2,000 Cloudz to referrer + increment count
+            await db.users.update_one(
+                {"_id": ObjectId(referrer_id)},
+                {"$inc": {"loyaltyPoints": 2000, "referralCount": 1, "referralRewardsEarned": 2000}}
+            )
+            await log_cloudz_transaction(
+                referrer_id, "referral_bonus", 2000, f"Referral reward for user #{order['userId'][:8]}"
+            )
+            # Log rewards for both users in loyalty history
+            now = datetime.utcnow()
+            await db.loyalty_rewards.insert_many([
+                {
+                    "userId": order["userId"],
+                    "tierId": "referral_bonus",
+                    "tierName": "Referral Welcome Bonus",
+                    "pointsSpent": 0,
+                    "rewardAmount": 0,
+                    "used": True,
+                    "createdAt": now,
+                    "type": "referral_earned",
+                    "pointsEarned": 1000,
+                },
+                {
+                    "userId": referrer_id,
+                    "tierId": "referral_reward",
+                    "tierName": "Referral Reward",
+                    "pointsSpent": 0,
+                    "rewardAmount": 0,
+                    "used": True,
+                    "createdAt": now,
+                    "type": "referral_earned",
+                    "pointsEarned": 2000,
+                },
+            ])
+
+        # Streak bonus: award once per ISO week
+        streak_bonus = await maybe_award_streak_bonus(order["userId"], order_id)
     
     await db.orders.update_one(
         {"_id": ObjectId(order_id)},
         {"$set": {"status": status_update.status}}
     )
     
+    # Send push notification to the user about order status change
+    await send_push_notification(
+        order["userId"],
+        "Order Update",
+        f"Order #{order_id[-6:].upper()} is now: {status_update.status}",
+    )
+    
     return {"message": "Order status updated"}
+
+# ==================== PUSH NOTIFICATIONS ====================
+
+class PushTokenRegister(BaseModel):
+    token: str
+
+async def send_push_notification(user_id: str, title: str, body: str):
+    tokens = await db.push_tokens.find({"userId": user_id}, {"_id": 0, "token": 1}).to_list(10)
+    if not tokens:
+        return
+    messages = [
+        {"to": t["token"], "sound": "default", "title": title, "body": body}
+        for t in tokens if t.get("token", "").startswith("ExponentPushToken")
+    ]
+    if not messages:
+        return
+    try:
+        async with httpx.AsyncClient() as client_http:
+            await client_http.post(
+                "https://exp.host/--/api/v2/push/send",
+                json=messages,
+                headers={"Accept": "application/json", "Content-Type": "application/json"},
+                timeout=10,
+            )
+    except Exception as e:
+        logger.error(f"Push notification failed: {e}")
+
+@api_router.post("/push/register")
+async def register_push_token(payload: PushTokenRegister, user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    if not payload.token.startswith("ExponentPushToken"):
+        raise HTTPException(status_code=400, detail="Invalid Expo push token")
+    await db.push_tokens.update_one(
+        {"userId": user_id, "token": payload.token},
+        {"$set": {"userId": user_id, "token": payload.token, "updatedAt": datetime.utcnow()}},
+        upsert=True,
+    )
+    return {"message": "Push token registered"}
+
+# ==================== STREAK BONUS ====================
+
+STREAK_BONUS = {2: 50, 3: 100, 4: 200}  # week: bonus; 5+ = 500
+
+async def calculate_streak(user_id: str) -> int:
+    """Return the number of consecutive ISO weeks (ending at current) with a Paid order."""
+    paid_orders = await db.orders.find(
+        {"userId": user_id, "status": "Paid"},
+        {"_id": 0, "createdAt": 1},
+    ).sort("createdAt", -1).to_list(5000)
+    if not paid_orders:
+        return 0
+    weeks_with_orders: set = set()
+    for o in paid_orders:
+        dt = o["createdAt"]
+        weeks_with_orders.add(dt.isocalendar()[:2])  # (year, week)
+    now = datetime.utcnow()
+    current = now.isocalendar()[:2]
+    streak = 0
+    yr, wk = current
+    while (yr, wk) in weeks_with_orders:
+        streak += 1
+        # Go to previous ISO week
+        prev_day = datetime.fromisocalendar(yr, wk, 1) - timedelta(days=1)
+        yr, wk = prev_day.isocalendar()[:2]
+    return streak
+
+def get_streak_bonus(streak: int) -> int:
+    if streak < 2:
+        return 0
+    return STREAK_BONUS.get(streak, 500)
+
+async def maybe_award_streak_bonus(user_id: str, order_id: str):
+    """Award streak bonus once per ISO week when the first order is marked Paid."""
+    now = datetime.utcnow()
+    iso_year, iso_week = now.isocalendar()[:2]
+    existing = await db.cloudz_ledger.find_one({
+        "userId": user_id,
+        "type": "streak_bonus",
+        "isoYear": iso_year,
+        "isoWeek": iso_week,
+    })
+    if existing:
+        return 0
+    streak = await calculate_streak(user_id)
+    bonus = get_streak_bonus(streak)
+    if bonus <= 0:
+        return 0
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$inc": {"loyaltyPoints": bonus}},
+    )
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    balance_after = user.get("loyaltyPoints", 0) if user else 0
+    await db.cloudz_ledger.insert_one({
+        "userId": user_id,
+        "type": "streak_bonus",
+        "amount": bonus,
+        "balanceAfter": balance_after,
+        "reference": f"Week {iso_week} streak ({streak} weeks) - Order #{order_id[:8]}",
+        "isoYear": iso_year,
+        "isoWeek": iso_week,
+        "createdAt": now,
+    })
+    return bonus
+
+@api_router.get("/loyalty/streak")
+async def get_user_streak(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    streak = await calculate_streak(user_id)
+    bonus = get_streak_bonus(streak)
+    next_bonus = get_streak_bonus(streak + 1)
+    now = datetime.utcnow()
+    iso_year, iso_week = now.isocalendar()[:2]
+    # Days until end of current ISO week (Sunday)
+    current_weekday = now.isocalendar()[2]  # 1=Mon .. 7=Sun
+    days_left = 7 - current_weekday
+    return {
+        "streak": streak,
+        "currentBonus": bonus,
+        "nextBonus": next_bonus,
+        "daysUntilExpiry": days_left,
+        "isoWeek": iso_week,
+        "isoYear": iso_year,
+    }
+
+# ==================== SUPPORT TICKETS ====================
+
+class SupportTicketCreate(BaseModel):
+    subject: str
+    message: str
+
+@api_router.post("/support/tickets")
+async def create_support_ticket(ticket: SupportTicketCreate, user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    doc = {
+        "userId": user_id,
+        "userName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
+        "userEmail": user.get("email", ""),
+        "subject": ticket.subject,
+        "message": ticket.message,
+        "status": "open",
+        "createdAt": datetime.utcnow(),
+    }
+    result = await db.support_tickets.insert_one(doc)
+    return {"id": str(result.inserted_id), "message": "Support ticket created"}
+
+@api_router.get("/admin/support/tickets")
+async def get_support_tickets(
+    skip: int = 0,
+    limit: int = 50,
+    status: str = None,
+    admin=Depends(get_admin_user),
+):
+    query = {}
+    if status:
+        query["status"] = status
+    tickets = await db.support_tickets.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.support_tickets.count_documents(query)
+    return {"tickets": tickets, "total": total}
 
 # ==================== ADMIN USER MANAGEMENT ====================
 
 @api_router.get("/admin/users", response_model=List[UserResponse])
 async def get_all_users(admin = Depends(get_admin_user)):
     users = await db.users.find().to_list(1000)
-    return [
-        UserResponse(
-            id=str(u["_id"]),
-            email=u["email"],
-            firstName=u["firstName"],
-            lastName=u["lastName"],
-            dateOfBirth=u["dateOfBirth"],
-            phone=u.get("phone"),
-            isAdmin=u.get("isAdmin", False),
-            loyaltyPoints=u.get("loyaltyPoints", 0),
-            profilePhoto=u.get("profilePhoto")
-        ) for u in users
-    ]
+    return [build_user_response(u) for u in users]
+
+@api_router.get("/admin/ledger")
+async def get_admin_ledger(
+    skip: int = 0,
+    limit: int = 50,
+    userId: str = None,
+    type: str = None,
+    admin = Depends(get_admin_user),
+):
+    query = {}
+    if userId:
+        query["userId"] = userId
+    if type:
+        query["type"] = type
+
+    entries = await db.cloudz_ledger.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.cloudz_ledger.count_documents(query)
+
+    # Batch-fetch user emails
+    user_ids = list({e["userId"] for e in entries})
+    users_map = {}
+    if user_ids:
+        users_cursor = db.users.find({"_id": {"$in": [ObjectId(uid) for uid in user_ids]}}, {"_id": 1, "email": 1})
+        async for u in users_cursor:
+            users_map[str(u["_id"])] = u.get("email", "unknown")
+
+    for e in entries:
+        e["userEmail"] = users_map.get(e["userId"], "unknown")
+        if isinstance(e.get("createdAt"), datetime):
+            e["createdAt"] = e["createdAt"].isoformat()
+
+    return {"entries": entries, "total": total, "skip": skip, "limit": limit}
 
 @api_router.patch("/admin/users/{user_id}", response_model=UserResponse)
 async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = Depends(get_admin_user)):
@@ -662,6 +961,13 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
     
+    # Track loyalty point changes for ledger
+    old_points = None
+    if "loyaltyPoints" in update_dict:
+        old_user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if old_user:
+            old_points = old_user.get("loyaltyPoints", 0)
+
     result = await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": update_dict}
@@ -670,20 +976,191 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Log admin grant/adjustment to ledger
+    if old_points is not None:
+        delta = update_dict["loyaltyPoints"] - old_points
+        if delta != 0:
+            await log_cloudz_transaction(
+                user_id, "admin_adjustment", delta,
+                f"Admin set balance to {update_dict['loyaltyPoints']}"
+            )
+
     user = await db.users.find_one({"_id": ObjectId(user_id)})
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        firstName=user["firstName"],
-        lastName=user["lastName"],
-        dateOfBirth=user["dateOfBirth"],
-        phone=user.get("phone"),
-        isAdmin=user.get("isAdmin", False),
-        loyaltyPoints=user.get("loyaltyPoints", 0),
-        profilePhoto=user.get("profilePhoto")
+    return build_user_response(user)
+
+# ==================== LOYALTY TIER SYSTEM ====================
+
+LOYALTY_TIERS = [
+    {"id": "tier_1", "name": "Bronze Cloud", "pointsRequired": 1000, "reward": 5.00, "icon": "cloud-outline"},
+    {"id": "tier_2", "name": "Silver Storm", "pointsRequired": 5000, "reward": 30.00, "icon": "cloud"},
+    {"id": "tier_3", "name": "Gold Thunder", "pointsRequired": 10000, "reward": 75.00, "icon": "thunderstorm-outline"},
+    {"id": "tier_4", "name": "Platinum Haze", "pointsRequired": 20000, "reward": 175.00, "icon": "thunderstorm"},
+    {"id": "tier_5", "name": "Diamond Sky", "pointsRequired": 30000, "reward": 300.00, "icon": "diamond"},
+]
+
+class TierRedeemRequest(BaseModel):
+    tierId: str
+
+@api_router.get("/loyalty/tiers")
+async def get_loyalty_tiers(user = Depends(get_current_user)):
+    user_points = user.get("loyaltyPoints", 0)
+    tiers = []
+    for tier in LOYALTY_TIERS:
+        tiers.append({
+            **tier,
+            "unlocked": user_points >= tier["pointsRequired"],
+            "pointsNeeded": max(0, tier["pointsRequired"] - user_points),
+        })
+    return {
+        "userPoints": user_points,
+        "tiers": tiers,
+    }
+
+@api_router.post("/loyalty/redeem")
+async def redeem_tier(req: TierRedeemRequest, user = Depends(get_current_user)):
+    tier = next((t for t in LOYALTY_TIERS if t["id"] == req.tierId), None)
+    if not tier:
+        raise HTTPException(status_code=404, detail="Tier not found")
+
+    user_points = user.get("loyaltyPoints", 0)
+    if user_points < tier["pointsRequired"]:
+        raise HTTPException(status_code=400, detail="Not enough points to redeem this tier")
+
+    # Check if user already has an active (unused) reward for this tier
+    existing = await db.loyalty_rewards.find_one({
+        "userId": str(user["_id"]),
+        "tierId": req.tierId,
+        "used": False,
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have an active reward for this tier. Use it at checkout first.")
+
+    # Deduct points
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$inc": {"loyaltyPoints": -tier["pointsRequired"]}}
+    )
+    await log_cloudz_transaction(
+        str(user["_id"]), "tier_redemption", -tier["pointsRequired"],
+        f"Redeemed {tier['name']} (${tier['reward']:.2f} off)"
     )
 
+    # Create reward record
+    reward_doc = {
+        "userId": str(user["_id"]),
+        "tierId": tier["id"],
+        "tierName": tier["name"],
+        "pointsSpent": tier["pointsRequired"],
+        "rewardAmount": tier["reward"],
+        "used": False,
+        "createdAt": datetime.utcnow(),
+    }
+    result = await db.loyalty_rewards.insert_one(reward_doc)
+
+    return {
+        "message": f"Redeemed {tier['name']} for ${tier['reward']:.2f} off!",
+        "rewardId": str(result.inserted_id),
+        "rewardAmount": tier["reward"],
+        "pointsSpent": tier["pointsRequired"],
+        "remainingPoints": user_points - tier["pointsRequired"],
+    }
+
+@api_router.get("/loyalty/rewards")
+async def get_active_rewards(user = Depends(get_current_user)):
+    rewards = await db.loyalty_rewards.find({
+        "userId": str(user["_id"]),
+        "used": False,
+    }).to_list(100)
+    return [
+        {
+            "id": str(r["_id"]),
+            "tierId": r["tierId"],
+            "tierName": r["tierName"],
+            "rewardAmount": r["rewardAmount"],
+            "pointsSpent": r["pointsSpent"],
+            "createdAt": r["createdAt"].isoformat() if isinstance(r["createdAt"], datetime) else r["createdAt"],
+        }
+        for r in rewards
+    ]
+
+@api_router.get("/loyalty/history")
+async def get_redemption_history(user = Depends(get_current_user)):
+    rewards = await db.loyalty_rewards.find({
+        "userId": str(user["_id"]),
+    }).sort("createdAt", -1).to_list(100)
+    return [
+        {
+            "id": str(r["_id"]),
+            "tierId": r["tierId"],
+            "tierName": r["tierName"],
+            "rewardAmount": r["rewardAmount"],
+            "pointsSpent": r["pointsSpent"],
+            "used": r["used"],
+            "createdAt": r["createdAt"].isoformat() if isinstance(r["createdAt"], datetime) else r["createdAt"],
+        }
+        for r in rewards
+    ]
+
+@api_router.get("/loyalty/ledger")
+async def get_cloudz_ledger(user = Depends(get_current_user)):
+    entries = await db.cloudz_ledger.find(
+        {"userId": str(user["_id"])}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(200)
+    for e in entries:
+        if isinstance(e.get("createdAt"), datetime):
+            e["createdAt"] = e["createdAt"].isoformat()
+    return entries
+
 # ==================== CATEGORIES ENDPOINT ====================
+
+TIER_COLORS = {
+    "tier_1": "#CD7F32",
+    "tier_2": "#C0C0C0",
+    "tier_3": "#FFD700",
+    "tier_4": "#A8B8D0",
+    "tier_5": "#B9F2FF",
+}
+
+def resolve_tier(points: int):
+    tier_name = None
+    tier_id = None
+    for t in LOYALTY_TIERS:
+        if points >= t["pointsRequired"]:
+            tier_name = t["name"]
+            tier_id = t["id"]
+    return tier_name, TIER_COLORS.get(tier_id, "#666") if tier_id else ("#666")
+
+@api_router.get("/leaderboard")
+async def get_leaderboard(user = Depends(get_current_user)):
+    projection = {"_id": 1, "firstName": 1, "lastName": 1, "loyaltyPoints": 1, "referralCount": 1}
+    current_uid = str(user["_id"])
+
+    by_points_cursor = db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20)
+    by_referrals_cursor = db.users.find({}, projection).sort("referralCount", -1).limit(20)
+
+    by_points_raw = await by_points_cursor.to_list(20)
+    by_referrals_raw = await by_referrals_cursor.to_list(20)
+
+    def build_entry(doc, rank):
+        first = doc.get("firstName", "")
+        last = doc.get("lastName", "")
+        display = f"{first} {last[0]}." if last else first
+        pts = doc.get("loyaltyPoints", 0)
+        tier_name, tier_color = resolve_tier(pts)
+        return {
+            "rank": rank,
+            "displayName": display,
+            "points": pts,
+            "referralCount": doc.get("referralCount", 0),
+            "tier": tier_name,
+            "tierColor": tier_color,
+            "isCurrentUser": str(doc["_id"]) == current_uid,
+        }
+
+    return {
+        "byPoints": [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)],
+        "byReferrals": [build_entry(d, i + 1) for i, d in enumerate(by_referrals_raw)],
+    }
 
 @api_router.get("/categories")
 async def get_categories():
