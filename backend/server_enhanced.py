@@ -694,9 +694,9 @@ async def get_categories():
     ]
 
 # Include router
-@app.get(”/”)
+@app.get("/")
 async def root():
-return {“message”: “Cloud District API is live”}
+return {"message": "Cloud District API is live"}
 
 app.include_router(api_router)
 
