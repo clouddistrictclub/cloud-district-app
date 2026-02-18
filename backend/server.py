@@ -1191,3 +1191,15 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Temporary bootstrap endpoint — remove after initial admin setup
+@app.post("/api/bootstrap/promote-admin")
+async def bootstrap_promote_admin(payload: dict):
+    secret = payload.get("secret")
+    email = payload.get("email")
+    if secret != SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    result = await db.users.update_one({"email": email}, {"$set": {"isAdmin": True}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found or already admin")
+    return {"message": f"{email} promoted to admin"}
