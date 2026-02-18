@@ -10,7 +10,7 @@ API = "https://api.clouddistrict.club"
 print("=== Step 1: Register admin user ===")
 reg = requests.post(f"{API}/api/auth/register", json={
     "email": "jkaatz@gmail.com",
-    "password": "Admin123!",
+    "password": "Just1n23$",
     "firstName": "Jake",
     "lastName": "Kaatz",
     "dateOfBirth": "1990-01-15",
@@ -23,7 +23,7 @@ elif reg.status_code == 400 and "already registered" in reg.text:
     print("  User already exists, logging in...")
     login = requests.post(f"{API}/api/auth/login", json={
         "email": "jkaatz@gmail.com",
-        "password": "Admin123!",
+        "password": "Just1n23$",
     })
     if login.status_code != 200:
         print(f"  Login failed: {login.text}")
