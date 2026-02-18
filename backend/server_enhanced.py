@@ -17,10 +17,35 @@ from bson import ObjectId
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# ================= MongoDB connection =================
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+
+MONGO_URL = os.environ["MONGO_URL"]
+DB_NAME = os.environ["DB_NAME"]
+
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+# ---------- SAFE DB BOOTSTRAP ----------
+async def ensure_collections():
+    existing = await db.list_collection_names()
+
+    collections_needed = [
+        "users",
+        "products",
+        "brands",
+        "orders",
+        "support_tickets"
+    ]
+
+    for name in collections_needed:
+        if name not in existing:
+            await db.create_collection(name)
+
+@app.on_event("startup")
+async def startup_db():
+    await ensure_collections()
 
 # JWT Configuration
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
