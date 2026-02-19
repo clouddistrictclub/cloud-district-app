@@ -1173,6 +1173,10 @@ async def get_categories():
 # Include router
 app.include_router(api_router)
 
+@app.get("/")
+def health_check():
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
