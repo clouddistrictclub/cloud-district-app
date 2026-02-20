@@ -178,6 +178,15 @@ Build a mobile app called "Cloud District Club" for local pickup of disposable v
 - **All 22 endpoints verified live**: Feb 2026
 - **Important**: `server_enhanced.py` must stay synced with `server.py` (Railway runs `server_enhanced.py`)
 
-## Credentials
+## Branding & Assets (Feb 2026)
+- **App icon**: `/assets/images/icon.png` (1024x1024 production logo)
+- **Adaptive icon**: `/assets/images/adaptive-icon.png` (Android)
+- **Splash**: iOS (`splash-icon.png` 1290x2796), Web (`splash-image.png` 1920x1080)
+- **Favicons**: Full bundle in `/public/` (ico, 16-512px, apple-touch, android-chrome)
+- **Web manifest**: `/public/manifest.json` (PWA-ready)
+- **Hero banners**: `/assets/images/heroes/` (5 sizes: 1280-2560px)
+- **Meta tags**: favicon, apple-touch-icon, manifest, theme-color in `+html.tsx`
+- **Age gate**: Uses production logo via `Image` component
+- **Old React logos**: Removed
 - **Admin:** jkaatz@gmail.com (production)
 - **Dev Admin:** admin@clouddistrictclub.com / Admin123! (local preview only)
