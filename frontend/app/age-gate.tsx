@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput, Image } from 'react-native';
 import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -113,9 +113,7 @@ export default function AgeGate() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="cloud" size={48} color={theme.colors.primary} />
-          </View>
+          <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
           <Text style={styles.title}>Cloud District Club</Text>
           <Text style={styles.subtitle}>Age Verification Required</Text>
         </View>
@@ -262,13 +260,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 20,
     marginBottom: 16,
   },
   title: {
