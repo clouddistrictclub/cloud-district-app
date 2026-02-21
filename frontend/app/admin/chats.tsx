@@ -66,9 +66,13 @@ export default function AdminChats() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [remoteTyping, setRemoteTyping] = useState(false);
+  const [allRead, setAllRead] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
 
   const loadSessions = useCallback(async () => {
     try {
