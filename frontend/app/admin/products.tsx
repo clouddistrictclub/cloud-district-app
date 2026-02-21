@@ -116,12 +116,33 @@ export default function ProductsManagement() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+      quality: 0.7,
     });
 
-    if (!result.canceled && result.assets[0].base64) {
-      setFormData({ ...formData, image: `data:image/jpeg;base64,${result.assets[0].base64}` });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setUploading(true);
+      try {
+        const formPayload = new FormData();
+        const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+        formPayload.append('file', {
+          uri: asset.uri,
+          name: `product.${ext}`,
+          type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+        } as any);
+
+        const res = await axios.post(`${API_URL}/api/upload/product-image`, formPayload, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setFormData({ ...formData, image: res.data.url });
+      } catch (error: any) {
+        Alert.alert('Upload Failed', error.response?.data?.detail || 'Could not upload image');
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
