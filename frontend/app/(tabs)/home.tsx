@@ -41,7 +41,7 @@ const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; 
       return (
         <img
           src={uri}
-          style={{ width: '100%', height: '30vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
+          style={{ width: '100%', height: '26vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
           data-testid={testID}
           alt="Cloud District Hero"
         />
