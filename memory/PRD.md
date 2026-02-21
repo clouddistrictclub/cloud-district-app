@@ -75,8 +75,7 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 ## Prioritized Backlog
 
 ### P1 (Next)
-- Replace base64 product images with proper file upload system in Admin
-- Clean Railway deployment config (remove `server_enhanced.py` duplication)
+- Consolidate `server.py` and `server_enhanced.py` (clean Railway deployment config)
 
 ### P2
 - Desktop product card max-width constraint
