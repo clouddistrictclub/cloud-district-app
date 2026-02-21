@@ -22,6 +22,34 @@ interface Product {
   stock: number;
 }
 
+// Hero image assets
+const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
+const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
+
+// Platform-specific hero image component for proper width:100%/height:auto on web
+const HeroImage = ({ source, testID }: { source: any; testID: string }) => {
+  if (Platform.OS === 'web') {
+    // On web, resolve the asset URI and use a raw <img> for proper CSS sizing
+    const uri = typeof source === 'number' ? Image.resolveAssetSource(source)?.uri : source?.uri;
+    return (
+      <img
+        src={uri}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+        data-testid={testID}
+        alt="Cloud District Hero"
+      />
+    );
+  }
+  return (
+    <Image
+      source={source}
+      style={{ width: '100%' }}
+      resizeMode="contain"
+      testID={testID}
+    />
+  );
+};
+
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
