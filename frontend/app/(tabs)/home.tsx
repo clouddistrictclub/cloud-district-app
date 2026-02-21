@@ -134,9 +134,9 @@ export default function Home() {
         {/* Hero Banner */}
         <View style={styles.heroBannerWrap}>
           {isMobile ? (
-            <HeroImage source={mobileHeroAsset} testID="home-hero-mobile" />
+            <HeroImage source={mobileHeroAsset} testID="home-hero-mobile" isMobile />
           ) : (
-            <HeroImage source={desktopHeroAsset} testID="home-hero-desktop" />
+            <HeroImage source={desktopHeroAsset} testID="home-hero-desktop" isMobile={false} />
           )}
         </View>
 
