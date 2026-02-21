@@ -67,13 +67,13 @@ export default function Support() {
 
           <TouchableOpacity
             style={styles.contactRow}
-            onPress={() => Linking.openURL('tel:5551234567')}
+            onPress={() => Linking.openURL('tel:6083017091')}
             data-testid="contact-phone"
           >
             <Ionicons name="call" size={22} color={theme.colors.success} />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Phone</Text>
-              <Text style={styles.contactValue}>(555) 123-4567</Text>
+              <Text style={styles.contactValue}>(608) 301-7091</Text>
             </View>
           </TouchableOpacity>
 
