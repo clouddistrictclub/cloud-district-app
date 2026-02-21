@@ -1,4 +1,5 @@
-<analysis>**original_problem_statement**:
+<analysis>
+**original_problem_statement**:
 The user wants to build a mobile app called Cloud District Club for the local pickup of disposable vape products, restricted to users aged 21 and over.
 
 **PRODUCT REQUIREMENTS:**
@@ -6,67 +7,64 @@ The user wants to build a mobile app called Cloud District Club for the local pi
 *   **Design:** A dark, premium, fast, and simple user interface.
 *   **Home Screen:** Should display featured products, allow shopping by brand, show loyalty points, and have a clear Order for Local Pickup button.
 *   **Product Catalog:** Products organized by categories with detailed views.
-*   **Checkout Flow:** Local pickup only, with manual payment methods initially.
-*   **Order Status System:** A system to track order progress (future plan to add push notifications).
-*   **Loyalty Program (Cloudz Points):** A tier-based system for redeeming points.
-*   **Referral Program:** A code-based system with deep linking for easy sharing.
+*   **Checkout Flow:** Local pickup only, with manual payment methods.
+*   **Order Status System:** A system to track order progress.
+*   **Loyalty Program (Cloudz Points):** A tier-based system for redeeming points, including a streak bonus.
+*   **Referral Program:** A code-based system with deep linking.
 *   **User Accounts:** To view order history, track loyalty status, and manage profile information.
 *   **Admin Dashboard:** For full CRUD operations on inventory, orders, products, brands, and users.
+*   **Contact & Support:** A section for users to contact support and create tickets.
 *   **Future Features:** Live chat and push notifications.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application built with Expo/React Native for the frontend and FastAPI/MongoDB for the backend. The application features a dark, premium theme and includes user authentication, a tier-based loyalty program (Cloudz), user profile management (editing name, email, phone, photo), a referral system with deep linking, a user-facing transaction ledger for loyalty points (Cloudz History), an admin-facing comprehensive ledger, and a leaderboard. The backend logic is consolidated in , and the frontend uses Expo Router for navigation.
+A full-stack application built with Expo/React Native for the frontend and FastAPI/MongoDB for the backend. The application is deployed to production, with the backend hosted on Railway () and the frontend running in the preview environment. The app features a dark, premium theme and has implemented user authentication, a loyalty program with streak bonuses, a referral system, an order confirmation flow, push notifications for order status, and a contact/support section. Production branding (logos, icons, splash screens) has been fully integrated into the UI.
 
 **Last working item**:
-- **Last item agent was working**: The user reported a critical bug: selecting Cash on Pickup during checkout results in an Invalid payment method error. The agent has correctly identified that the backend validation logic was not updated but has not yet implemented the fix.
-- **Status**: IN PROGRESS
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: backend testing agent. The agent should first test by sending a  request to the  endpoint with  to confirm the fix.
+- **Last item agent was working**: Implementing a responsive hero banner on the Home screen. The goal was to display a mobile-optimized banner for viewports under 768px and a desktop-oriented banner for larger screens, based on user-provided assets. The agent implemented this using  and provided preview screenshots for different viewports.
+- **Status**: USER VERIFICATION PENDING
+- **Agent Testing Done**: Y
+- **Which testing method agent to use?**: Manual testing by user. The agent has already provided the required preview screenshots. The next step is to await user approval.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: [P0] Invalid payment method error for Cash on Pickup checkout.
-
-**Issues Detail**:
--   **Issue 1**:
-    -   **Description**: The  endpoint in  is incorrectly rejecting orders with  because the validation whitelist was not updated when the feature was added.
-    -   **Attempted fixes**: The agent identified the location of the validation logic in  but has not yet modified the code.
-    -   **Next debug checklist**:
-        1.  Open .
-        2.  Locate the  function (around line 545).
-        3.  Find the validation line: .
-        4.  Modify it to include Cash on Pickup: .
-        5.  Restart the backend service if hot-reload doesn't apply the change reliably.
-        6.  Verify the fix using a  command to the  endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical bug that makes the newly added Cash on Pickup feature unusable. Fixing it will restore the intended functionality.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: None.
+-   None.
 
 **In progress Task List**:
--   None.
+-   **Task 1**: Responsive Hero Banner Implementation (P0)
+
+**Task Detail**:
+-   **Task 1**:
+    -   **Where to resume**: Await user approval of the three preview screenshots provided for the responsive hero banner (iPhone SE, iPhone 14, Desktop). If approved, guide the user to save the changes to GitHub and trigger a redeployment on Railway. After deployment, perform a final visual verification on the production preview URL.
+    -   **What will be achieved with this?** The application's home screen will display a visually optimized hero banner tailored to both mobile and desktop screen sizes.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Should Test frontend/backend/both after fix?**: Frontend (visual verification via screenshot).
+    -   **Blocked on something**: User approval of the provided preview screenshots.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P1**: Implement Push Notifications for order status updates.
-    -   **P1**: Implement a Streak Bonus system for consecutive weekly purchases.
+    -   **P1**: Implement a live chat feature.
 -   **Future Tasks**:
-    -   **P2**: Implement a live chat feature.
-    -   **P3**: Refactor the monolithic  into smaller, manageable routers.
-    -   **P3**: Refactor large admin screen components into smaller, reusable ones.
+    -   **P2**: Refactor the monolithic  into smaller, manageable routers.
+    -   **P2**: Refactor large admin screen components into smaller, reusable ones.
+    -   **P3**: Refactor the deployment process to remove the duplicate  file by guiding the user to update the start command in Railway's settings.
 
 **Completed work in this session**
--   **Cash on Pickup Payment Method**: Implemented the initial frontend and backend logic. A critical bug was introduced during this implementation and is the current focus.
--   **Admin Cloudz Ledger**: Added an admin-only endpoint and screen to view a paginated list of all Cloudz ledger entries, with filtering capabilities.
--   **Leaderboard**: Implemented a backend endpoint and a new frontend screen to display top users by Cloudz points and referral counts.
--   **User Cloudz Transaction Ledger**: Created a backend collection and endpoint to log all loyalty point transactions and a corresponding Cloudz History screen for users.
--   **Referral Deep Linking (Phase 2)**: Implemented a system to pre-fill the referral code on the signup screen using a URL query parameter ().
+-   **Production Deployment & Hardening**: Successfully migrated the application to a live production API on Railway, debugging and resolving multiple deployment failures related to dependencies (, ), start commands (added  block), and health checks (added , ,  endpoints).
+-   **Production Database Seeding**: Created and ran a seed script to populate the empty production database with an admin user, brands, and sample products.
+-   **Cash on Pickup Bug Fix Verification**: Confirmed that the Invalid payment method bug reported in the previous handoff was already resolved in the codebase.
+-   **Order Confirmation Screen**: Implemented a dedicated screen () shown after a successful Cash on Pickup order.
+-   **Push Notifications**: Integrated Expo Push Notifications to alert users of order status changes.
+-   **Streak Bonus System**: Added a feature to reward users with bonus loyalty points for consecutive weekly purchases.
+-   **Contact & Support**: Built a new section with a contact form that creates support tickets in the backend.
+-   **Production Branding Integration**: Replaced all placeholder assets with a finalized production asset pack, including app icons, splash screens, favicons, and logos, and updated the respective configuration files (, ).
+-   **UI Branding Placement**: Integrated the new skyline logo across the Age Gate, Login, and Home screens, and added a hero banner to the Home screen.
+-   **Responsive Hero Banner**: Implemented the responsive logic for the Home screen hero banner (pending final user approval).
 
 **Earlier issues found/mentioned but not fixed**
 -   **Admin Screen Brittleness**: This is a known architectural debt item. The user has explicitly instructed not to refactor the admin screens unless they are broken.
+-   **Invalid Image Data in DB**: A console log revealed a product with invalid image data (). This is a data integrity issue in the production database that may need to be addressed.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -75,85 +73,89 @@ A full-stack application built with Expo/React Native for the frontend and FastA
 
 
 **Key Technical Concepts**
--   **Frontend:** React Native, Expo, Expo Router, TypeScript
+-   **Frontend:** React Native, Expo (SDK 50+), Expo Router, TypeScript, Zustand
 -   **Backend:** Python, FastAPI
--   **Database:** MongoDB
--   **State Management:** Zustand
--   **UI/UX Libs:** , , 
+-   **Database:** MongoDB Atlas (Production)
+-   **Deployment:** Backend on Railway, Frontend preview on Emergent.
+-   **Push Notifications:** Expo Push Notifications API.
 
 **key DB schema**
 -   **users**: 
--   **cloudz_ledger**: 
+-   **cloudz_ledger**:  (new type: )
 -   **orders**: 
+-   **push_tokens**:  (New collection)
+-   **support_tickets**:  (New collection)
 
 **changes in tech stack**
--    was integrated for the referral deep link feature.
+-    was integrated.
+-    was added as a backend dependency.
 
 **All files of reference**
--   **/app/backend/server.py**: Contains the validation bug in the  function.
--   **/app/frontend/app/checkout.tsx**: The UI component where the Cash on Pickup option is selected.
+-   **/app/frontend/app/(tabs)/index.tsx**: Modified for the responsive hero banner.
+-   **/app/backend/server.py**: Main backend file, heavily modified with new features and deployment fixes.
+-   **/app/server_enhanced.py**: A duplicate of  that Railway is configured to run. **Critical: This file must be kept in sync with  for deployments.**
+-   **/app/frontend/public/+html.tsx**: Created to add custom web meta tags.
+-   **/app/frontend/app.json**: Updated with production branding.
+-   **/app/backend/requirements.txt**: Updated to add .
 
 **Areas that need refactoring**:
--   The  file is a monolith and a candidate for being broken down into separate API routers.
--   The admin screens are large and could be refactored into smaller components (deferred by user).
+-   The duplicate  file should be removed. This requires guiding the user to update the start command in Railway's project settings to .
+-   The backend monolith () and large admin screens are known technical debt, deferred by the user.
 
 **key api endpoints**
--   : Order creation endpoint. **Currently bugged for Cash on Pickup**.
--   : Admin endpoint to update order status and trigger point awards.
--   : Fetches all Cloudz transaction history for admins.
--   : Fetches public leaderboard data.
+-   , , : Production health check endpoints for Railway.
+-   : Registers a user's Expo push token.
+-   : Retrieves a user's current purchase streak information.
+-   : Creates a new support ticket.
+-   : Admin endpoint to list all support tickets.
 
 **Critical Info for New Agent**
--   Your immediate and only priority is to fix the Invalid payment method bug for the Cash on Pickup feature.
--   The fix requires adding  to the payment method validation list within the  function in .
--   The previous agent failed to add this validation when implementing the feature and then incorrectly verified the flow as working. The user's bug report is correct.
--   Do not proceed to any new features until this bug is fixed and verified.
+-   **Deployment Workflow**: All backend changes must be synced to both  and . After changes are saved to GitHub by the user, they must manually trigger a redeployment on Railway.
+-   **Current State**: You are waiting for user approval on the responsive hero banner previews. Once approved, you must guide the user through the deployment process. Do not proceed with other tasks until this is complete.
+-   **Production Environment**: The application is live. Be cautious with changes. The production API is .
 
 **documents and test reports created in this job**
--    to 
--   
+-    through 
+-   The user uploaded several asset packs which have been extracted and integrated into  and .
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User**: Requests implementation of Cash on Pickup payment method.
-9.  **Agent**: Provides a 5-line implementation plan.
-8.  **User**: Approves execution with strict constraints.
-7.  **Agent**: Implements the changes (but misses the validation update).
-6.  **Agent**: Performs manual  testing and incorrectly concludes the flow is working.
-5.  **Agent**: Runs the testing agent, which also passes (likely due to an incomplete test case).
-4.  **Agent**: Finishes the task, claiming success.
-3.  **User**: Reports the bug: Selecting Cash on Pickup during checkout returns Invalid payment method. Requests a plan to fix it.
-2.  **Agent**: (Internal thought) Acknowledges the need to find the validation logic.
-1.  **Agent**: (Action) Views the contents of  to investigate.
+1.  **User**: Requested an update to the mobile hero banner, providing new mobile-specific assets and detailed requirements for responsive behavior (mobile vs. desktop). Asked for previews on iPhone 14, iPhone SE, and desktop before deployment.
+2.  **Agent**: Implemented the responsive hero banner logic in .
+3.  **Agent**: Provided a screenshot of the home screen on an iPhone SE for preview.
+4.  **Agent**: Provided a screenshot of the home screen on an iPhone 14 for preview.
+5.  **Agent**: Provided a screenshot of the home screen on a desktop viewport for preview.
+6.  **Agent**: Confirmed all three previews are ready and awaiting user approval.
+    (No subsequent user messages; the task is pending user feedback).
 
 **Project Health Check:**
--   **Broken**: The Cash on Pickup feature is non-functional due to a backend validation bug.
--   **Mocked**: None.
+-   **Broken**: None.
+-   **Mocked**: None. The app is fully connected to the live production API and database.
 
 **3rd Party Integrations**
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
+-   **Railway**: Backend hosting platform.
+-   **MongoDB Atlas**: Production cloud database.
+-   **Expo Application Services (EAS)**: Used for push notifications and frontend preview environments.
 
 **Testing status**
 -   Testing agent used after significant changes: YES
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: The Cash on Pickup feature is broken.
+-   Known regressions: None.
 
 **Credentials to test flow:**
--   **Admin User:**
+-   **Admin User (Production):**
     -   **Email:** 
     -   **Password:** 
 
 **What agent forgot to execute**
--   The agent failed to update the  validation list in  when implementing the Cash on Pickup feature. This directly caused the current bug.
--   The agent's manual testing of this feature was flawed, as it did not correctly identify the failure that the user later reported.</analysis>
+-   The agent created a workaround for deployment () instead of guiding the user to fix the root cause in Railway's configuration. This has introduced technical debt and a fragile deployment step that needs to be communicated clearly.
+
+Context Reset Note
+
+This fork was created due to context window exhaustion in the previous thread.
+No architectural pivot has occurred.
+Continue as primary project branch.
+
+Current priority:
+Complete responsive hero validation and correction, then proceed with roadmap execution.
+</analysis>
