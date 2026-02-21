@@ -344,52 +344,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
-  productCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#151515',
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  productImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#222222',
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productBrand: {
-    fontSize: 12,
-    color: '#2E6BFF',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productFlavor: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    marginBottom: 8,
-  },
-  productFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productPrice: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  productPuffs: {
-    fontSize: 11,
-    color: '#666',
-  },
   adminButton: {
     flexDirection: 'row',
     alignItems: 'center',
