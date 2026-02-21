@@ -1234,7 +1234,7 @@ app.include_router(api_router)
 async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("user_id")
+        user_id = payload.get("sub")  # JWT stores user_id in 'sub' field
         if not user_id:
             await websocket.close(code=4001)
             return
