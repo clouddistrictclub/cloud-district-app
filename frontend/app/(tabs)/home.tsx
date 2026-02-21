@@ -102,21 +102,37 @@ export default function Home() {
     loadProducts();
   };
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
+  };
+  const closeDrawer = () => {
+    Animated.timing(slideAnim, { toValue: -280, duration: 200, useNativeDriver: false }).start(() => setDrawerOpen(false));
+  };
+  const navigateFromDrawer = (path: string) => {
+    closeDrawer();
+    setTimeout(() => router.push(path as any), 220);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Image
-          source={require('../../assets/images/logo-horizontal.png')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-          data-testid="home-skyline-logo"
-        />
+        <TouchableOpacity onPress={openDrawer} data-testid="header-menu-btn" activeOpacity={0.7}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.headerIcon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
         <View style={styles.headerRight}>
           <View style={styles.loyaltyBadge}>
             <Ionicons name="star" size={16} color="#fbbf24" />
             <Text style={styles.loyaltyPoints}>{user?.loyaltyPoints || 0}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartButton}>
+          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartButton} data-testid="header-cart-btn">
             <Ionicons name="cart" size={24} color="#fff" />
             {itemCount > 0 && (
               <View style={styles.badge}>
@@ -126,6 +142,35 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Side Drawer */}
+      {drawerOpen && (
+        <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
+          <Pressable style={styles.drawerOverlay} onPress={closeDrawer}>
+            <Animated.View style={[styles.drawerPanel, { left: slideAnim }]}>
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                <View style={styles.drawerHeader}>
+                  <Image source={require('../../assets/images/icon.png')} style={styles.drawerLogo} resizeMode="contain" />
+                  <Text style={styles.drawerTitle}>Cloud District</Text>
+                </View>
+                <View style={styles.drawerDivider} />
+                {[
+                  { icon: 'person' as const, label: 'Profile', path: '/profile' },
+                  { icon: 'star' as const, label: 'Cloudz Points', path: '/cloudz' },
+                  { icon: 'receipt' as const, label: 'Orders', path: '/orders' },
+                  { icon: 'chatbubble-ellipses' as const, label: 'Support', path: '/support' },
+                  ...(user?.isAdmin ? [{ icon: 'shield' as const, label: 'Admin', path: '/admin/orders' }] : []),
+                ].map((item) => (
+                  <TouchableOpacity key={item.path} style={styles.drawerItem} onPress={() => navigateFromDrawer(item.path)}>
+                    <Ionicons name={item.icon} size={20} color="#aaa" />
+                    <Text style={styles.drawerItemText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Modal>
+      )}
 
       <ScrollView 
         style={styles.content}
