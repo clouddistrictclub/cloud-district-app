@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useState } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -33,6 +33,12 @@ export default function Login() {
     <SafeAreaView style={styles.container}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
+          <Image
+            source={require('../../assets/images/logo-horizontal.png')}
+            style={styles.skylineLogo}
+            resizeMode="contain"
+            data-testid="login-skyline-logo"
+          />
           <Text style={styles.title}>Cloud District Club</Text>
           <Text style={styles.subtitle}>Welcome Back</Text>
 
@@ -94,6 +100,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
+  },
+  skylineLogo: {
+    width: '80%',
+    height: 100,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: 32,
