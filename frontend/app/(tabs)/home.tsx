@@ -423,4 +423,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  drawerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  drawerPanel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 280,
+    backgroundColor: '#111',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  drawerLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+  },
+  drawerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#222',
+    marginBottom: 12,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  drawerItemText: {
+    color: '#ddd',
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });
