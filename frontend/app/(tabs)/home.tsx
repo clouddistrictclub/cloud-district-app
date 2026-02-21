@@ -156,16 +156,29 @@ export default function Home() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop by Brand</Text>
           <View style={styles.categoryGrid}>
-            {brands.map((brand) => (
-              <TouchableOpacity 
-                key={brand.id} 
-                style={styles.categoryCard}
-                onPress={() => router.push(`/shop?brand=${brand.id}`)}
-              >
-                <Ionicons name="flash" size={32} color="#6366f1" />
-                <Text style={styles.categoryName}>{brand.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {brands.map((brand) => {
+              const brandImg = brand.image
+                ? (brand.image.startsWith('/') ? `${API_URL}${brand.image}` : brand.image)
+                : null;
+              return (
+                <TouchableOpacity 
+                  key={brand.id} 
+                  style={styles.categoryCard}
+                  onPress={() => router.push(`/shop?brand=${brand.id}`)}
+                >
+                  {brandImg ? (
+                    Platform.OS === 'web' ? (
+                      <img src={brandImg} style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8 }} alt={brand.name} />
+                    ) : (
+                      <Image source={{ uri: brandImg }} style={{ width: 48, height: 48, borderRadius: 8 }} resizeMode="contain" />
+                    )
+                  ) : (
+                    <Ionicons name="flash" size={32} color="#6366f1" />
+                  )}
+                  <Text style={styles.categoryName}>{brand.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
