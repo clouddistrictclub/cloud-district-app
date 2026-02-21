@@ -140,9 +140,16 @@ export default function Home() {
         {/* Hero Banner */}
         <View style={isMobile ? styles.heroBannerMobile : styles.heroBannerDesktop}>
           {isMobile ? (
-            <HeroImage source={mobileHeroAsset} testID="home-hero-mobile" isMobile />
+            <HeroBanner testID="home-hero-mobile" />
           ) : (
-            <HeroImage source={desktopHeroAsset} testID="home-hero-desktop" isMobile={false} />
+            <View style={{ width: '100%', overflow: 'hidden' }}>
+              <Image
+                source={desktopHeroAsset}
+                style={{ width: '100%', height: undefined, aspectRatio: 1440 / 600 }}
+                resizeMode="cover"
+                testID="home-hero-desktop"
+              />
+            </View>
           )}
         </View>
 
