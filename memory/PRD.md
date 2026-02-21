@@ -53,6 +53,12 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 - **Frontend Admin:** `pickImage()` uploads via FormData to server, returns URL. ActivityIndicator shown during upload. Auth header added to product save requests.
 - **Frontend Display:** `resolveImageUri()` helper in ProductCard and product detail resolves relative paths (`/api/uploads/...`) by prepending `EXPO_PUBLIC_BACKEND_URL`. Handles both URL and legacy base64 images.
 - **Testing:** 9/9 backend tests passed, all frontend features verified. Migration: 1 product migrated, 1 invalid skipped.
+
+### Feb 21, 2026 — Bug Fixes: Brand Images + Admin Upload
+- **Brand images on Home:** Brand cards now render brand.image (with URL resolution) when available, with fallback to lightning icon. Migration extended to convert brand base64 images to files (2 brands migrated: Geek Bar, Pickles).
+- **Admin image upload on web:** Fixed 422 error. Web platform now converts blob URL to File object before FormData append (React Native `{uri, name, type}` syntax doesn't work on web). Platform-gated with `Platform.OS === 'web'` check.
+- **Root causes:** Brand images were never rendered in original code (always lightning icon). Web FormData syntax was RN-specific.
+- **Testing:** 12/12 backend tests passed, all UI verified.
 - **Phase 1 - Hero Parity:** Created shared `HeroBanner.tsx` component used by Age Gate, Login, and Home screens. All three now render identically: 26vh height, cover mode, LinearGradient fade (transparent to #0c0c0c), edge-to-edge. Fixed login native height (was hardcoded 220px, now 26% of screen). Added gradient to home hero (was missing).
 - **Phase 2 - Chat FAB Upgrade:**
   - **Draggable:** Long-press (300ms) activates drag via PanResponder. Snaps to nearest screen edge on release. Maintains vertical position. Stays above tab bar and respects safe area.
