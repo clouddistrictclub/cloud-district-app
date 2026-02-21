@@ -77,7 +77,7 @@ export default function ChatBubble() {
     }
   }, [messages.length]);
 
-  if (!user || user.isAdmin) return null;
+  if (!user) return null;
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.senderId === user.id;
