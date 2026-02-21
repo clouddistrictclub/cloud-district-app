@@ -1275,7 +1275,10 @@ async def migrate_base64_images():
             ext = ext_map.get(mime, ".jpg")
             raw = base64.b64decode(encoded)
             if len(raw) < 100:
-                continue  # Skip obviously invalid data
+                # Invalid base64 data — clear the image field
+                await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": ""}})
+                logging.info(f"Cleared invalid image for product {product['_id']}")
+                continue
             filename = f"{uuid.uuid4().hex}{ext}"
             filepath = UPLOADS_DIR / filename
             filepath.write_bytes(raw)
@@ -1283,7 +1286,9 @@ async def migrate_base64_images():
             await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": url}})
             count += 1
         except Exception as e:
-            logging.warning(f"Migration skip product {product['_id']}: {e}")
+            # Clear corrupted image data
+            await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": ""}})
+            logging.warning(f"Migration cleared corrupt image for product {product['_id']}: {e}")
     if count:
         logging.info(f"Migrated {count} product images from base64 to files")
 
