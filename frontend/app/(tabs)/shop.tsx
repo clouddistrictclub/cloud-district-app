@@ -34,6 +34,10 @@ export default function Shop() {
     }
   }, []);
 
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
