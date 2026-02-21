@@ -89,6 +89,9 @@ export default function ChatBubble() {
     const clampedY = Math.max(MIN_Y, Math.min(y, MAX_Y));
     const snapX = x < SCREEN.width / 2 ? EDGE_MARGIN : SCREEN.width - FAB_SIZE - EDGE_MARGIN;
     lastPos.current = { x: snapX, y: clampedY };
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     Animated.spring(pan, {
       toValue: { x: snapX, y: clampedY },
       useNativeDriver: false,
