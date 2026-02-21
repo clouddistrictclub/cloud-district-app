@@ -2,6 +2,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react
 import { memo } from 'react';
 import { useRouter } from 'expo-router';
 
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 interface Product {
   id: string;
   name: string;
@@ -13,10 +15,15 @@ interface Product {
   stock: number;
 }
 
+const resolveImageUri = (image: string) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
+
 const ProductCard = memo(({ product }: { product: Product }) => {
   const router = useRouter();
-
-  const imgSource = product.image ? { uri: product.image } : undefined;
+  const imageUri = resolveImageUri(product.image);
 
   return (
     <TouchableOpacity
