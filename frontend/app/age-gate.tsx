@@ -113,7 +113,12 @@ export default function AgeGate() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
+          <Image
+            source={require('../assets/images/logo-horizontal.png')}
+            style={styles.skylineLogo}
+            resizeMode="contain"
+            data-testid="agegate-skyline-logo"
+          />
           <Text style={styles.title}>Cloud District Club</Text>
           <Text style={styles.subtitle}>Age Verification Required</Text>
         </View>
@@ -260,10 +265,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  logoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
+  skylineLogo: {
+    width: '80%',
+    height: 120,
     marginBottom: 16,
   },
   title: {
