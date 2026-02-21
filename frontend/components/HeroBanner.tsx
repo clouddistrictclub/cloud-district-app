@@ -9,10 +9,12 @@ const NATIVE_HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.26);
 export default function HeroBanner({ testID = 'hero-banner' }: { testID?: string }) {
   if (Platform.OS === 'web') {
     let uri: string;
-    if (typeof mobileHeroAsset === 'number') {
+    if (typeof mobileHeroAsset === 'string') {
+      uri = mobileHeroAsset;
+    } else if (typeof mobileHeroAsset === 'number') {
       uri = Image.resolveAssetSource(mobileHeroAsset)?.uri ?? '';
     } else {
-      uri = '';
+      uri = (mobileHeroAsset as any)?.uri ?? '';
     }
     return (
       <View style={styles.wrapper}>
