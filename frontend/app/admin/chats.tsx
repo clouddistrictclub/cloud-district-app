@@ -95,6 +95,8 @@ export default function AdminChats() {
 
   const openChat = useCallback(async (chatId: string) => {
     setSelectedChat(chatId);
+    setRemoteTyping(false);
+    setAllRead(false);
     try {
       const res = await axios.get(`${API_URL}/api/chat/messages/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -108,20 +110,60 @@ export default function AdminChats() {
     wsRef.current?.close();
     const wsUrl = API_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
     const ws = new WebSocket(`${wsUrl}/api/ws/chat/${chatId}?token=${token}`);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'read' }));
+    };
     ws.onmessage = (e) => {
       try {
-        const msg = JSON.parse(e.data);
-        setMessages(prev => [...prev, msg]);
+        const data = JSON.parse(e.data);
+        if (data.type === 'typing') {
+          if (data.senderId !== user?.id) {
+            setRemoteTyping(data.isTyping);
+            if (data.isTyping) {
+              if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+              typingTimerRef.current = setTimeout(() => setRemoteTyping(false), 3000);
+            }
+          }
+          return;
+        }
+        if (data.type === 'read') {
+          if (data.readBy !== user?.id) {
+            setAllRead(true);
+          }
+          return;
+        }
+        // Regular message
+        setMessages(prev => [...prev, data]);
+        setRemoteTyping(false);
+        if (data.senderId !== user?.id) {
+          ws.send(JSON.stringify({ type: 'read' }));
+        }
       } catch {}
     };
     wsRef.current = ws;
-  }, [token]);
+  }, [token, user?.id]);
+
+  const emitTyping = (isTyping: boolean) => {
+    const now = Date.now();
+    if (isTyping && now - lastTypingSentRef.current < 2000) return;
+    lastTypingSentRef.current = now;
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'typing', isTyping }));
+    }
+  };
+
+  const handleTextChange = (text: string) => {
+    setInput(text);
+    emitTyping(text.length > 0);
+  };
 
   const sendMessage = () => {
     const text = input.trim();
     if (!text || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ message: text }));
+    wsRef.current.send(JSON.stringify({ type: 'message', message: text }));
     setInput('');
+    setAllRead(false);
+    emitTyping(false);
   };
 
   useEffect(() => {
