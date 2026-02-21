@@ -239,7 +239,10 @@ export default function ChatBubble() {
       } catch {}
     };
     ws.onclose = () => {
-      setTimeout(() => { if (openRef.current) connectWS(); }, 3000);
+      // Only reconnect if modal is still open, with a single delayed attempt
+      if (openRef.current) {
+        setTimeout(() => { if (openRef.current) connectWS(); }, 5000);
+      }
     };
     wsRef.current = ws;
   }, [chatId, token, user?.id]);
