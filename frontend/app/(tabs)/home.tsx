@@ -263,9 +263,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 8,
   },
-  headerLogo: {
+  headerIcon: {
     height: 36,
-    width: 160,
+    width: 36,
+    borderRadius: 8,
   },
   headerRight: {
     flexDirection: 'row',
