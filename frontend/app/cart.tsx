@@ -76,9 +76,17 @@ export default function Cart() {
           <ScrollView style={styles.content}>
             {items.map((item) => (
               <View key={item.productId} style={styles.cartItem}>
-                {item.image && (
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
-                )}
+                {item.image ? (
+                  Platform.OS === 'web' ? (
+                    <img
+                      src={resolveImageUri(item.image)}
+                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }}
+                      alt={item.name}
+                    />
+                  ) : (
+                    <Image source={{ uri: resolveImageUri(item.image) }} style={styles.itemImage} />
+                  )
+                ) : null}
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
                   <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
