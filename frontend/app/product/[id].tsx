@@ -8,7 +8,7 @@ import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const resolveImageUri = (image: string) => {
+const resolveImageUri = (image: string | null | undefined) => {
   if (!image) return '';
   if (image.startsWith('/')) return `${API_URL}${image}`;
   return image;
