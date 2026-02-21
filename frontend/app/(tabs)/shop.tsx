@@ -55,32 +55,7 @@ export default function Shop() {
         ) : (
           <View style={styles.productGrid}>
             {products.map((product) => (
-              <TouchableOpacity
-                key={product.id}
-                style={styles.productCard}
-                onPress={() => router.push(`/product/${product.id}`)}
-              >
-                {product.image && (
-                  <Image 
-                    source={{ uri: product.image }} 
-                    style={styles.productImage}
-                  />
-                )}
-                <View style={styles.productInfo}>
-                  <Text style={styles.productBrand}>{product.brand}</Text>
-                  <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                  <Text style={styles.productFlavor}>{product.flavor}</Text>
-                  <View style={styles.productFooter}>
-                    <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-                    <Text style={styles.productPuffs}>{product.puffCount} puffs</Text>
-                  </View>
-                  {product.stock === 0 && (
-                    <View style={styles.outOfStock}>
-                      <Text style={styles.outOfStockText}>Out of Stock</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
+              <ProductCard key={product.id} product={product} />
             ))}
           </View>
         )}
