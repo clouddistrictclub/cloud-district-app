@@ -70,7 +70,7 @@ const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; 
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
-  const itemCount = useCartStore(state => state.getItemCount());
+  const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,21 +78,21 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       const [productsRes, brandsRes] = await Promise.all([
         axios.get(`${API_URL}/api/products`),
         axios.get(`${API_URL}/api/brands?active_only=true`)
       ]);
-      setProducts(productsRes.data.slice(0, 6)); // Featured products
-      setBrands(brandsRes.data.slice(0, 4)); // Top 4 brands
+      setProducts(productsRes.data.slice(0, 6));
+      setBrands(brandsRes.data.slice(0, 4));
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProducts();
