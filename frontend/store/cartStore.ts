@@ -72,11 +72,11 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   getDiscount: () => {
     if (!get().getBulkDiscountActive()) return 0;
-    return get().getSubtotal() * BULK_DISCOUNT_RATE;
+    return Math.round(get().getSubtotal() * BULK_DISCOUNT_RATE * 100) / 100;
   },
 
   getTotal: () => {
-    return get().getSubtotal() - get().getDiscount();
+    return Math.round((get().getSubtotal() - get().getDiscount()) * 100) / 100;
   },
 
   getItemCount: () => {
