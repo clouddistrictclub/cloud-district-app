@@ -265,15 +265,10 @@ const styles = StyleSheet.create({
   },
   heroBannerWrap: {
     marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 2,
+    marginBottom: 4,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
   },
   section: {
     padding: 16,
