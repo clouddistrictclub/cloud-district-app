@@ -1,8 +1,16 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const resolveImageUri = (image: string | undefined | null) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
 
 export default function Cart() {
   const router = useRouter();
