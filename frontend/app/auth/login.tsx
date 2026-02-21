@@ -1,9 +1,49 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, Alert, Image } from 'react-native';
 import { useState } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const heroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
+
+const LoginHero = () => {
+  if (Platform.OS === 'web') {
+    let uri: string;
+    if (typeof heroAsset === 'string') uri = heroAsset;
+    else if (typeof heroAsset === 'number') uri = Image.resolveAssetSource(heroAsset)?.uri ?? '';
+    else uri = heroAsset?.uri ?? '';
+    return (
+      <View style={styles.heroWrap}>
+        <img
+          src={uri}
+          style={{ width: '100%', height: '26vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
+          data-testid="login-hero-img"
+          alt="Cloud District"
+        />
+        <LinearGradient
+          colors={['transparent', '#0c0c0c']}
+          style={styles.heroGradient}
+        />
+      </View>
+    );
+  }
+  return (
+    <View style={styles.heroWrap}>
+      <Image
+        source={heroAsset}
+        style={styles.heroNative}
+        resizeMode="cover"
+        testID="login-hero-img"
+      />
+      <LinearGradient
+        colors={['transparent', '#0c0c0c']}
+        style={styles.heroGradient}
+      />
+    </View>
+  );
+};
 
 export default function Login() {
   const router = useRouter();
@@ -30,16 +70,12 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Image
-            source={require('../../assets/images/logo-horizontal.png')}
-            style={styles.skylineLogo}
-            resizeMode="contain"
-            data-testid="login-skyline-logo"
-          />
-          <Text style={styles.title}>Cloud District Club</Text>
+        <LoginHero />
+
+        <View style={styles.formSection}>
+          <Text style={styles.title} data-testid="login-title">Cloud District Club</Text>
           <Text style={styles.subtitle}>Welcome Back</Text>
 
           <View style={styles.form}>
@@ -52,20 +88,22 @@ export default function Login() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              data-testid="login-email-input"
             />
 
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="********"
               placeholderTextColor="#666"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              data-testid="login-password-input"
             />
 
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]} 
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleLogin}
               disabled={loading}
               data-testid="login-btn"
@@ -96,29 +134,37 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
+  heroWrap: {
+    width: '100%',
+    overflow: 'hidden',
   },
-  skylineLogo: {
-    width: '80%',
-    height: 100,
-    alignSelf: 'center',
-    marginBottom: 16,
+  heroNative: {
+    width: '100%',
+    height: 220,
+  },
+  heroGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 60,
+  },
+  formSection: {
+    paddingHorizontal: 24,
+    marginTop: -8,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#A0A0A0',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   form: {
     gap: 16,
