@@ -56,9 +56,6 @@ export default function Home() {
   const itemCount = useCartStore(state => state.getItemCount());
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const heroContainerWidth = width - 32; // account for 16px margins each side
-  const mobileHeroHeight = heroContainerWidth * (1350 / 1080);
-  const desktopHeroHeight = heroContainerWidth * (600 / 1440);
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
