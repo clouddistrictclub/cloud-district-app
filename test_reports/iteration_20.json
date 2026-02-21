@@ -3,7 +3,7 @@
   "backend_issues": {
     "critical": [],
     "minor": [
-      {"endpoint": "POST /api/orders with invalid rewardId", "issue": "Got 520 (tunnel error) instead of expected 400. Intermittent tunnel issue - not a backend bug."}
+      {"endpoint": "POST /api/orders with invalid rewardId", "issue": "Returns 500 Internal Server Error when rewardId is not a valid ObjectId format. Should validate rewardId format and return 400. See server.py line 620.", "priority": "LOW"}
     ]
   },
   "frontend_issues": {
