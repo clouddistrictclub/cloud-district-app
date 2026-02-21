@@ -197,7 +197,8 @@ export default function AgeGate() {
         <Text style={styles.footerText}>
           By continuing, you confirm that you are 21 years of age or older
         </Text>
-      </View>
+        </View>
+      </ScrollView>
 
       {/* iOS Modal Date Picker */}
       {Platform.OS === 'ios' && showPicker && DateTimePicker && (
