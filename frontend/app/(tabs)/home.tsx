@@ -263,7 +263,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  heroBannerWrap: {
+  heroBannerMobile: {
+    overflow: 'hidden',
+  },
+  heroBannerDesktop: {
     marginHorizontal: 16,
     marginTop: 2,
     marginBottom: 4,
