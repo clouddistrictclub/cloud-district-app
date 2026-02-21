@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Modal, Platform, KeyboardAvoidingView, Animated, PanResponder, Dimensions } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../store/authStore';
 import axios from 'axios';
 
