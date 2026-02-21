@@ -121,19 +121,9 @@ export default function Home() {
         {/* Hero Banner */}
         <View style={styles.heroBannerWrap}>
           {isMobile ? (
-            <Image
-              source={require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png')}
-              style={{ width: heroContainerWidth, height: mobileHeroHeight }}
-              resizeMode="contain"
-              testID="home-hero-mobile"
-            />
+            <HeroImage source={mobileHeroAsset} testID="home-hero-mobile" />
           ) : (
-            <Image
-              source={require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png')}
-              style={{ width: heroContainerWidth, height: desktopHeroHeight }}
-              resizeMode="contain"
-              testID="home-hero-desktop"
-            />
+            <HeroImage source={desktopHeroAsset} testID="home-hero-desktop" />
           )}
         </View>
 
