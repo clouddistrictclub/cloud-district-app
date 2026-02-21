@@ -63,7 +63,7 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 
 ## DB Collections
 - **users**, **orders**, **cloudz_ledger**, **push_tokens**, **support_tickets**
-- **chat_messages**: `{chatId, senderId, senderName, isAdmin, message, createdAt}`
+- **chat_messages**: `{chatId, senderId, senderName, isAdmin, message, createdAt, readAt?, readBy?}`
 - **chat_sessions**: `{chatId, userId, lastMessage, lastMessageAt, updatedAt, createdAt}`
 
 ## Prioritized Backlog
