@@ -1230,8 +1230,57 @@ async def get_admin_chats(admin=Depends(get_admin_user)):
                 s["userName"] = "Unknown"
     return sessions
 
+# --- Image Upload ---
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+@api_router.post("/upload/product-image")
+async def upload_product_image(file: UploadFile = File(...), admin=Depends(get_admin_user)):
+    ext = Path(file.filename or "image.jpg").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+    data = await file.read()
+    if len(data) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = UPLOADS_DIR / filename
+    filepath.write_bytes(data)
+    return {"url": f"/api/uploads/products/{filename}"}
+
+# --- Migration: base64 → file ---
+async def migrate_base64_images():
+    cursor = db.products.find({"image": {"$regex": "^data:image/"}})
+    count = 0
+    async for product in cursor:
+        b64 = product["image"]
+        try:
+            header, encoded = b64.split(",", 1)
+            mime = header.split(";")[0].split(":")[1]
+            ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+            ext = ext_map.get(mime, ".jpg")
+            raw = base64.b64decode(encoded)
+            if len(raw) < 100:
+                continue  # Skip obviously invalid data
+            filename = f"{uuid.uuid4().hex}{ext}"
+            filepath = UPLOADS_DIR / filename
+            filepath.write_bytes(raw)
+            url = f"/api/uploads/products/{filename}"
+            await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": url}})
+            count += 1
+        except Exception as e:
+            logging.warning(f"Migration skip product {product['_id']}: {e}")
+    if count:
+        logging.info(f"Migrated {count} product images from base64 to files")
+
+@app.on_event("startup")
+async def startup_migrate():
+    await migrate_base64_images()
+
 # Include router
 app.include_router(api_router)
+
+# Serve uploaded images
+app.mount("/api/uploads/products", StaticFiles(directory=str(UPLOADS_DIR)), name="product-uploads")
 
 # WebSocket must be on app directly, not on router
 @app.websocket("/api/ws/chat/{chat_id}")
