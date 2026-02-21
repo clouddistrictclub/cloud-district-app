@@ -243,14 +243,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  heroDesktop: {
+  heroDesktopWrap: {
     width: '100%',
     aspectRatio: 1440 / 600,
   },
-  heroMobile: {
+  heroMobileWrap: {
     width: '100%',
     aspectRatio: 1080 / 1350,
   },
+  heroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  section: {
     padding: 16,
   },
   sectionHeader: {
