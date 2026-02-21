@@ -295,7 +295,7 @@ export default function ProductsManagement() {
             <View key={product.id} style={styles.productCard}>
               <View style={styles.productHeader}>
                 {product.image && (
-                  <Image source={{ uri: product.image }} style={styles.productImage} />
+                  <Image source={{ uri: product.image.startsWith('/') ? `${API_URL}${product.image}` : product.image }} style={styles.productImage} />
                 )}
                 <View style={styles.productInfo}>
                   <View style={styles.productTitleRow}>
