@@ -20,15 +20,10 @@ interface Product {
 }
 
 export default function Shop() {
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/products`);
       setProducts(response.data);
@@ -37,7 +32,7 @@ export default function Shop() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
