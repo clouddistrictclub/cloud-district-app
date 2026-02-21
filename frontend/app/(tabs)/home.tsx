@@ -173,14 +173,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 8,
   },
-  greeting: {
-    fontSize: 14,
-    color: '#A0A0A0',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+  headerLogo: {
+    height: 36,
+    width: 160,
   },
   headerRight: {
     flexDirection: 'row',
