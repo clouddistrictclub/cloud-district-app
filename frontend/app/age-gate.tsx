@@ -255,19 +255,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    paddingTop: 0,
+    marginTop: -8,
   },
-  logoContainer: {
+  titleContainer: {
     alignItems: 'center',
-    marginBottom: 32,
-  },
-  skylineLogo: {
-    width: '80%',
-    height: 120,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
