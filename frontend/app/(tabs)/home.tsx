@@ -91,7 +91,7 @@ export default function Home() {
         <View style={styles.heroBannerWrap}>
           {isMobile ? (
             <Image
-              source={require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_B_Final.png')}
+              source={require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png')}
               style={styles.heroMobile}
               resizeMode="contain"
               data-testid="home-hero-mobile"
@@ -100,7 +100,7 @@ export default function Home() {
             <Image
               source={require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png')}
               style={styles.heroDesktop}
-              resizeMode="cover"
+              resizeMode="contain"
               data-testid="home-hero-desktop"
             />
           )}
