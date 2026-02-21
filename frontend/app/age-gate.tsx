@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput, Image, ScrollView } from 'react-native';
 import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import HeroBanner from '../components/HeroBanner';
 
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {

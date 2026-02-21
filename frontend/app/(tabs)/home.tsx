@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
+import HeroBanner from '../../components/HeroBanner';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -23,53 +24,8 @@ interface Product {
   stock: number;
 }
 
-// Hero image assets
-const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
+// Desktop hero asset (only used for wide screens)
 const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
-
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const NATIVE_HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.26);
-
-// Platform-specific hero image component for proper width:100%/height:auto on web
-const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; isMobile: boolean }) => {
-  if (Platform.OS === 'web') {
-    let uri: string;
-    if (typeof source === 'string') {
-      uri = source;
-    } else if (typeof source === 'number') {
-      uri = Image.resolveAssetSource(source)?.uri ?? '';
-    } else {
-      uri = source?.uri ?? '';
-    }
-    if (isMobile) {
-      return (
-        <img
-          src={uri}
-          style={{ width: '100%', height: '26vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
-          data-testid={testID}
-          alt="Cloud District Hero"
-        />
-      );
-    }
-    return (
-      <img
-        src={uri}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-        data-testid={testID}
-        alt="Cloud District Hero"
-      />
-    );
-  }
-  // Native: fixed height matching 26% of screen, cover mode
-  return (
-    <Image
-      source={source}
-      style={{ width: '100%', height: NATIVE_HERO_HEIGHT }}
-      resizeMode="cover"
-      testID={testID}
-    />
-  );
-};
 
 export default function Home() {
   const router = useRouter();

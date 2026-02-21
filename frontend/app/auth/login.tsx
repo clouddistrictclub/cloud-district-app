@@ -1,49 +1,10 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useState } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { LinearGradient } from 'expo-linear-gradient';
-
-const heroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
-
-const LoginHero = () => {
-  if (Platform.OS === 'web') {
-    let uri: string;
-    if (typeof heroAsset === 'string') uri = heroAsset;
-    else if (typeof heroAsset === 'number') uri = Image.resolveAssetSource(heroAsset)?.uri ?? '';
-    else uri = heroAsset?.uri ?? '';
-    return (
-      <View style={styles.heroWrap}>
-        <img
-          src={uri}
-          style={{ width: '100%', height: '26vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
-          data-testid="login-hero-img"
-          alt="Cloud District"
-        />
-        <LinearGradient
-          colors={['transparent', '#0c0c0c']}
-          style={styles.heroGradient}
-        />
-      </View>
-    );
-  }
-  return (
-    <View style={styles.heroWrap}>
-      <Image
-        source={heroAsset}
-        style={styles.heroNative}
-        resizeMode="cover"
-        testID="login-hero-img"
-      />
-      <LinearGradient
-        colors={['transparent', '#0c0c0c']}
-        style={styles.heroGradient}
-      />
-    </View>
-  );
-};
+import HeroBanner from '../../components/HeroBanner';
 
 export default function Login() {
   const router = useRouter();
