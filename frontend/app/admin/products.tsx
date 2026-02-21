@@ -153,11 +153,12 @@ export default function ProductsManagement() {
     }
 
     try {
+      const headers = { Authorization: `Bearer ${token}` };
       if (editingProduct) {
-        await axios.patch(`${API_URL}/api/products/${editingProduct.id}`, formData);
+        await axios.patch(`${API_URL}/api/products/${editingProduct.id}`, formData, { headers });
         Alert.alert('Success', 'Product updated successfully');
       } else {
-        await axios.post(`${API_URL}/api/products`, formData);
+        await axios.post(`${API_URL}/api/products`, formData, { headers });
         Alert.alert('Success', 'Product created successfully');
       }
       setShowModal(false);
