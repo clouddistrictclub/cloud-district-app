@@ -27,9 +27,8 @@ const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile
 const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
 
 // Platform-specific hero image component for proper width:100%/height:auto on web
-const HeroImage = ({ source, testID }: { source: any; testID: string }) => {
+const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; isMobile: boolean }) => {
   if (Platform.OS === 'web') {
-    // On web, require() for images returns a string URL or a number (module ID)
     let uri: string;
     if (typeof source === 'string') {
       uri = source;
@@ -38,13 +37,23 @@ const HeroImage = ({ source, testID }: { source: any; testID: string }) => {
     } else {
       uri = source?.uri ?? '';
     }
+    // Mobile: cap height to 28vh (max 32vh), center image with object-fit:contain
+    // Desktop: full width, auto height
+    const imgStyle = isMobile
+      ? { width: '100%', height: '100%', objectFit: 'contain' as const, display: 'block' }
+      : { width: '100%', height: 'auto', display: 'block' };
+    const wrapStyle = isMobile
+      ? { width: '100%', height: '28vh', maxHeight: '32vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+      : {};
     return (
-      <img
-        src={uri}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-        data-testid={testID}
-        alt="Cloud District Hero"
-      />
+      <div style={wrapStyle}>
+        <img
+          src={uri}
+          style={imgStyle}
+          data-testid={testID}
+          alt="Cloud District Hero"
+        />
+      </div>
     );
   }
   return (
