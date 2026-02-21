@@ -1250,10 +1250,37 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
     try:
         while True:
             data = await websocket.receive_json()
+            msg_type = data.get("type", "message")
+
+            # Typing indicator — just broadcast, don't persist
+            if msg_type == "typing":
+                await chat_manager.broadcast(chat_id, {
+                    "type": "typing",
+                    "senderId": user_id,
+                    "senderName": user.get("name", user.get("email", "User")),
+                    "isTyping": data.get("isTyping", False),
+                })
+                continue
+
+            # Read receipt — mark messages as read and broadcast
+            if msg_type == "read":
+                await db.chat_messages.update_many(
+                    {"chatId": chat_id, "senderId": {"$ne": user_id}, "readAt": {"$exists": False}},
+                    {"$set": {"readAt": datetime.utcnow().isoformat(), "readBy": user_id}},
+                )
+                await chat_manager.broadcast(chat_id, {
+                    "type": "read",
+                    "readBy": user_id,
+                    "readAt": datetime.utcnow().isoformat(),
+                })
+                continue
+
+            # Regular message
             msg_text = data.get("message", "").strip()
             if not msg_text:
                 continue
             msg_doc = {
+                "type": "message",
                 "chatId": chat_id,
                 "senderId": user_id,
                 "senderName": user.get("name", user.get("email", "User")),
