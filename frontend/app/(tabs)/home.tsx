@@ -27,6 +27,9 @@ interface Product {
 const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
 const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const NATIVE_HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.26);
+
 // Platform-specific hero image component for proper width:100%/height:auto on web
 const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; isMobile: boolean }) => {
   if (Platform.OS === 'web') {
@@ -57,11 +60,12 @@ const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; 
       />
     );
   }
+  // Native: fixed height matching 26% of screen, cover mode
   return (
     <Image
       source={source}
-      style={{ width: '100%' }}
-      resizeMode="contain"
+      style={{ width: '100%', height: NATIVE_HERO_HEIGHT }}
+      resizeMode="cover"
       testID={testID}
     />
   );
