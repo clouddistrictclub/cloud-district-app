@@ -33,17 +33,17 @@ const ProductCard = memo(({ product }: { product: Product }) => {
       data-testid={`product-card-${product.id}`}
     >
       <View style={styles.imageWrap}>
-        {imgSource ? (
+        {imageUri ? (
           Platform.OS === 'web' ? (
             <img
-              src={product.image}
+              src={imageUri}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               loading="lazy"
               alt={product.name}
               data-testid={`product-img-${product.id}`}
             />
           ) : (
-            <Image source={imgSource} style={styles.image} resizeMode="cover" testID={`product-img-${product.id}`} />
+            <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" testID={`product-img-${product.id}`} />
           )
         ) : (
           <View style={styles.imagePlaceholder}>
