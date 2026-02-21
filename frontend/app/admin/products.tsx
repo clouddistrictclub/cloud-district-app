@@ -124,18 +124,26 @@ export default function ProductsManagement() {
       setUploading(true);
       try {
         const formPayload = new FormData();
-        const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
-        formPayload.append('file', {
-          uri: asset.uri,
-          name: `product.${ext}`,
-          type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-        } as any);
+        const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase().split('?')[0];
+        const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+        if (Platform.OS === 'web') {
+          // On web: fetch the blob URI and convert to File
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          const file = new File([blob], `product.${ext}`, { type: mimeType });
+          formPayload.append('file', file);
+        } else {
+          // On native: use RN FormData syntax
+          formPayload.append('file', {
+            uri: asset.uri,
+            name: `product.${ext}`,
+            type: mimeType,
+          } as any);
+        }
 
         const res = await axios.post(`${API_URL}/api/upload/product-image`, formPayload, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
         setFormData({ ...formData, image: res.data.url });
       } catch (error: any) {
