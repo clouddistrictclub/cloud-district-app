@@ -37,23 +37,23 @@ const HeroImage = ({ source, testID, isMobile }: { source: any; testID: string; 
     } else {
       uri = source?.uri ?? '';
     }
-    // Mobile: cap height to 28vh (max 32vh), center image with object-fit:contain
-    // Desktop: full width, auto height
-    const imgStyle = isMobile
-      ? { width: '100%', height: '100%', objectFit: 'contain' as const, display: 'block' }
-      : { width: '100%', height: 'auto', display: 'block' };
-    const wrapStyle = isMobile
-      ? { width: '100%', height: '28vh', maxHeight: '32vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
-      : {};
-    return (
-      <div style={wrapStyle}>
+    if (isMobile) {
+      return (
         <img
           src={uri}
-          style={imgStyle}
+          style={{ width: '100%', height: '30vh', objectFit: 'cover', objectPosition: 'center center', display: 'block' }}
           data-testid={testID}
           alt="Cloud District Hero"
         />
-      </div>
+      );
+    }
+    return (
+      <img
+        src={uri}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+        data-testid={testID}
+        alt="Cloud District Hero"
+      />
     );
   }
   return (
