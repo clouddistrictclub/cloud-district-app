@@ -33,7 +33,7 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
-        <LoginHero />
+        <HeroBanner testID="login-hero-img" />
 
         <View style={styles.formSection}>
           <Text style={styles.title} data-testid="login-title">Cloud District Club</Text>
@@ -94,21 +94,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  heroWrap: {
-    width: '100%',
-    overflow: 'hidden',
-  },
-  heroNative: {
-    width: '100%',
-    height: 220,
-  },
-  heroGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 60,
   },
   formSection: {
     paddingHorizontal: 24,
