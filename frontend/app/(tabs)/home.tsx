@@ -241,9 +241,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  heroBanner: {
+  heroDesktop: {
     width: '100%',
     height: 160,
+  },
+  heroMobile: {
+    width: '100%',
+    aspectRatio: 1080 / 1350,
   },
   section: {
     padding: 16,
