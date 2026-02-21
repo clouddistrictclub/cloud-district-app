@@ -16,7 +16,13 @@ interface CartState {
   clearCart: () => void;
   getTotal: () => number;
   getItemCount: () => number;
+  getSubtotal: () => number;
+  getDiscount: () => number;
+  getBulkDiscountActive: () => boolean;
 }
+
+const BULK_DISCOUNT_THRESHOLD = 10;
+const BULK_DISCOUNT_RATE = 0.10;
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
@@ -56,8 +62,21 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   clearCart: () => set({ items: [] }),
 
-  getTotal: () => {
+  getSubtotal: () => {
     return get().items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  },
+
+  getBulkDiscountActive: () => {
+    return get().getItemCount() >= BULK_DISCOUNT_THRESHOLD;
+  },
+
+  getDiscount: () => {
+    if (!get().getBulkDiscountActive()) return 0;
+    return get().getSubtotal() * BULK_DISCOUNT_RATE;
+  },
+
+  getTotal: () => {
+    return get().getSubtotal() - get().getDiscount();
   },
 
   getItemCount: () => {
