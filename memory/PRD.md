@@ -69,13 +69,14 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 ## Prioritized Backlog
 
 ### P1 (Next)
-- Fix invalid image data in DB + implement product image upload in Admin
+- Replace base64 product images with proper file upload system in Admin
 - Clean Railway deployment config (remove `server_enhanced.py` duplication)
 
 ### P2
 - Desktop product card max-width constraint
 - Backend monolith refactoring
 - Admin screen refactoring
+- Unread message badge on Chat FAB
 
 ## Credentials
 - **Admin:** jkaatz@gmail.com / Just1n23$
