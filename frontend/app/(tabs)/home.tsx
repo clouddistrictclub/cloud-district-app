@@ -59,10 +59,12 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome Back</Text>
-          <Text style={styles.userName}>{user?.firstName}</Text>
-        </View>
+        <Image
+          source={require('../../assets/images/logo-horizontal.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+          data-testid="home-skyline-logo"
+        />
         <View style={styles.headerRight}>
           <View style={styles.loyaltyBadge}>
             <Ionicons name="star" size={16} color="#fbbf24" />
@@ -83,9 +85,14 @@ export default function Home() {
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
       >
-        <View style={styles.promoBox}>
-          <Text style={styles.promoTitle}>Local Pickup Only</Text>
-          <Text style={styles.promoSubtitle}>Order now, pick up today!</Text>
+        {/* Hero Banner */}
+        <View style={styles.heroBannerWrap}>
+          <Image
+            source={require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png')}
+            style={styles.heroBanner}
+            resizeMode="cover"
+            data-testid="home-hero-banner"
+          />
         </View>
 
         <View style={styles.section}>
