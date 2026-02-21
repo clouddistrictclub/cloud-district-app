@@ -47,11 +47,12 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 - Hint text "Add X more items for 10% off!" when below threshold
 - Proper monetary rounding (Math.round to cents)
 
-### Feb 21, 2026 — P0 Validation (All Items PASS)
-- **P0-1 Hero Layout:** Hero height 26vh (219.4px on iPhone 14), no black gap, proper safe area. Native uses `Math.round(screen.height * 0.26)`.
-- **P0-2 Chat FAB:** Visible for all authenticated users (admin + regular), 56x56px blue circle at bottom-right.
-- **P0-3 Chat Enhancements:** Typing indicators + read receipts working in both user and admin chat views. Admin chat now properly filters typing/read WebSocket events.
-- **P0-4 Bulk Discount:** 10% discount at 10+ items, correct math, dynamic UI updates. 13/13 backend tests passed.
+### Feb 21, 2026 — Hero Parity + Chat FAB Upgrade
+- **Phase 1 - Hero Parity:** Created shared `HeroBanner.tsx` component used by Age Gate, Login, and Home screens. All three now render identically: 26vh height, cover mode, LinearGradient fade (transparent to #0c0c0c), edge-to-edge. Fixed login native height (was hardcoded 220px, now 26% of screen). Added gradient to home hero (was missing).
+- **Phase 2 - Chat FAB Upgrade:**
+  - **Draggable:** Long-press (300ms) activates drag via PanResponder. Snaps to nearest screen edge on release. Maintains vertical position. Stays above tab bar and respects safe area.
+  - **Unread Badge:** Red badge with count at top-right of FAB. Background WebSocket maintains connection when chat closed. Increments count on incoming messages. Hidden when count is zero. Resets when chat modal opens.
+  - Modal functionality, sizing, and color scheme unchanged.
 
 ## Key Files
 - `/app/frontend/components/ChatBubble.tsx` — Floating chat FAB + modal
