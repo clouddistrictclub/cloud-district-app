@@ -616,8 +616,12 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
 
     # Handle tier-based reward redemption at checkout
     if order_data.rewardId:
+        try:
+            reward_oid = ObjectId(order_data.rewardId)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid reward ID format")
         reward = await db.loyalty_rewards.find_one({
-            "_id": ObjectId(order_data.rewardId),
+            "_id": reward_oid,
             "userId": str(user["_id"]),
             "used": False,
         })
