@@ -34,8 +34,24 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 - **Backend:** WebSocket `/api/ws/chat/{chat_id}` with JWT auth, `ConnectionManager` for broadcasting, `chat_messages` + `chat_sessions` MongoDB collections, REST endpoints for history + admin sessions
 - **Frontend (User):** Floating chat FAB (bottom-right, above tab bar), slide-up chat modal, real-time messaging via WebSocket, message history, empty state
 - **Frontend (Admin):** Chats tab in admin dashboard, session list with online status indicators, per-conversation view with reply capability
-- **Hidden for admin users** — admin uses admin dashboard Chats tab instead
+- **Chat FAB visible for ALL authenticated users** (admin and regular)
 - **Testing:** 100% pass (11/11 backend, all frontend features verified)
+
+### Feb 21, 2026 — Chat Enhancements
+- **Typing Indicators:** TypingDots animated component, throttled emission (2s), 3s auto-clear. Works for both user ChatBubble and admin chats.
+- **Read Receipts:** checkmark (sent) / checkmark-done+blue (read) on last sent message. WebSocket `type: 'read'` event triggers bulk update on unread messages. Both user and admin sides send/receive read receipts.
+
+### Feb 21, 2026 — Bulk Discount
+- 10% discount when total cart quantity >= 10 items
+- Discount shown as line item in cart summary with pricetag icon
+- Hint text "Add X more items for 10% off!" when below threshold
+- Proper monetary rounding (Math.round to cents)
+
+### Feb 21, 2026 — P0 Validation (All Items PASS)
+- **P0-1 Hero Layout:** Hero height 26vh (219.4px on iPhone 14), no black gap, proper safe area. Native uses `Math.round(screen.height * 0.26)`.
+- **P0-2 Chat FAB:** Visible for all authenticated users (admin + regular), 56x56px blue circle at bottom-right.
+- **P0-3 Chat Enhancements:** Typing indicators + read receipts working in both user and admin chat views. Admin chat now properly filters typing/read WebSocket events.
+- **P0-4 Bulk Discount:** 10% discount at 10+ items, correct math, dynamic UI updates. 13/13 backend tests passed.
 
 ## Key Files
 - `/app/frontend/components/ChatBubble.tsx` — Floating chat FAB + modal
