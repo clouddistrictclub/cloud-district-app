@@ -102,9 +102,24 @@ export default function Cart() {
 
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>${total.toFixed(2)}</Text>
+                <Text style={styles.summaryLabel}>Subtotal ({itemCount} items)</Text>
+                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
               </View>
+              {bulkActive && (
+                <View style={styles.summaryRow}>
+                  <View style={styles.discountRow}>
+                    <Ionicons name="pricetag" size={14} color="#22c55e" />
+                    <Text style={styles.discountLabel}>Bulk Discount (10%)</Text>
+                  </View>
+                  <Text style={styles.discountValue}>-${discount.toFixed(2)}</Text>
+                </View>
+              )}
+              {!bulkActive && itemCount > 0 && (
+                <View style={styles.discountHint}>
+                  <Ionicons name="information-circle-outline" size={14} color="#666" />
+                  <Text style={styles.discountHintText}>Add {10 - itemCount} more item{10 - itemCount !== 1 ? 's' : ''} for 10% off!</Text>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryNote}>Local Pickup Only</Text>
                 <Text style={styles.summaryNote}>FREE</Text>
