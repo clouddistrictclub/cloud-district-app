@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BULK_DISCOUNT_THRESHOLD = 10;
@@ -25,6 +26,23 @@ interface CartStore {
   getTotal: () => number;
   getItemCount: () => number;
 }
+
+const webStorage = {
+  getItem: (name: string) => {
+    const val = localStorage.getItem(name);
+    return val ?? null;
+  },
+  setItem: (name: string, value: string) => {
+    localStorage.setItem(name, value);
+  },
+  removeItem: (name: string) => {
+    localStorage.removeItem(name);
+  },
+};
+
+const storageEngine = Platform.OS === 'web'
+  ? createJSONStorage(() => webStorage)
+  : createJSONStorage(() => AsyncStorage);
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -90,7 +108,7 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cloud-district-cart',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: storageEngine,
     }
   )
 );
