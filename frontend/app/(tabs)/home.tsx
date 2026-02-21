@@ -251,7 +251,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1080 / 1350,
   },
-  section: {
     padding: 16,
   },
   sectionHeader: {
