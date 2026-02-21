@@ -1249,6 +1249,7 @@ async def upload_product_image(file: UploadFile = File(...), admin=Depends(get_a
 
 # --- Migration: base64 → file ---
 async def migrate_base64_images():
+    # Migrate product images
     cursor = db.products.find({"image": {"$regex": "^data:image/"}})
     count = 0
     async for product in cursor:
@@ -1271,6 +1272,30 @@ async def migrate_base64_images():
             logging.warning(f"Migration skip product {product['_id']}: {e}")
     if count:
         logging.info(f"Migrated {count} product images from base64 to files")
+
+    # Migrate brand images
+    cursor = db.brands.find({"image": {"$regex": "^data:image/"}})
+    bcount = 0
+    async for brand in cursor:
+        b64 = brand["image"]
+        try:
+            header, encoded = b64.split(",", 1)
+            mime = header.split(";")[0].split(":")[1]
+            ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+            ext = ext_map.get(mime, ".jpg")
+            raw = base64.b64decode(encoded)
+            if len(raw) < 100:
+                continue
+            filename = f"brand_{uuid.uuid4().hex}{ext}"
+            filepath = UPLOADS_DIR / filename
+            filepath.write_bytes(raw)
+            url = f"/api/uploads/products/{filename}"
+            await db.brands.update_one({"_id": brand["_id"]}, {"$set": {"image": url}})
+            bcount += 1
+        except Exception as e:
+            logging.warning(f"Migration skip brand {brand['_id']}: {e}")
+    if bcount:
+        logging.info(f"Migrated {bcount} brand images from base64 to files")
 
 @app.on_event("startup")
 async def startup_migrate():
