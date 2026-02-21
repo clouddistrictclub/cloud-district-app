@@ -218,21 +218,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  promoBox: {
-    margin: 16,
-    padding: 24,
-    backgroundColor: '#2E6BFF',
-    borderRadius: 18,
+  heroBannerWrap: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  promoTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  promoSubtitle: {
-    fontSize: 16,
-    color: '#e0e7ff',
+  heroBanner: {
+    width: '100%',
+    height: 160,
   },
   section: {
     padding: 16,
