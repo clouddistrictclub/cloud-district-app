@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
+import ProductCard from '../../components/ProductCard';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
