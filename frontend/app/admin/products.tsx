@@ -66,6 +66,8 @@ export default function ProductsManagement() {
   });
 
   const [stockAdjustment, setStockAdjustment] = useState({ amount: 0, reason: '' });
+  const [uploading, setUploading] = useState(false);
+  const token = useAuthStore(state => state.token);
 
   useEffect(() => {
     loadData();
