@@ -151,11 +151,16 @@ export default function ChatBubble() {
   };
 
   // Background WebSocket for unread count
+  const bgRetryCount = useRef(0);
+  const bgMounted = useRef(true);
+
   const connectBgWs = useCallback(() => {
-    if (!chatId || !token) return;
+    if (!chatId || !token || !bgMounted.current) return;
+    if (bgRetryCount.current >= 5) return; // max 5 retries
     bgWsRef.current?.close();
     const wsUrl = API_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
     const ws = new WebSocket(`${wsUrl}/api/ws/chat/${chatId}?token=${token}`);
+    ws.onopen = () => { bgRetryCount.current = 0; }; // reset on success
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -166,18 +171,25 @@ export default function ChatBubble() {
       } catch {}
     };
     ws.onclose = () => {
-      if (!openRef.current) {
-        setTimeout(connectBgWs, 5000);
+      if (!openRef.current && bgMounted.current) {
+        bgRetryCount.current += 1;
+        const delay = Math.min(5000 * Math.pow(2, bgRetryCount.current - 1), 60000);
+        setTimeout(connectBgWs, delay);
       }
     };
     bgWsRef.current = ws;
   }, [chatId, token, user?.id]);
 
   useEffect(() => {
+    bgMounted.current = true;
     if (chatId && token && !open) {
+      bgRetryCount.current = 0;
       connectBgWs();
     }
-    return () => { bgWsRef.current?.close(); };
+    return () => {
+      bgMounted.current = false;
+      bgWsRef.current?.close();
+    };
   }, [chatId, token, open]);
 
   const loadHistory = useCallback(async () => {
