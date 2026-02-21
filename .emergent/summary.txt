@@ -3,159 +3,170 @@
 The user wants to build a mobile app called Cloud District Club for the local pickup of disposable vape products, restricted to users aged 21 and over.
 
 **PRODUCT REQUIREMENTS:**
-*   **Age Verification:** A mandatory 21+ age gate.
-*   **Design:** A dark, premium, fast, and simple user interface.
-*   **Home Screen:** Should display featured products, allow shopping by brand, show loyalty points, and have a clear Order for Local Pickup button.
-*   **Product Catalog:** Products organized by categories with detailed views.
-*   **Checkout Flow:** Local pickup only, with manual payment methods.
-*   **Order Status System:** A system to track order progress.
-*   **Loyalty Program (Cloudz Points):** A tier-based system for redeeming points, including a streak bonus.
-*   **Referral Program:** A code-based system with deep linking.
-*   **User Accounts:** To view order history, track loyalty status, and manage profile information.
-*   **Admin Dashboard:** For full CRUD operations on inventory, orders, products, brands, and users.
-*   **Contact & Support:** A section for users to contact support and create tickets.
-*   **Future Features:** Live chat and push notifications.
+*   **Age Verification:** Mandatory 21+ age gate.
+*   **Design:** Dark, premium, fast, simple UI.
+*   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
+*   **Product Catalog:** Category organization with detailed product views.
+*   **Checkout Flow:** Local pickup only, manual payment methods.
+*   **Order Status System:** Track order progress.
+*   **Loyalty Program (Cloudz Points):** Tier-based system with streak bonus.
+*   **Referral Program:** Code-based system with deep linking.
+*   **User Accounts:** Order history, loyalty status, profile management.
+*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders.
+*   **Contact & Support:** Ticket system.
+*   **Live Chat:** Real-time WebSocket chat with typing indicators and read receipts.
+*   **Bulk Discount:** Automatically apply 10% discount when total cart quantity >= 10.
+*   **Future Features:** Push notifications expansion.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application built with Expo/React Native for the frontend and FastAPI/MongoDB for the backend. The application is deployed to production, with the backend hosted on Railway () and the frontend running in the preview environment. The app features a dark, premium theme and has implemented user authentication, a loyalty program with streak bonuses, a referral system, an order confirmation flow, push notifications for order status, and a contact/support section. Production branding (logos, icons, splash screens) has been fully integrated into the UI.
+Full-stack Expo (React Native + Expo Router + TypeScript) frontend with FastAPI + MongoDB backend deployed on Railway. Dark premium theme implemented.
+
+Live chat (WebSocket), loyalty system, referral system, push notifications, admin dashboard, performance pass, and reusable ProductCard component exist.
+
+Recent changes include:
+- Native hero layout fix attempt (vh replacement)
+- Chat FAB visibility update
+- Typing indicators + read receipts implementation
+- 10% bulk discount logic in cart store and UI
 
 **Last working item**:
-- **Last item agent was working**: Implementing a responsive hero banner on the Home screen. The goal was to display a mobile-optimized banner for viewports under 768px and a desktop-oriented banner for larger screens, based on user-provided assets. The agent implemented this using  and provided preview screenshots for different viewports.
-- **Status**: USER VERIFICATION PENDING
-- **Agent Testing Done**: Y
-- **Which testing method agent to use?**: Manual testing by user. The agent has already provided the required preview screenshots. The next step is to await user approval.
+- **Last item agent was working**:
+    1. Native layout parity fix (web vs Expo Go).
+    2. Chat enhancements (typing indicators + read receipts).
+    3. 10% bulk cart discount implementation.
+- **Status**: IN PROGRESS — fixes implemented but NOT verified.
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**:
+    1. Screenshot verification (Expo Go on iPhone 14 viewport).
+    2. testing_agent_v3_fork full regression (chat, cart, layout).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None.
+- Issue 1 (P0): Native Expo layout does not match mobile web.
+- Issue 2 (P0): Chat FAB must be visible for ALL authenticated users including admin.
+- Issue 3 (P0): Verify typing indicators + read receipts function correctly.
+- Issue 4 (P0): Verify 10% bulk discount logic and cart summary display.
+
+**Issues Detail**:
+
+- Issue 1 (Native Layout Parity):
+    Description: Home screen in Expo Go shows incorrect hero height and spacing. Web mobile is correct.
+    Root Cause: Native branch previously relied on CSS vh units. React Native requires explicit pixel height.
+    Correct Implementation Requirement:
+        1. Calculate heroHeight = Math.round(Dimensions.get(window).height * 0.26)
+        2. Apply height to native hero wrapper container.
+        3. Image must fill wrapper (height: 100% or absoluteFillObject).
+        4. resizeMode=cover.
+        5. Header must respect SafeAreaView or useSafeAreaInsets.
+    Next debug checklist:
+        1. Restart Expo dev server.
+        2. Screenshot Expo Go Home screen (iPhone 14).
+        3. Confirm no black gap above hero.
+        4. Confirm Shop by Brand aligns visually with web.
+        5. Confirm header is below Dynamic Island.
+    Status: IN PROGRESS
+    Should Test frontend/backend/both after fix?: Frontend
+
+- Issue 2 (Chat FAB Visibility):
+    Description: Chat FAB was previously hidden for admins.
+    Correct Requirement: Chat FAB must render for ALL authenticated users.
+    Behavior on tap: Open same chat modal interface for admin and regular users.
+    Next debug checklist:
+        1. Log in as admin (jkaatz@gmail.com).
+        2. Confirm FAB visible bottom-right.
+        3. Confirm FAB opens modal.
+    Status: IN PROGRESS
+    Should Test frontend/backend/both after fix?: Frontend
+
+- Issue 3 (Chat Enhancements):
+    Description: Typing indicators and read receipts were added.
+    Requirement:
+        - Typing events throttled.
+        - Read receipt triggers when message viewed.
+        - Works for user and admin sessions.
+    Next debug checklist:
+        1. Open chat as user.
+        2. Log in as admin in second session.
+        3. Confirm typing indicator shows live.
+        4. Confirm read receipt updates correctly.
+    Status: IN PROGRESS
+    Should Test frontend/backend/both after fix?: Both
+
+- Issue 4 (Bulk Discount Logic):
+    Description: 10% discount should apply when total cart quantity >= 10.
+    Correct Logic Specification:
+        - Trigger = total quantity across all cart lines >= 10.
+        - Discount = 10% of subtotal.
+        - Display discount as line item in cart summary.
+        - Totals update dynamically.
+        - All monetary values rounded to cents.
+    Next debug checklist:
+        1. Add items until total quantity = 9 → no discount.
+        2. Add 10th item → discount activates.
+        3. Remove below 10 → discount disappears.
+        4. Verify correct math.
+    Status: IN PROGRESS
+    Should Test frontend/backend/both after fix?: Frontend
 
 **In progress Task List**:
--   **Task 1**: Responsive Hero Banner Implementation (P0)
-
-**Task Detail**:
--   **Task 1**:
-    -   **Where to resume**: Await user approval of the three preview screenshots provided for the responsive hero banner (iPhone SE, iPhone 14, Desktop). If approved, guide the user to save the changes to GitHub and trigger a redeployment on Railway. After deployment, perform a final visual verification on the production preview URL.
-    -   **What will be achieved with this?** The application's home screen will display a visually optimized hero banner tailored to both mobile and desktop screen sizes.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Should Test frontend/backend/both after fix?**: Frontend (visual verification via screenshot).
-    -   **Blocked on something**: User approval of the provided preview screenshots.
+- Task 1 (P0): Validate native layout parity.
+- Task 2 (P0): Validate chat enhancements.
+- Task 3 (P0): Validate bulk discount.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **P1**: Implement a live chat feature.
--   **Future Tasks**:
-    -   **P2**: Refactor the monolithic  into smaller, manageable routers.
-    -   **P2**: Refactor large admin screen components into smaller, reusable ones.
-    -   **P3**: Refactor the deployment process to remove the duplicate  file by guiding the user to update the start command in Railway's settings.
-
-**Completed work in this session**
--   **Production Deployment & Hardening**: Successfully migrated the application to a live production API on Railway, debugging and resolving multiple deployment failures related to dependencies (, ), start commands (added  block), and health checks (added , ,  endpoints).
--   **Production Database Seeding**: Created and ran a seed script to populate the empty production database with an admin user, brands, and sample products.
--   **Cash on Pickup Bug Fix Verification**: Confirmed that the Invalid payment method bug reported in the previous handoff was already resolved in the codebase.
--   **Order Confirmation Screen**: Implemented a dedicated screen () shown after a successful Cash on Pickup order.
--   **Push Notifications**: Integrated Expo Push Notifications to alert users of order status changes.
--   **Streak Bonus System**: Added a feature to reward users with bonus loyalty points for consecutive weekly purchases.
--   **Contact & Support**: Built a new section with a contact form that creates support tickets in the backend.
--   **Production Branding Integration**: Replaced all placeholder assets with a finalized production asset pack, including app icons, splash screens, favicons, and logos, and updated the respective configuration files (, ).
--   **UI Branding Placement**: Integrated the new skyline logo across the Age Gate, Login, and Home screens, and added a hero banner to the Home screen.
--   **Responsive Hero Banner**: Implemented the responsive logic for the Home screen hero banner (pending final user approval).
-
-**Earlier issues found/mentioned but not fixed**
--   **Admin Screen Brittleness**: This is a known architectural debt item. The user has explicitly instructed not to refactor the admin screens unless they are broken.
--   **Invalid Image Data in DB**: A console log revealed a product with invalid image data (). This is a data integrity issue in the production database that may need to be addressed.
-
-**Known issue recurrence from previous fork**
--   None.
+- P1: Replace base64 product images with proper file upload system in Admin.
+- P1: Remove duplicate server_enhanced.py by fixing Railway start command.
+- P2: Backend monolith refactor.
+- P2: Admin screen modularization.
 
 **Code Architecture**
 
+/app
+├── backend
+│   └── server.py
+├── frontend
+│   ├── app/
+│   │   ├── (tabs)/
+│   │   │   ├── home.tsx
+│   │   │   ├── shop.tsx
+│   │   │   └── _layout.tsx
+│   │   ├── admin/
+│   │   │   ├── _layout.tsx
+│   │   │   └── chats.tsx
+│   │   ├── auth/index.tsx
+│   │   └── cart.tsx
+│   ├── components/
+│   │   ├── ProductCard.tsx
+│   │   └── ChatBubble.tsx
+│   └── store/
+│       ├── authStore.ts
+│       └── cartStore.ts
+└── server_enhanced.py
 
-**Key Technical Concepts**
--   **Frontend:** React Native, Expo (SDK 50+), Expo Router, TypeScript, Zustand
--   **Backend:** Python, FastAPI
--   **Database:** MongoDB Atlas (Production)
--   **Deployment:** Backend on Railway, Frontend preview on Emergent.
--   **Push Notifications:** Expo Push Notifications API.
-
-**key DB schema**
--   **users**: 
--   **cloudz_ledger**:  (new type: )
--   **orders**: 
--   **push_tokens**:  (New collection)
--   **support_tickets**:  (New collection)
-
-**changes in tech stack**
--    was integrated.
--    was added as a backend dependency.
-
-**All files of reference**
--   **/app/frontend/app/(tabs)/index.tsx**: Modified for the responsive hero banner.
--   **/app/backend/server.py**: Main backend file, heavily modified with new features and deployment fixes.
--   **/app/server_enhanced.py**: A duplicate of  that Railway is configured to run. **Critical: This file must be kept in sync with  for deployments.**
--   **/app/frontend/public/+html.tsx**: Created to add custom web meta tags.
--   **/app/frontend/app.json**: Updated with production branding.
--   **/app/backend/requirements.txt**: Updated to add .
-
-**Areas that need refactoring**:
--   The duplicate  file should be removed. This requires guiding the user to update the start command in Railway's project settings to .
--   The backend monolith () and large admin screens are known technical debt, deferred by the user.
-
-**key api endpoints**
--   , , : Production health check endpoints for Railway.
--   : Registers a user's Expo push token.
--   : Retrieves a user's current purchase streak information.
--   : Creates a new support ticket.
--   : Admin endpoint to list all support tickets.
+**Key API Endpoints**
+- WS /api/chat/ws/{token}
+- GET /api/chat/messages
+- GET /api/admin/chats
+- GET /api/admin/chats/{chat_id}/messages
 
 **Critical Info for New Agent**
--   **Deployment Workflow**: All backend changes must be synced to both  and . After changes are saved to GitHub by the user, they must manually trigger a redeployment on Railway.
--   **Current State**: You are waiting for user approval on the responsive hero banner previews. Once approved, you must guide the user through the deployment process. Do not proceed with other tasks until this is complete.
--   **Production Environment**: The application is live. Be cautious with changes. The production API is .
+- You MUST verify layout parity in Expo Go (not just web).
+- You MUST confirm FAB visible for admin.
+- You MUST validate typing/read receipts in real-time.
+- You MUST validate bulk discount logic and cart math.
+- Backend changes must remain synced between backend/server.py and server_enhanced.py.
+- Use platform file creation tools only.
 
-**documents and test reports created in this job**
--    through 
--   The user uploaded several asset packs which have been extracted and integrated into  and .
+**Credentials to test flow**
+Admin:
+Email: jkaatz@gmail.com
+Password: Just1n23$
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Requested an update to the mobile hero banner, providing new mobile-specific assets and detailed requirements for responsive behavior (mobile vs. desktop). Asked for previews on iPhone 14, iPhone SE, and desktop before deployment.
-2.  **Agent**: Implemented the responsive hero banner logic in .
-3.  **Agent**: Provided a screenshot of the home screen on an iPhone SE for preview.
-4.  **Agent**: Provided a screenshot of the home screen on an iPhone 14 for preview.
-5.  **Agent**: Provided a screenshot of the home screen on a desktop viewport for preview.
-6.  **Agent**: Confirmed all three previews are ready and awaiting user approval.
-    (No subsequent user messages; the task is pending user feedback).
-
-**Project Health Check:**
--   **Broken**: None.
--   **Mocked**: None. The app is fully connected to the live production API and database.
-
-**3rd Party Integrations**
--   **Railway**: Backend hosting platform.
--   **MongoDB Atlas**: Production cloud database.
--   **Expo Application Services (EAS)**: Used for push notifications and frontend preview environments.
-
-**Testing status**
--   Testing agent used after significant changes: YES
--   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: []
--   Known regressions: None.
-
-**Credentials to test flow:**
--   **Admin User (Production):**
-    -   **Email:** 
-    -   **Password:** 
-
-**What agent forgot to execute**
--   The agent created a workaround for deployment () instead of guiding the user to fix the root cause in Railway's configuration. This has introduced technical debt and a fragile deployment step that needs to be communicated clearly.
-
-Context Reset Note
-
-This fork was created due to context window exhaustion in the previous thread.
-No architectural pivot has occurred.
-Continue as primary project branch.
-
-Current priority:
-Complete responsive hero validation and correction, then proceed with roadmap execution.
+**Project Health Check**
+- Native layout parity: Pending validation.
+- Chat enhancements: Implemented, pending validation.
+- Bulk discount: Implemented, pending validation.
+- No confirmed regressions yet.
 </analysis>
