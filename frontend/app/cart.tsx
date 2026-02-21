@@ -6,8 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function Cart() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotal, getSubtotal, getDiscount, getBulkDiscountActive, clearCart } = useCartStore();
+  const subtotal = getSubtotal();
+  const discount = getDiscount();
   const total = getTotal();
+  const bulkActive = getBulkDiscountActive();
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const handleCheckout = () => {
     if (items.length === 0) {
