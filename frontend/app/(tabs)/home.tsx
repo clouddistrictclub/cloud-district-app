@@ -132,7 +132,7 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
       >
         {/* Hero Banner */}
-        <View style={styles.heroBannerWrap}>
+        <View style={isMobile ? styles.heroBannerMobile : styles.heroBannerDesktop}>
           {isMobile ? (
             <HeroImage source={mobileHeroAsset} testID="home-hero-mobile" isMobile />
           ) : (
