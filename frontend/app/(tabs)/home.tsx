@@ -23,7 +23,7 @@ interface Product {
 }
 
 // Hero image assets
-const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png');
+const mobileHeroAsset = require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_Tight.png');
 const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
 
 // Platform-specific hero image component for proper width:100%/height:auto on web
