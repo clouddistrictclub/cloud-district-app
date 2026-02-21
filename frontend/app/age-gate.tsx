@@ -111,20 +111,17 @@ export default function AgeGate() {
   const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../assets/images/logo-horizontal.png')}
-            style={styles.skylineLogo}
-            resizeMode="contain"
-            data-testid="agegate-skyline-logo"
-          />
-          <Text style={styles.title}>Cloud District Club</Text>
-          <Text style={styles.subtitle}>Age Verification Required</Text>
-        </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <HeroBanner testID="agegate-hero" />
+
+        <View style={styles.content}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Cloud District Club</Text>
+            <Text style={styles.subtitle}>Age Verification Required</Text>
+          </View>
         
-        <View style={styles.warningBox}>
+          <View style={styles.warningBox}>
           <Ionicons name="warning" size={24} color="#fff" />
           <View style={{ flex: 1 }}>
             <Text style={styles.warningTitle}>WARNING</Text>
