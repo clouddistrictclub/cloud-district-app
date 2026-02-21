@@ -3,20 +3,6 @@
 ## Original Problem Statement
 Build a mobile app called "Cloud District Club" for the local pickup of disposable vape products, restricted to users aged 21 and over.
 
-## Core Requirements
-- **Age Verification:** Mandatory 21+ age gate with DOB verification
-- **Design:** Dark, premium, fast, simple UI
-- **Home Screen:** Hero banner, shop by brand, loyalty points, featured products
-- **Product Catalog:** Categories, detailed views
-- **Checkout Flow:** Local pickup only, cash on pickup
-- **Order Status System:** Track order progress
-- **Loyalty Program ("Cloudz Points"):** Tier-based, streak bonuses
-- **Referral Program:** Code-based with deep linking
-- **User Accounts:** Order history, loyalty tracking, profile management
-- **Admin Dashboard:** Full CRUD on inventory, orders, products, brands, users
-- **Contact & Support:** Support tickets
-- **Future:** Live chat, push notifications (done)
-
 ## Tech Stack
 - **Frontend:** React Native, Expo (SDK 50+), Expo Router, TypeScript, Zustand
 - **Backend:** Python, FastAPI, MongoDB Atlas (Production)
@@ -29,73 +15,53 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 - User auth (login/register)
 - Product catalog with brand filtering
 - Checkout flow (Cash on Pickup)
-- Order confirmation screen
-- Order status tracking
-- Loyalty program with streak bonuses
+- Order confirmation screen, order status tracking
+- Loyalty program ("Cloudz Points") with streak bonuses
 - Referral system
 - Push notifications (Expo Push Notifications)
 - Contact & Support with ticket system
-- Admin dashboard (orders, products, brands, users)
+- Admin dashboard (orders, products, brands, users, ledger)
 - Production branding (logos, icons, splash screens)
 
 ### Feb 21, 2026 — Performance Pass & Product Card Polish
-- **Hero Image Optimization:** Compressed mobile hero from 585KB to 301KB (resized to 750px wide)
-- **Shared ProductCard Component:** Created `/components/ProductCard.tsx` with:
-  - `React.memo()` for render optimization
-  - `loading="lazy"` on web product images
-  - 4:3 aspect ratio image containers
-  - Bold price ($17px, weight 800)
-  - Puff count pills (subtle gray badges)
-  - Brand/Name/Flavor hierarchy
-  - Sold Out badge overlay
-  - Consistent dark card styling (#141414 + #1e1e1e border)
-- **Re-render Prevention:** Fixed `useCartStore` selector (was calling `getItemCount()` function, now uses inline reducer). Added `useCallback` to data loaders.
-- **Login Screen Hero:** Updated to match home screen (26vh, cover, gradient fade from hero to form)
-- **Header Refinement:** Replaced skyline logo with CD app icon. Added animated side drawer (Profile, Cloudz Points, Orders, Support, Admin). Safe area handling for iOS.
-- **Code Cleanup:** Removed duplicate product card styles from both home.tsx and shop.tsx. Both now use shared ProductCard component.
+- Hero image optimized (585KB → 301KB)
+- Shared `ProductCard` component with `React.memo`, `loading="lazy"`, 4:3 aspect ratio, bold price, puff pills, sold-out badge
+- Fixed `useCartStore` selector re-renders, `useCallback` on loaders
+- Login hero matched to home (26vh, cover, gradient)
+- Header: app icon + animated side drawer
 
-### Earlier Sessions
-- Production deployment to Railway
-- Production database seeding
-- Order confirmation screen
-- Push notifications integration
-- Streak bonus system
-- Contact & Support section
-- Production branding integration
-- Responsive hero banner (26vh, cover, edge-to-edge on mobile)
+### Feb 21, 2026 — Live Chat (P0)
+- **Backend:** WebSocket `/api/ws/chat/{chat_id}` with JWT auth, `ConnectionManager` for broadcasting, `chat_messages` + `chat_sessions` MongoDB collections, REST endpoints for history + admin sessions
+- **Frontend (User):** Floating chat FAB (bottom-right, above tab bar), slide-up chat modal, real-time messaging via WebSocket, message history, empty state
+- **Frontend (Admin):** Chats tab in admin dashboard, session list with online status indicators, per-conversation view with reply capability
+- **Hidden for admin users** — admin uses admin dashboard Chats tab instead
+- **Testing:** 100% pass (11/11 backend, all frontend features verified)
+
+## Key Files
+- `/app/frontend/components/ChatBubble.tsx` — Floating chat FAB + modal
+- `/app/frontend/components/ProductCard.tsx` — Shared product card
+- `/app/frontend/app/(tabs)/_layout.tsx` — Tab layout with ChatBubble
+- `/app/frontend/app/admin/chats.tsx` — Admin chat management
+- `/app/backend/server.py` — Main backend (all endpoints)
+- `/app/server_enhanced.py` — Railway deployment copy (must stay in sync)
+
+## DB Collections
+- **users**, **orders**, **cloudz_ledger**, **push_tokens**, **support_tickets**
+- **chat_messages**: `{chatId, senderId, senderName, isAdmin, message, createdAt}`
+- **chat_sessions**: `{chatId, userId, lastMessage, lastMessageAt, updatedAt, createdAt}`
 
 ## Prioritized Backlog
 
-### P0 (Next)
-- Live chat implementation
-
-### P1
-- Fix invalid image data in DB (`data:image/png;base64,admintest`)
-- Clean deployment duplication (`server_enhanced.py` → guide user to update Railway start command)
+### P1 (Next)
+- Fix invalid image data in DB + implement product image upload in Admin
+- Clean Railway deployment config (remove `server_enhanced.py` duplication)
 
 ### P2
-- Add maxWidth constraint for product cards on desktop viewport
-- Refactor backend monolith (`server.py`) into smaller routers
-- Refactor large admin screen components
-
-### P3
-- Remove `server_enhanced.py` workaround file
-
-## Key Files
-- `/app/frontend/app/(tabs)/home.tsx` — Home screen
-- `/app/frontend/app/(tabs)/shop.tsx` — Shop tab
-- `/app/frontend/components/ProductCard.tsx` — Shared product card
-- `/app/frontend/app/auth/login.tsx` — Login screen
-- `/app/backend/server.py` — Main backend
-- `/app/server_enhanced.py` — Railway deployment duplicate (tech debt)
-
-## DB Schema
-- **users**: `{_id, email, password, name, phone, loyaltyPoints, referralCode, isAdmin}`
-- **cloudz_ledger**: `{_id, userId, type, amount, reference, balanceAfter, createdAt}`
-- **orders**: `{_id, userId, products, totalAmount, status, paymentMethod}`
-- **push_tokens**: `{_id, userId, token}`
-- **support_tickets**: `{_id, userId, subject, message, status}`
+- Desktop product card max-width constraint
+- Backend monolith refactoring
+- Admin screen refactoring
 
 ## Credentials
 - **Admin:** jkaatz@gmail.com / Just1n23$
+- **Test user:** testuser@cloud.club / Test1234!
 - **Production API:** https://api.clouddistrict.club
