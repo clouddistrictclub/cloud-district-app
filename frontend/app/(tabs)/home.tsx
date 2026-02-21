@@ -29,8 +29,15 @@ const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_
 // Platform-specific hero image component for proper width:100%/height:auto on web
 const HeroImage = ({ source, testID }: { source: any; testID: string }) => {
   if (Platform.OS === 'web') {
-    // On web, resolve the asset URI and use a raw <img> for proper CSS sizing
-    const uri = typeof source === 'number' ? Image.resolveAssetSource(source)?.uri : source?.uri;
+    // On web, require() for images returns a string URL or a number (module ID)
+    let uri: string;
+    if (typeof source === 'string') {
+      uri = source;
+    } else if (typeof source === 'number') {
+      uri = Image.resolveAssetSource(source)?.uri ?? '';
+    } else {
+      uri = source?.uri ?? '';
+    }
     return (
       <img
         src={uri}
