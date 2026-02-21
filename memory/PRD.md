@@ -47,7 +47,12 @@ Build a mobile app called "Cloud District Club" for the local pickup of disposab
 - Hint text "Add X more items for 10% off!" when below threshold
 - Proper monetary rounding (Math.round to cents)
 
-### Feb 21, 2026 — Hero Parity + Chat FAB Upgrade
+### Feb 21, 2026 — P1: Product Image Upload System
+- **Backend:** `POST /api/upload/product-image` endpoint with admin auth, file validation (.jpg/.jpeg/.png/.webp/.gif, max 5MB), saves to `/uploads/products/` with UUID filename. `StaticFiles` mount at `/api/uploads/products` serves images.
+- **Auto-Migration:** `migrate_base64_images()` runs on startup, converts valid base64 product images to files on disk, stores URL path in MongoDB. Invalid base64 gracefully skipped.
+- **Frontend Admin:** `pickImage()` uploads via FormData to server, returns URL. ActivityIndicator shown during upload. Auth header added to product save requests.
+- **Frontend Display:** `resolveImageUri()` helper in ProductCard and product detail resolves relative paths (`/api/uploads/...`) by prepending `EXPO_PUBLIC_BACKEND_URL`. Handles both URL and legacy base64 images.
+- **Testing:** 9/9 backend tests passed, all frontend features verified. Migration: 1 product migrated, 1 invalid skipped.
 - **Phase 1 - Hero Parity:** Created shared `HeroBanner.tsx` component used by Age Gate, Login, and Home screens. All three now render identically: 26vh height, cover mode, LinearGradient fade (transparent to #0c0c0c), edge-to-edge. Fixed login native height (was hardcoded 220px, now 26% of screen). Added gradient to home hero (was missing).
 - **Phase 2 - Chat FAB Upgrade:**
   - **Draggable:** Long-press (300ms) activates drag via PanResponder. Snaps to nearest screen edge on release. Maintains vertical position. Stays above tab bar and respects safe area.
