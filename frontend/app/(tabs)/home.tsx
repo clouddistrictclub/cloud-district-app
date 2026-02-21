@@ -26,6 +26,8 @@ export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
   const itemCount = useCartStore(state => state.getItemCount());
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
