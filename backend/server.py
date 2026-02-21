@@ -648,6 +648,20 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
     result = await db.orders.insert_one(order_dict)
     
     order_dict["id"] = str(result.inserted_id)
+
+    # Send order confirmation email (non-blocking, only if SMTP configured)
+    try:
+        from email_utils import is_email_configured, send_email, build_order_confirmation_html
+        if is_email_configured():
+            email_html = build_order_confirmation_html(
+                order_id=order_dict["id"],
+                items=order_dict["items"],
+                total=order_dict["total"],
+            )
+            send_email(user.get("email", ""), "Order Confirmation - Cloud District Club", email_html)
+    except Exception as e:
+        logging.warning(f"Order confirmation email skipped: {e}")
+
     return Order(**order_dict)
 
 @api_router.get("/orders", response_model=List[Order])
