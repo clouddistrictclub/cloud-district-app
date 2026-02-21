@@ -199,14 +199,26 @@ export default function AdminChats() {
             data={messages}
             renderItem={({ item }) => {
               const isMe = item.isAdmin;
+              const lastMyMsg = [...messages].reverse().find(m => m.isAdmin);
+              const isLastMyMsg = isMe && item === lastMyMsg;
               return (
                 <View style={[styles.msgRow, isMe ? styles.msgRowRight : styles.msgRowLeft]}>
                   <View style={[styles.msgBubble, isMe ? styles.myBubble : styles.otherBubble]}>
                     {!isMe && <Text style={styles.msgSender}>{item.senderName}</Text>}
                     <Text style={[styles.msgText, isMe && styles.myMsgText]}>{item.message}</Text>
-                    <Text style={[styles.msgTime, isMe && styles.myMsgTime]}>
-                      {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
+                    <View style={styles.msgMeta}>
+                      <Text style={[styles.msgTime, isMe && styles.myMsgTime]}>
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      {isLastMyMsg && (
+                        <Ionicons
+                          name={allRead ? 'checkmark-done' : 'checkmark'}
+                          size={14}
+                          color={allRead ? '#60a5fa' : 'rgba(255,255,255,0.5)'}
+                          style={{ marginLeft: 4 }}
+                        />
+                      )}
+                    </View>
                   </View>
                 </View>
               );
@@ -215,6 +227,7 @@ export default function AdminChats() {
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            ListFooterComponent={remoteTyping ? <TypingDots /> : null}
           />
 
           <View style={styles.inputRow}>
@@ -223,7 +236,7 @@ export default function AdminChats() {
               placeholder="Reply..."
               placeholderTextColor="#666"
               value={input}
-              onChangeText={setInput}
+              onChangeText={handleTextChange}
               onSubmitEditing={sendMessage}
               returnKeyType="send"
               data-testid="admin-chat-input"
