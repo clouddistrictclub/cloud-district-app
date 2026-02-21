@@ -364,9 +364,14 @@ export default function ProductsManagement() {
               </TouchableOpacity>
             </View>
 
-              <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
-                {formData.image ? (
-                  <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
+              <TouchableOpacity style={styles.imageUpload} onPress={pickImage} disabled={uploading}>
+                {uploading ? (
+                  <View style={styles.uploadPlaceholder}>
+                    <ActivityIndicator size="large" color="#2E6BFF" />
+                    <Text style={styles.uploadText}>Uploading...</Text>
+                  </View>
+                ) : formData.image ? (
+                  <Image source={{ uri: formData.image.startsWith('/') ? `${API_URL}${formData.image}` : formData.image }} style={styles.uploadedImage} />
                 ) : (
                   <View style={styles.uploadPlaceholder}>
                     <Ionicons name="camera" size={40} color="#666" />
