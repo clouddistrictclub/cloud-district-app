@@ -93,21 +93,19 @@ export default function Home() {
         {/* Hero Banner */}
         <View style={styles.heroBannerWrap}>
           {isMobile ? (
-            <View style={styles.heroMobileWrap} data-testid="home-hero-mobile">
-              <Image
-                source={require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png')}
-                style={styles.heroImg}
-                resizeMode="contain"
-              />
-            </View>
+            <Image
+              source={require('../../assets/images/heroes/CloudDistrict_Mobile_Hero_v1_A_Final.png')}
+              style={{ width: heroContainerWidth, height: mobileHeroHeight }}
+              resizeMode="contain"
+              testID="home-hero-mobile"
+            />
           ) : (
-            <View style={styles.heroDesktopWrap} data-testid="home-hero-desktop">
-              <Image
-                source={require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png')}
-                style={styles.heroImg}
-                resizeMode="contain"
-              />
-            </View>
+            <Image
+              source={require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png')}
+              style={{ width: heroContainerWidth, height: desktopHeroHeight }}
+              resizeMode="contain"
+              testID="home-hero-desktop"
+            />
           )}
         </View>
 
