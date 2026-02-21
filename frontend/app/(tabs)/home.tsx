@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   heroDesktop: {
     width: '100%',
-    height: 160,
+    aspectRatio: 1440 / 600,
   },
   heroMobile: {
     width: '100%',
