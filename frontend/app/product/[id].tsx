@@ -8,6 +8,12 @@ import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+const resolveImageUri = (image: string) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
+
 interface Product {
   id: string;
   name: string;
@@ -100,7 +106,7 @@ export default function ProductDetail() {
 
       <ScrollView style={styles.content}>
         {product.image && (
-          <Image source={{ uri: product.image }} style={styles.productImage} />
+          <Image source={{ uri: resolveImageUri(product.image) }} style={styles.productImage} />
         )}
 
         <View style={styles.infoSection}>
