@@ -18,25 +18,25 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   const loadToken = useAuthStore(state => state.loadToken);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(useCartStore.persist.hasHydrated());
 
   useEffect(() => {
     loadToken();
+    
     // Manually rehydrate cart from localStorage/AsyncStorage on client mount.
     // skipHydration: true in cartStore prevents SSR from caching empty fallback storage.
-    const doRehydrate = async () => {
-      console.log('[_layout] Starting rehydration...');
-      try {
-        await useCartStore.persist.rehydrate();
-        console.log('[_layout] Rehydration complete');
-        console.log('[_layout] Cart items after rehydrate:', useCartStore.getState().items);
-        setHydrated(true);
-      } catch (e) {
-        console.error('[_layout] Rehydration error:', e);
-        setHydrated(true);
-      }
+    if (!useCartStore.persist.hasHydrated()) {
+      useCartStore.persist.rehydrate();
+    }
+    
+    // Listen for hydration finish
+    const unsubFinish = useCartStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    
+    return () => {
+      unsubFinish();
     };
-    doRehydrate();
   }, []);
 
   useEffect(() => {
