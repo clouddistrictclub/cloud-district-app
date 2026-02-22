@@ -146,7 +146,8 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cloud-district-cart',
-      storage: createJSONStorage(getStorage),
+      storage: createJSONStorage(() => customStorage),
+      skipHydration: false,
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as Partial<CartStore>),
