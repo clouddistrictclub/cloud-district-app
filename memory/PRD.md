@@ -1,95 +1,89 @@
 # Cloud District Club - Product Requirements Document
 
 ## Original Problem Statement
-Build a mobile app called "Cloud District Club" for the local pickup of disposable vape products, restricted to users aged 21 and over.
+Mobile app called "Cloud District Club" for the local pickup of disposable vape products, restricted to users aged 21 and over.
+
+## Core Requirements
+- **Age Verification:** Mandatory 21+ age gate
+- **Design:** Dark, premium, fast, simple UI
+- **Home Screen:** Featured products, shop by brand, loyalty points, "Order for Local Pickup" CTA
+- **Product Catalog:** Category organization with detailed product views
+- **Checkout Flow:** Local pickup only, manual payment methods
+- **Order Status System:** Track order progress
+- **Loyalty Program ("Cloudz Points"):** Tier-based system with streak bonus
+- **Referral Program:** Code-based system with deep linking
+- **User Accounts:** Order history, loyalty status, profile management
+- **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders
+- **Contact & Support:** Ticket system
+- **Live Chat:** Real-time WebSocket chat with typing indicators and read receipts
+- **Bulk Discount:** 10% discount when total cart quantity >= 10
 
 ## Tech Stack
-- **Frontend:** React Native, Expo (SDK 50+), Expo Router, TypeScript, Zustand
-- **Backend:** Python, FastAPI, MongoDB Atlas (Production)
-- **Deployment:** Backend on Railway (`https://api.clouddistrict.club`), Frontend preview on Emergent
+- **Frontend**: React Native, Expo, Expo Router, TypeScript, Zustand
+- **Backend**: FastAPI, Python, MongoDB (Pydantic models)
+- **Deployment**: Supervisor for process management
+
+## Architecture
+```
+/app
+├── backend/
+│   ├── .env
+│   ├── server.py
+│   ├── utils/email.py
+│   └── uploads/ (products/, brands/)
+├── frontend/
+│   ├── app/ (Expo Router pages)
+│   ├── store/ (cartStore.ts, authStore.ts)
+│   ├── components/ (ChatBubble.tsx, HeroBanner.tsx)
+│   └── babel.config.js (NEW - import.meta fix)
+└── server_enhanced.py (to be removed)
+```
 
 ## What's Been Implemented
+### Completed Features
+- Age Gate with DOB verification
+- User authentication (login/register)
+- Product catalog with categories and detailed views
+- Shopping cart with persistence (localStorage/AsyncStorage)
+- Checkout flow with local pickup
+- Admin dashboard (products, brands, users, orders CRUD)
+- Loyalty program ("Cloudz Points")
+- Referral program
+- Live chat (WebSocket)
+- Support ticket system
+- Image upload system (file-based, not base64)
+- Hero banner component (shared across screens)
+- Draggable chat FAB with haptic feedback
+- Bulk discount (10% at 10+ items)
 
-### Core Features (Complete)
-- Age gate with DOB verification
-- User auth (login/register)
-- Product catalog with brand filtering
-- Checkout flow (Cash on Pickup)
-- Order confirmation screen, order status tracking
-- Loyalty program ("Cloudz Points") with streak bonuses
-- Referral system
-- Push notifications (Expo Push Notifications)
-- Contact & Support with ticket system
-- Admin dashboard (orders, products, brands, users, ledger)
-- Production branding (logos, icons, splash screens)
-
-### Feb 21, 2026 — Performance Pass & Product Card Polish
-- Hero image optimized (585KB → 301KB)
-- Shared `ProductCard` component with `React.memo`, `loading="lazy"`, 4:3 aspect ratio, bold price, puff pills, sold-out badge
-- Fixed `useCartStore` selector re-renders, `useCallback` on loaders
-- Login hero matched to home (26vh, cover, gradient)
-- Header: app icon + animated side drawer
-
-### Feb 21, 2026 — Live Chat (P0)
-- **Backend:** WebSocket `/api/ws/chat/{chat_id}` with JWT auth, `ConnectionManager` for broadcasting, `chat_messages` + `chat_sessions` MongoDB collections, REST endpoints for history + admin sessions
-- **Frontend (User):** Floating chat FAB (bottom-right, above tab bar), slide-up chat modal, real-time messaging via WebSocket, message history, empty state
-- **Frontend (Admin):** Chats tab in admin dashboard, session list with online status indicators, per-conversation view with reply capability
-- **Chat FAB visible for ALL authenticated users** (admin and regular)
-- **Testing:** 100% pass (11/11 backend, all frontend features verified)
-
-### Feb 21, 2026 — Chat Enhancements
-- **Typing Indicators:** TypingDots animated component, throttled emission (2s), 3s auto-clear. Works for both user ChatBubble and admin chats.
-- **Read Receipts:** checkmark (sent) / checkmark-done+blue (read) on last sent message. WebSocket `type: 'read'` event triggers bulk update on unread messages. Both user and admin sides send/receive read receipts.
-
-### Feb 21, 2026 — Bulk Discount
-- 10% discount when total cart quantity >= 10 items
-- Discount shown as line item in cart summary with pricetag icon
-- Hint text "Add X more items for 10% off!" when below threshold
-- Proper monetary rounding (Math.round to cents)
-
-### Feb 21, 2026 — P1: Product Image Upload System
-- **Backend:** `POST /api/upload/product-image` endpoint with admin auth, file validation (.jpg/.jpeg/.png/.webp/.gif, max 5MB), saves to `/uploads/products/` with UUID filename. `StaticFiles` mount at `/api/uploads/products` serves images.
-- **Auto-Migration:** `migrate_base64_images()` runs on startup, converts valid base64 product images to files on disk, stores URL path in MongoDB. Invalid base64 gracefully skipped.
-- **Frontend Admin:** `pickImage()` uploads via FormData to server, returns URL. ActivityIndicator shown during upload. Auth header added to product save requests.
-- **Frontend Display:** `resolveImageUri()` helper in ProductCard and product detail resolves relative paths (`/api/uploads/...`) by prepending `EXPO_PUBLIC_BACKEND_URL`. Handles both URL and legacy base64 images.
-- **Testing:** 9/9 backend tests passed, all frontend features verified. Migration: 1 product migrated, 1 invalid skipped.
-
-### Feb 21, 2026 — Bug Fixes: Brand Images + Admin Upload
-- **Brand images on Home:** Brand cards now render brand.image (with URL resolution) when available, with fallback to lightning icon. Migration extended to convert brand base64 images to files (2 brands migrated: Geek Bar, Pickles).
-- **Admin image upload on web:** Fixed 422 error. Web platform now converts blob URL to File object before FormData append (React Native `{uri, name, type}` syntax doesn't work on web). Platform-gated with `Platform.OS === 'web'` check.
-- **Root causes:** Brand images were never rendered in original code (always lightning icon). Web FormData syntax was RN-specific.
-- **Testing:** 12/12 backend tests passed, all UI verified.
-- **Phase 1 - Hero Parity:** Created shared `HeroBanner.tsx` component used by Age Gate, Login, and Home screens. All three now render identically: 26vh height, cover mode, LinearGradient fade (transparent to #0c0c0c), edge-to-edge. Fixed login native height (was hardcoded 220px, now 26% of screen). Added gradient to home hero (was missing).
-- **Phase 2 - Chat FAB Upgrade:**
-  - **Draggable:** Long-press (300ms) activates drag via PanResponder. Snaps to nearest screen edge on release. Maintains vertical position. Stays above tab bar and respects safe area.
-  - **Unread Badge:** Red badge with count at top-right of FAB. Background WebSocket maintains connection when chat closed. Increments count on incoming messages. Hidden when count is zero. Resets when chat modal opens.
-  - Modal functionality, sizing, and color scheme unchanged.
-
-## Key Files
-- `/app/frontend/components/ChatBubble.tsx` — Floating chat FAB + modal
-- `/app/frontend/components/ProductCard.tsx` — Shared product card
-- `/app/frontend/app/(tabs)/_layout.tsx` — Tab layout with ChatBubble
-- `/app/frontend/app/admin/chats.tsx` — Admin chat management
-- `/app/backend/server.py` — Main backend (all endpoints)
-- `/app/server_enhanced.py` — Railway deployment copy (must stay in sync)
-
-## DB Collections
-- **users**, **orders**, **cloudz_ledger**, **push_tokens**, **support_tickets**
-- **chat_messages**: `{chatId, senderId, senderName, isAdmin, message, createdAt, readAt?, readBy?}`
-- **chat_sessions**: `{chatId, userId, lastMessage, lastMessageAt, updatedAt, createdAt}`
-
-## Prioritized Backlog
-
-### P1 (Next)
-- Consolidate `server.py` and `server_enhanced.py` (clean Railway deployment config)
-
-### P2
-- Desktop product card max-width constraint
-- Backend monolith refactoring
-- Admin screen refactoring
-- Unread message badge on Chat FAB
+### Recent Critical Fix (Feb 2026)
+- **P0: Cart Persistence** — FIXED
+  - Root Cause #1: `import.meta` error in client bundle prevented React hydration entirely. Client-side JS never executed.
+  - Root Cause #2: Zustand `persist` middleware incompatible with Expo web SSR.
+  - Fix: Added `babel-plugin-transform-import-meta` to transform `import.meta` references. Replaced Zustand persist with manual localStorage read/write.
+  - Files changed: `cartStore.ts`, `_layout.tsx`, `cart.tsx`, `babel.config.js` (new)
 
 ## Credentials
-- **Admin:** jkaatz@gmail.com / Just1n23$
-- **Test user:** testuser@cloud.club / Test1234!
-- **Production API:** https://api.clouddistrict.club
+- **Admin**: jkaatz@gmail.com / Just1n23$
+- **Test User**: testuser@clouddistrict.club / Test1234!
+
+## Upcoming Tasks (Priority Order)
+1. **P1: Consolidate server.py & server_enhanced.py** — Remove duplicate
+2. **P2: Backend monolith refactor** — Restructure for scalability
+3. **P2: Admin screen modularization** — Break down large admin components
+4. **P2: Google Workspace email integration** — Implement email sending
+5. **P3: Push notifications expansion**
+
+## Key API Endpoints
+- `POST /api/auth/login` — User login
+- `GET /api/products` — List products
+- `POST /api/orders` — Create order
+- `POST /api/upload/product-image` — Upload product image
+- `POST /api/upload/brand-image` — Upload brand image
+- `GET /api/uploads/products/{filename}` — Serve product image
+- `GET /api/uploads/brands/{filename}` — Serve brand image
+
+## Known Notes
+- Email utility (`backend/utils/email.py`) is scaffolded but MOCKED — not sending emails
+- `CI=true` is set in supervisor config (read-only), causing Metro to run in CI mode
+- The `babel-plugin-transform-import-meta` is essential for web client-side JS to work
