@@ -149,12 +149,18 @@ export const useCartStore = create<CartStore>()(
       name: 'cloud-district-cart',
       storage: cartStorage,
       skipHydration: true,
-      merge: (persisted, current) => ({
-        ...current,
-        ...(persisted as Partial<CartStore>),
-        items: Array.isArray((persisted as any)?.items) ? (persisted as any).items : [],
-        _hydrated: true,
-      }),
+      merge: (persisted, current) => {
+        // persisted comes from storage in format {state: {...}, version: N}
+        // We need to extract items from persisted.state if it exists
+        const persistedData = persisted as any;
+        const persistedState = persistedData?.state || persistedData;
+        const items = Array.isArray(persistedState?.items) ? persistedState.items : [];
+        return {
+          ...current,
+          items,
+          _hydrated: true,
+        };
+      },
     }
   )
 );
