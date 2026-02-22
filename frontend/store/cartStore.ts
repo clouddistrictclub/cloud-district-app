@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -27,43 +27,30 @@ interface CartStore {
   getItemCount: () => number;
 }
 
-// Custom storage that works for both web and native
-const createCustomStorage = (): StateStorage => {
-  const isWeb = Platform.OS === 'web';
-  
-  return {
-    getItem: async (name: string): Promise<string | null> => {
-      if (isWeb) {
-        if (typeof window !== 'undefined') {
-          const value = window.localStorage.getItem(name);
-          return value;
-        }
-        return null;
-      }
-      // Native - use AsyncStorage
-      return AsyncStorage.getItem(name);
-    },
-    setItem: async (name: string, value: string): Promise<void> => {
-      if (isWeb) {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(name, value);
-        }
-        return;
-      }
-      // Native - use AsyncStorage
-      return AsyncStorage.setItem(name, value);
-    },
-    removeItem: async (name: string): Promise<void> => {
-      if (isWeb) {
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(name);
-        }
-        return;
-      }
-      // Native - use AsyncStorage
-      return AsyncStorage.removeItem(name);
-    },
-  };
+// In-memory fallback when localStorage is unavailable
+const memoryStore = new Map<string, string>();
+const fallbackStorage = {
+  getItem: (name: string) => memoryStore.get(name) ?? null,
+  setItem: (name: string, value: string) => { memoryStore.set(name, value); },
+  removeItem: (name: string) => { memoryStore.delete(name); },
+};
+
+// Lazy storage resolver — never touches localStorage at module-load time
+const getStorage = () => {
+  if (Platform.OS !== 'web') {
+    return AsyncStorage;
+  }
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    try {
+      const testKey = '__zustand_cart_test__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return window.localStorage;
+    } catch {
+      return fallbackStorage;
+    }
+  }
+  return fallbackStorage;
 };
 
 export const useCartStore = create<CartStore>()(
@@ -131,8 +118,7 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cloud-district-cart',
-      storage: createJSONStorage(() => createCustomStorage()),
-      skipHydration: false,
+      storage: createJSONStorage(getStorage),
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as Partial<CartStore>),
