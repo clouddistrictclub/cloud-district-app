@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import io
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cloudz-local-pickup.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://premium-vape-local.preview.emergentagent.com')
 BASE_URL = BASE_URL.rstrip('/')
 
 # Admin credentials

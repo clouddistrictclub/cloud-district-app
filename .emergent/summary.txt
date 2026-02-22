@@ -1,5 +1,4 @@
-<analysis>
-**original_problem_statement**:
+<analysis>**original_problem_statement**:
 The user wants to build a mobile app called Cloud District Club for the local pickup of disposable vape products, restricted to users aged 21 and over.
 
 **PRODUCT REQUIREMENTS:**
@@ -16,157 +15,153 @@ The user wants to build a mobile app called Cloud District Club for the local pi
 *   **Contact & Support:** Ticket system.
 *   **Live Chat:** Real-time WebSocket chat with typing indicators and read receipts.
 *   **Bulk Discount:** Automatically apply 10% discount when total cart quantity >= 10.
-*   **Future Features:** Push notifications expansion.
+*   **Future Features:** Push notifications expansion, Google Workspace email integration.
 
 **User's preferred language**: English
 
 **what currently exists?**
-Full-stack Expo (React Native + Expo Router + TypeScript) frontend with FastAPI + MongoDB backend deployed on Railway. Dark premium theme implemented.
+A full-stack application using Expo (React Native) for the frontend and FastAPI/MongoDB for the backend. The application features a dark, premium theme and includes core functionalities such as an admin dashboard, a WebSocket-based live chat, a loyalty program, and a referral system.
 
-Live chat (WebSocket), loyalty system, referral system, push notifications, admin dashboard, performance pass, and reusable ProductCard component exist.
-
-Recent changes include:
-- Native hero layout fix attempt (vh replacement)
-- Chat FAB visibility update
-- Typing indicators + read receipts implementation
-- 10% bulk discount logic in cart store and UI
+Recent work includes:
+-   Refactoring the Age Gate, Login, and Home screens to use a consistent, shared  component.
+-   Upgrading the Chat FAB to be draggable with snap-to-edge behavior, haptic feedback, and an unread message count badge.
+-   Migrating product and brand images from base64 strings in the database to a file-based system, served via new static routes.
+-   Scaffolding a backend email utility in preparation for future Google Workspace integration.
+-   Stabilizing the Expo development environment by fixing a critical issue causing constant server restarts.
 
 **Last working item**:
-- **Last item agent was working**:
-    1. Native layout parity fix (web vs Expo Go).
-    2. Chat enhancements (typing indicators + read receipts).
-    3. 10% bulk cart discount implementation.
-- **Status**: IN PROGRESS — fixes implemented but NOT verified.
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**:
-    1. Screenshot verification (Expo Go on iPhone 14 viewport).
-    2. testing_agent_v3_fork full regression (chat, cart, layout).
-- **User Testing Done**: N
+-   **Last item agent was working**: Fixing a P0 regression where the shopping cart flow was broken. The root cause was identified as the Expo development server constantly restarting (due to an unstable Ngrok tunnel), which cleared the in-memory Zustand cart state. While the server instability is now fixed, the cart still lacks persistence. The agent was in the middle of implementing persistence using Zustand's  middleware.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: manual testing by curl/ python -c. Once the fix is implemented, the agent should first manually test the flow: add an item to the cart, reload the page, and confirm the item is still in the cart. After manual confirmation, use  for a full regression test of the cart and checkout functionality.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- Issue 1 (P0): Native Expo layout does not match mobile web.
-- Issue 2 (P0): Chat FAB must be visible for ALL authenticated users including admin.
-- Issue 3 (P0): Verify typing indicators + read receipts function correctly.
-- Issue 4 (P0): Verify 10% bulk discount logic and cart summary display.
+-   Issue 1: Cart state is not persistent and is lost on page reload. (P0)
 
 **Issues Detail**:
-
-- Issue 1 (Native Layout Parity):
-    Description: Home screen in Expo Go shows incorrect hero height and spacing. Web mobile is correct.
-    Root Cause: Native branch previously relied on CSS vh units. React Native requires explicit pixel height.
-    Correct Implementation Requirement:
-        1. Calculate heroHeight = Math.round(Dimensions.get(window).height * 0.26)
-        2. Apply height to native hero wrapper container.
-        3. Image must fill wrapper (height: 100% or absoluteFillObject).
-        4. resizeMode=cover.
-        5. Header must respect SafeAreaView or useSafeAreaInsets.
-    Next debug checklist:
-        1. Restart Expo dev server.
-        2. Screenshot Expo Go Home screen (iPhone 14).
-        3. Confirm no black gap above hero.
-        4. Confirm Shop by Brand aligns visually with web.
-        5. Confirm header is below Dynamic Island.
-    Status: IN PROGRESS
-    Should Test frontend/backend/both after fix?: Frontend
-
-- Issue 2 (Chat FAB Visibility):
-    Description: Chat FAB was previously hidden for admins.
-    Correct Requirement: Chat FAB must render for ALL authenticated users.
-    Behavior on tap: Open same chat modal interface for admin and regular users.
-    Next debug checklist:
-        1. Log in as admin (jkaatz@gmail.com).
-        2. Confirm FAB visible bottom-right.
-        3. Confirm FAB opens modal.
-    Status: IN PROGRESS
-    Should Test frontend/backend/both after fix?: Frontend
-
-- Issue 3 (Chat Enhancements):
-    Description: Typing indicators and read receipts were added.
-    Requirement:
-        - Typing events throttled.
-        - Read receipt triggers when message viewed.
-        - Works for user and admin sessions.
-    Next debug checklist:
-        1. Open chat as user.
-        2. Log in as admin in second session.
-        3. Confirm typing indicator shows live.
-        4. Confirm read receipt updates correctly.
-    Status: IN PROGRESS
-    Should Test frontend/backend/both after fix?: Both
-
-- Issue 4 (Bulk Discount Logic):
-    Description: 10% discount should apply when total cart quantity >= 10.
-    Correct Logic Specification:
-        - Trigger = total quantity across all cart lines >= 10.
-        - Discount = 10% of subtotal.
-        - Display discount as line item in cart summary.
-        - Totals update dynamically.
-        - All monetary values rounded to cents.
-    Next debug checklist:
-        1. Add items until total quantity = 9 → no discount.
-        2. Add 10th item → discount activates.
-        3. Remove below 10 → discount disappears.
-        4. Verify correct math.
-    Status: IN PROGRESS
-    Should Test frontend/backend/both after fix?: Frontend
+-   **Issue 1: Cart state is not persistent and is lost on page reload.**
+    -   **Attempted fixes**: The agent tried implementing Zustand's  middleware.
+        1.  The first attempt with  did not work on Expo web.
+        2.  A second attempt with a custom  adapter also failed, as the agent observed that  was not being written to.
+    -   **Next debug checklist**:
+        1.  Review the implementation of the  middleware in .
+        2.  Verify the custom storage object for web is correctly defined and that there are no errors preventing  from being called.
+        3.  Check the browser's developer console for any errors related to Zustand, the persist middleware, or  access.
+        4.  Ensure the application correctly handles the asynchronous rehydration of the cart state from storage to prevent the UI from briefly showing an empty cart.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker. Without a persistent cart, users cannot complete the checkout process if they navigate away or reload the page, rendering the e-commerce functionality unusable.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
-- Task 1 (P0): Validate native layout parity.
-- Task 2 (P0): Validate chat enhancements.
-- Task 3 (P0): Validate bulk discount.
+-   **Task 1: Implement Cart Persistence.** (P0)
+    -   **Where to resume**: Debugging the Zustand  middleware implementation in . The immediate goal is to figure out why the custom  adapter is failing to save the cart state.
+    -   **What will be achieved with this?**: A stable and reliable shopping cart that retains items across page reloads, browser sessions, and navigations.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on something**: No
 
 **Upcoming and Future Tasks**
-- P1: Replace base64 product images with proper file upload system in Admin.
-- P1: Remove duplicate server_enhanced.py by fixing Railway start command.
-- P2: Backend monolith refactor.
-- P2: Admin screen modularization.
+-   **Upcoming Tasks**:
+    -   **P1: Consolidate  and **. The user wants to remove the duplicate  file by fixing the Railway start command. This was deferred to fix the cart regression.
+-   **Future Tasks**:
+    -   **P2: Backend monolith refactor**: Restructure the backend for better scalability and maintainability.
+    -   **P2: Admin screen modularization**: Break down large admin components into smaller, reusable ones.
+    -   **P2: Google Workspace Integration**: Fully implement the email sending functionality using the scaffolded  utility and the configured SMTP environment variables.
+    -   **P3: Push notifications expansion**: Enhance the existing push notification system.
+
+**Completed work in this session**
+-   **Hero Banner Parity (DONE)**: Refactored Age Gate, Login, and Home screens to use a single, consistent  component ().
+-   **Chat FAB Upgrade (DONE)**: The chat button () is now draggable, snaps to the screen edge, shows an unread message badge, and provides haptic feedback on snap.
+-   **Image Upload System (DONE)**: Replaced base64 image storage with a file upload system. This involved creating backend endpoints (), static file serving (), migrating existing database entries, and updating the admin UI ().
+-   **Phone Number & Email Scaffold (DONE)**: Updated the business phone number across the app and added environment variables and a utility file () for future email integration.
+-   **Critical Environment Fix (DONE)**: Stabilized the Expo development server by modifying the supervisor config () to use  instead of the failing , resolving constant crashes and enabling reliable development and testing.
+-   **Regression Fixes (DONE)**:
+    -   Fixed an issue where brand images were not rendering on the home page.
+    -   Fixed a bug preventing product saves from the admin panel on the web due to incorrect  handling.
+    -   Cleaned up invalid base64 data from the database that was crashing the native app.
+
+**Earlier issues found/mentioned but not fixed**
+None. All identified issues have either been resolved or are currently in progress.
+
+**Known issue recurrence from previous fork**
+None.
 
 **Code Architecture**
 
-/app
-├── backend
-│   └── server.py
-├── frontend
-│   ├── app/
-│   │   ├── (tabs)/
-│   │   │   ├── home.tsx
-│   │   │   ├── shop.tsx
-│   │   │   └── _layout.tsx
-│   │   ├── admin/
-│   │   │   ├── _layout.tsx
-│   │   │   └── chats.tsx
-│   │   ├── auth/index.tsx
-│   │   └── cart.tsx
-│   ├── components/
-│   │   ├── ProductCard.tsx
-│   │   └── ChatBubble.tsx
-│   └── store/
-│       ├── authStore.ts
-│       └── cartStore.ts
-└── server_enhanced.py
 
-**Key API Endpoints**
-- WS /api/chat/ws/{token}
-- GET /api/chat/messages
-- GET /api/admin/chats
-- GET /api/admin/chats/{chat_id}/messages
+**Key Technical Concepts**
+-   **Frontend**: React Native, Expo, Expo Router, TypeScript, Zustand (for state management)
+-   **Backend**: FastAPI, Python, MongoDB (with Pydantic models)
+-   **State Management**: Using Zustand  middleware for state persistence.
+-   **File Handling**: API endpoints for multipart/form-data uploads and serving static files with FastAPI.
+-   **Deployment/DevOps**: Supervisor for process management.
+
+**key DB schema**
+-   **products**: 
+-   **brands**: 
+-   **orders**: 
+
+**changes in tech stack**
+-   Image storage has moved from base64 strings within MongoDB documents to files on the server's filesystem, with only the file path stored in the database.
+
+**All files of reference**
+-   : Currently being modified to implement persistent state.
+-   : Modified to add file upload endpoints, static file serving, data migration logic, and email scaffolding.
+-   : Modified to fix the unstable development server by switching from  to .
+-   : New shared component to ensure visual consistency for hero images.
+-   : Significantly updated to add draggable behavior, unread count, and haptics.
+-   , , : Updated to use the new  component.
+-   : Updated to handle file uploads instead of base64 encoding.
+-   : New file scaffolding email functionality.
+-   : Updated with SMTP configuration placeholders.
+
+**Areas that need refactoring**:
+-   The  file is a duplicate of  and must be removed by updating the deployment start command.
+-   Future refactoring tasks include breaking down the backend monolith and modularizing the admin screens, as per the user's roadmap.
+
+**key api endpoints**
+-   : Uploads a new product image.
+-   : Uploads a new brand image.
+-   : Serves a static product image.
+-   : Serves a static brand image.
+-   : Creates a new order.
 
 **Critical Info for New Agent**
-- You MUST verify layout parity in Expo Go (not just web).
-- You MUST confirm FAB visible for admin.
-- You MUST validate typing/read receipts in real-time.
-- You MUST validate bulk discount logic and cart math.
-- Backend changes must remain synced between backend/server.py and server_enhanced.py.
-- Use platform file creation tools only.
+-   **Your top priority is to fix the non-persistent shopping cart.** The previous agent was trying to use Zustand's  middleware with a  adapter for web, but it was failing. You must debug this implementation in .
+-   The Expo development server is now stable. It was previously crashing due to an unstable Ngrok tunnel (), which was the root cause of all recent UI bugs. It now runs reliably with the  flag. Do not change this configuration.
+-   Do not proceed with any other tasks, especially the  consolidation, until the cart and checkout flow are fully functional and verified.
 
-**Credentials to test flow**
-Admin:
-Email: jkaatz@gmail.com
-Password: Just1n23$
+**documents and test reports created in this job**
+-   : This file was updated to reflect completed tasks.
+-   : Multiple test reports were generated by the testing agent during this session. Review them if you need context on previous test cycles.
 
-**Project Health Check**
-- Native layout parity: Pending validation.
-- Chat enhancements: Implemented, pending validation.
-- Bulk discount: Implemented, pending validation.
-- No confirmed regressions yet.
-</analysis>
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **Stop P1 consolidation:** User reported regressions (brand images not rendering, admin save broken) after the image upload refactor and instructed the agent to fix them before proceeding. (COMPLETED)
+2.  **Update business phone number:** User requested updating the phone number to  everywhere and preparing for Google Workspace integration by adding SMTP ENV variables and scaffolding an email utility. (COMPLETED)
+3.  **P0 REGRESSION — Cart Flow Broken:** User reported critical issues: Expo Go red screen, Add to Cart not working, and Checkout not working. Instructed the agent to stop all other work and investigate immediately. (IN PROGRESS)
+
+**Project Health Check:**
+-   **Broken**: The shopping cart flow is critically broken due to a lack of state persistence.
+-   **Mocked**: The email utility () is scaffolded but is not active and will not send emails until fully implemented.
+
+**3rd Party Integrations**
+-   **Expo**: Core framework for the React Native frontend.
+-   **react-native-gesture-handler & react-native-reanimated**: Used for the draggable Chat FAB.
+-   **expo-haptics**: Used for tactile feedback on the Chat FAB.
+-   No other third-party services are integrated at this time.
+
+**Testing status**
+-   **Testing agent used after significant changes**: YES
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: None in this session.
+-   **Known regressions**: The cart is not persistent, which breaks the entire checkout flow.
+
+**Credentials to test flow:**
+-   **Admin Email**: 
+-   **Admin Password**: 
+
+**What agent forgot to execute**
+-   The agent did not forget any tasks but was interrupted mid-task. The primary pending action is to complete the implementation of cart persistence, which was correctly prioritized over the user's earlier request to consolidate  and  due to the critical cart regression.</analysis>
