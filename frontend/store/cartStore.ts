@@ -27,22 +27,31 @@ interface CartStore {
   getItemCount: () => number;
 }
 
-const webStorage = {
-  getItem: (name: string) => {
-    const val = localStorage.getItem(name);
-    return val ?? null;
-  },
-  setItem: (name: string, value: string) => {
-    localStorage.setItem(name, value);
-  },
-  removeItem: (name: string) => {
-    localStorage.removeItem(name);
-  },
+// In-memory fallback when localStorage is unavailable
+const memoryStore = new Map<string, string>();
+const fallbackStorage = {
+  getItem: (name: string) => memoryStore.get(name) ?? null,
+  setItem: (name: string, value: string) => { memoryStore.set(name, value); },
+  removeItem: (name: string) => { memoryStore.delete(name); },
 };
 
-const storageEngine = Platform.OS === 'web'
-  ? createJSONStorage(() => webStorage)
-  : createJSONStorage(() => AsyncStorage);
+// Lazy storage resolver — never touches localStorage at module-load time
+const getStorage = () => {
+  if (Platform.OS !== 'web') {
+    return AsyncStorage;
+  }
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    try {
+      const testKey = '__zustand_cart_test__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return window.localStorage;
+    } catch {
+      return fallbackStorage;
+    }
+  }
+  return fallbackStorage;
+};
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -51,23 +60,24 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         set((state) => {
-          const existing = state.items.find(i => i.productId === item.productId);
+          const items = state.items ?? [];
+          const existing = items.find(i => i.productId === item.productId);
           if (existing) {
             return {
-              items: state.items.map(i =>
+              items: items.map(i =>
                 i.productId === item.productId
                   ? { ...i, quantity: i.quantity + 1 }
                   : i
               ),
             };
           }
-          return { items: [...state.items, { ...item, quantity: 1 }] };
+          return { items: [...items, { ...item, quantity: 1 }] };
         });
       },
 
       removeItem: (productId) => {
         set((state) => ({
-          items: state.items.filter(i => i.productId !== productId),
+          items: (state.items ?? []).filter(i => i.productId !== productId),
         }));
       },
 
@@ -77,7 +87,7 @@ export const useCartStore = create<CartStore>()(
           return;
         }
         set((state) => ({
-          items: state.items.map(i =>
+          items: (state.items ?? []).map(i =>
             i.productId === productId ? { ...i, quantity } : i
           ),
         }));
@@ -86,7 +96,7 @@ export const useCartStore = create<CartStore>()(
       clearCart: () => set({ items: [] }),
 
       getSubtotal: () => {
-        return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        return (get().items ?? []).reduce((sum, item) => sum + item.price * item.quantity, 0);
       },
 
       getBulkDiscountActive: () => {
@@ -103,12 +113,17 @@ export const useCartStore = create<CartStore>()(
       },
 
       getItemCount: () => {
-        return get().items.reduce((count, item) => count + item.quantity, 0);
+        return (get().items ?? []).reduce((count, item) => count + item.quantity, 0);
       },
     }),
     {
       name: 'cloud-district-cart',
-      storage: storageEngine,
+      storage: createJSONStorage(getStorage),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<CartStore>),
+        items: Array.isArray((persisted as any)?.items) ? (persisted as any).items : [],
+      }),
     }
   )
 );
