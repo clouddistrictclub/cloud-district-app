@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextInput, Image, ScrollView } from 'react-native';
 import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import HeroBanner from '../components/HeroBanner';
 
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
@@ -110,17 +111,17 @@ export default function AgeGate() {
   const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="cloud" size={48} color={theme.colors.primary} />
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <HeroBanner testID="agegate-hero" />
+
+        <View style={styles.content}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Cloud District Club</Text>
+            <Text style={styles.subtitle}>Age Verification Required</Text>
           </View>
-          <Text style={styles.title}>Cloud District Club</Text>
-          <Text style={styles.subtitle}>Age Verification Required</Text>
-        </View>
         
-        <View style={styles.warningBox}>
+          <View style={styles.warningBox}>
           <Ionicons name="warning" size={24} color="#fff" />
           <View style={{ flex: 1 }}>
             <Text style={styles.warningTitle}>WARNING</Text>
@@ -196,7 +197,8 @@ export default function AgeGate() {
         <Text style={styles.footerText}>
           By continuing, you confirm that you are 21 years of age or older
         </Text>
-      </View>
+        </View>
+      </ScrollView>
 
       {/* iOS Modal Date Picker */}
       {Platform.OS === 'ios' && showPicker && DateTimePicker && (
@@ -253,23 +255,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    paddingTop: 0,
+    marginTop: -8,
   },
-  logoContainer: {
+  titleContainer: {
     alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,

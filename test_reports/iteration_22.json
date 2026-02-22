@@ -1,0 +1,78 @@
+{
+  "summary": "P0 Cart Persistence Bug - CRITICAL: Bug NOT fixed. localStorage correctly stores cart data but Zustand persist middleware is NOT rehydrating from it. Multiple fix attempts (custom PersistStorage, skipHydration + manual rehydrate(), createJSONStorage, onFinishHydration) all failed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "critical": [
+      {
+        "component": "cartStore.ts + _layout.tsx",
+        "issue": "Zustand persist middleware with skipHydration: true and manual rehydrate() is NOT working on Expo web. localStorage.getItem('cloud-district-cart') returns valid JSON with items array, but useCartStore().items remains empty array after rehydration.",
+        "selector": "N/A - state management issue",
+        "priority": "P0-CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Cart persistence on page reload",
+        "issue": "1) User adds item to cart. 2) Cart data correctly saved to localStorage in format {state:{items:[...]},version:0}. 3) User reloads page. 4) localStorage still has data. 5) useCartStore.persist.rehydrate() is called. 6) BUT cart store items array remains empty - rehydration NOT merging data into store state.",
+        "affected_selectors": ["/cart page", "cart badge in header"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "CRITICAL: Zustand v5.0.11 persist middleware is not rehydrating on Expo web",
+    "Investigate if Expo Router SSR is interfering with storage access",
+    "Try removing skipHydration and using auto-hydration instead",
+    "Consider using a simple useEffect + setState pattern instead of Zustand persist",
+    "Check if there's a timing issue where rehydrate() is called before storage is accessible",
+    "Alternative: Use React Context with manual localStorage read on mount"
+  ],
+  "critical_code_review_comments": [
+    "The custom PersistStorage with lazy window check approach is correct in theory but isn't working in practice",
+    "skipHydration: true + manual rehydrate() pattern is the recommended Zustand v5 approach but fails here",
+    "console.log statements in storage functions are NOT appearing in browser console - suggests code might not be running as expected",
+    "Possible Expo web bundling issue where module-level storage initialization happens differently",
+    "The merge function was never called because rehydration never triggered it"
+  ],
+  "updated_files": [
+    "/app/frontend/store/cartStore.ts",
+    "/app/frontend/app/_layout.tsx"
+  ],
+  "success_rate": {
+    "backend": "N/A - not tested per request",
+    "frontend": "0% - Cart persistence bug NOT fixed"
+  },
+  "test_credentials": {
+    "email": "jkaatz@gmail.com",
+    "password": "Just1n23$"
+  },
+  "seed_data_creation": "Manually injected cart data into localStorage for testing",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Cart persistence P0 bug is NOT fixed. The issue is deep in Zustand v5 + Expo web integration. localStorage works (data persists), but Zustand persist.rehydrate() is not populating the store. Multiple approaches tried: custom PersistStorage, createJSONStorage with custom StateStorage, skipHydration + manual rehydrate, onFinishHydration callback - ALL FAILED. Console logs from store code don't appear in browser - possible bundling issue. Main agent needs to try a completely different approach like manual useEffect + localStorage.getItem + setState.",
+  "rca_of_the_issue": {
+    "root_cause": "Zustand v5 persist middleware rehydrate() is not working on Expo web. The storage.getItem() might be returning null during the rehydration process OR the merge function is never being called. Console logs added to storage functions don't appear - suggesting the code path isn't executing as expected.",
+    "reproduction_steps": [
+      "1. Set localStorage.setItem('cloud-district-cart', JSON.stringify({state:{items:[{productId:'698f61dc072c07937d8c460e',name:'Test',price:24.99,image:'',quantity:2}]},version:0}))",
+      "2. Set localStorage.setItem('ageVerified', 'true')",
+      "3. Navigate to https://premium-vape-local.preview.emergentagent.com",
+      "4. Page loads, _layout.tsx useEffect calls useCartStore.persist.rehydrate()",
+      "5. Navigate to /cart page",
+      "6. EXPECTED: Cart shows 'Test' item with quantity 2",
+      "7. ACTUAL: Cart shows 'Your cart is empty'",
+      "8. Verify: localStorage.getItem('cloud-district-cart') still returns the correct data"
+    ],
+    "potential_solutions": [
+      "Try removing Zustand persist entirely and use a simple useEffect + useState pattern",
+      "Use React Context Provider that reads localStorage on mount",
+      "Downgrade to Zustand v4.x which had different persist implementation",
+      "Check Expo Router's server-side rendering behavior and disable it for this store",
+      "Try useSyncExternalStoreWithSelector for direct localStorage binding",
+      "Web search for 'zustand persist expo web rehydrate not working 2025 2026'"
+    ]
+  }
+}

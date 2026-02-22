@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="17" time="7.657" timestamp="2026-02-22T01:27:15.274498+00:00" hostname="agent-env-833992d1-419f-4845-9433-caf7e49e3b81"><testcase classname="backend.tests.test_regression_p1.TestAuthEndpoints" name="test_login_success" time="0.617" /><testcase classname="backend.tests.test_regression_p1.TestAuthEndpoints" name="test_login_invalid_credentials" time="0.112" /><testcase classname="backend.tests.test_regression_p1.TestAuthEndpoints" name="test_auth_me_with_valid_token" time="0.795" /><testcase classname="backend.tests.test_regression_p1.TestAuthEndpoints" name="test_auth_me_without_token" time="0.146" /><testcase classname="backend.tests.test_regression_p1.TestProductEndpoints" name="test_get_products" time="0.122" /><testcase classname="backend.tests.test_regression_p1.TestProductEndpoints" name="test_get_products_by_brand" time="0.239" /><testcase classname="backend.tests.test_regression_p1.TestBrandEndpoints" name="test_get_brands" time="0.135" /><testcase classname="backend.tests.test_regression_p1.TestImageServing" name="test_product_image_serving" time="0.299" /><testcase classname="backend.tests.test_regression_p1.TestWebSocketChat" name="test_websocket_connection" time="0.732" /><testcase classname="backend.tests.test_regression_p1.TestHealthEndpoints" name="test_health_check" time="0.670"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:976: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_regression_p1.py:235: in test_health_check
+    data = response.json()
+           ^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:980: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="backend.tests.test_regression_p1.TestHealthEndpoints" name="test_health_endpoint" time="0.426"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_regression_p1.py:242: in test_health_endpoint
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_regression_p1.TestHealthEndpoints" name="test_healthz_endpoint" time="0.561"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_regression_p1.py:248: in test_healthz_endpoint
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_regression_p1.TestCategoriesEndpoint" name="test_get_categories" time="0.154" /><testcase classname="backend.tests.test_regression_p1.TestLoyaltyEndpoints" name="test_loyalty_tiers" time="0.597" /><testcase classname="backend.tests.test_regression_p1.TestLoyaltyEndpoints" name="test_loyalty_streak" time="0.618" /><testcase classname="backend.tests.test_regression_p1.TestOrdersEndpoint" name="test_get_orders" time="0.637" /><testcase classname="backend.tests.test_regression_p1.TestLeaderboard" name="test_get_leaderboard" time="0.677" /></testsuite></testsuites>

@@ -1,13 +1,34 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const resolveImageUri = (image: string | undefined | null) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
+
 export default function Cart() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotal, getSubtotal, getDiscount, getBulkDiscountActive, clearCart, hydrateCart, _hydrated } = useCartStore();
+
+  // Ensure cart is hydrated from storage on client mount
+  useEffect(() => {
+    if (!_hydrated) {
+      hydrateCart();
+    }
+  }, [_hydrated, hydrateCart]);
+
+  const subtotal = getSubtotal();
+  const discount = getDiscount();
   const total = getTotal();
+  const bulkActive = getBulkDiscountActive();
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -64,9 +85,17 @@ export default function Cart() {
           <ScrollView style={styles.content}>
             {items.map((item) => (
               <View key={item.productId} style={styles.cartItem}>
-                {item.image && (
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
-                )}
+                {item.image ? (
+                  Platform.OS === 'web' ? (
+                    <img
+                      src={resolveImageUri(item.image)}
+                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }}
+                      alt={item.name}
+                    />
+                  ) : (
+                    <Image source={{ uri: resolveImageUri(item.image) }} style={styles.itemImage} />
+                  )
+                ) : null}
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
                   <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
@@ -98,9 +127,24 @@ export default function Cart() {
 
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>${total.toFixed(2)}</Text>
+                <Text style={styles.summaryLabel}>Subtotal ({itemCount} items)</Text>
+                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
               </View>
+              {bulkActive && (
+                <View style={styles.summaryRow}>
+                  <View style={styles.discountRow}>
+                    <Ionicons name="pricetag" size={14} color="#22c55e" />
+                    <Text style={styles.discountLabel}>Bulk Discount (10%)</Text>
+                  </View>
+                  <Text style={styles.discountValue}>-${discount.toFixed(2)}</Text>
+                </View>
+              )}
+              {!bulkActive && itemCount > 0 && (
+                <View style={styles.discountHint}>
+                  <Ionicons name="information-circle-outline" size={14} color="#666" />
+                  <Text style={styles.discountHintText}>Add {10 - itemCount} more item{10 - itemCount !== 1 ? 's' : ''} for 10% off!</Text>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryNote}>Local Pickup Only</Text>
                 <Text style={styles.summaryNote}>FREE</Text>

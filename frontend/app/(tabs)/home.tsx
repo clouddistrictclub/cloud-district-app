@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable, Dimensions } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
+import ProductCard from '../../components/ProductCard';
+import HeroBanner from '../../components/HeroBanner';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -22,30 +24,35 @@ interface Product {
   stock: number;
 }
 
+// Desktop hero asset (only used for wide screens)
+const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_1440x600.png');
+
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
-  const itemCount = useCartStore(state => state.getItemCount());
+  const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       const [productsRes, brandsRes] = await Promise.all([
         axios.get(`${API_URL}/api/products`),
         axios.get(`${API_URL}/api/brands?active_only=true`)
       ]);
-      setProducts(productsRes.data.slice(0, 6)); // Featured products
-      setBrands(brandsRes.data.slice(0, 4)); // Top 4 brands
+      setProducts(productsRes.data.slice(0, 6));
+      setBrands(brandsRes.data.slice(0, 4));
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProducts();
@@ -56,19 +63,37 @@ export default function Home() {
     loadProducts();
   };
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
+  };
+  const closeDrawer = () => {
+    Animated.timing(slideAnim, { toValue: -280, duration: 200, useNativeDriver: false }).start(() => setDrawerOpen(false));
+  };
+  const navigateFromDrawer = (path: string) => {
+    closeDrawer();
+    setTimeout(() => router.push(path as any), 220);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome Back</Text>
-          <Text style={styles.userName}>{user?.firstName}</Text>
-        </View>
+        <TouchableOpacity onPress={openDrawer} data-testid="header-menu-btn" activeOpacity={0.7}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={styles.headerIcon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
         <View style={styles.headerRight}>
           <View style={styles.loyaltyBadge}>
             <Ionicons name="star" size={16} color="#fbbf24" />
             <Text style={styles.loyaltyPoints}>{user?.loyaltyPoints || 0}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartButton}>
+          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartButton} data-testid="header-cart-btn">
             <Ionicons name="cart" size={24} color="#fff" />
             {itemCount > 0 && (
               <View style={styles.badge}>
@@ -79,28 +104,81 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Side Drawer */}
+      {drawerOpen && (
+        <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
+          <Pressable style={styles.drawerOverlay} onPress={closeDrawer}>
+            <Animated.View style={[styles.drawerPanel, { left: slideAnim }]}>
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                <View style={styles.drawerHeader}>
+                  <Image source={require('../../assets/images/icon.png')} style={styles.drawerLogo} resizeMode="contain" />
+                  <Text style={styles.drawerTitle}>Cloud District</Text>
+                </View>
+                <View style={styles.drawerDivider} />
+                {[
+                  { icon: 'person' as const, label: 'Profile', path: '/profile' },
+                  { icon: 'star' as const, label: 'Cloudz Points', path: '/cloudz' },
+                  { icon: 'receipt' as const, label: 'Orders', path: '/orders' },
+                  { icon: 'chatbubble-ellipses' as const, label: 'Support', path: '/support' },
+                  ...(user?.isAdmin ? [{ icon: 'shield' as const, label: 'Admin', path: '/admin/orders' }] : []),
+                ].map((item) => (
+                  <TouchableOpacity key={item.path} style={styles.drawerItem} onPress={() => navigateFromDrawer(item.path)}>
+                    <Ionicons name={item.icon} size={20} color="#aaa" />
+                    <Text style={styles.drawerItemText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Modal>
+      )}
+
       <ScrollView 
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
       >
-        <View style={styles.promoBox}>
-          <Text style={styles.promoTitle}>Local Pickup Only</Text>
-          <Text style={styles.promoSubtitle}>Order now, pick up today!</Text>
+        {/* Hero Banner */}
+        <View style={isMobile ? styles.heroBannerMobile : styles.heroBannerDesktop}>
+          {isMobile ? (
+            <HeroBanner testID="home-hero-mobile" />
+          ) : (
+            <View style={{ width: '100%', overflow: 'hidden' }}>
+              <Image
+                source={desktopHeroAsset}
+                style={{ width: '100%', height: undefined, aspectRatio: 1440 / 600 }}
+                resizeMode="cover"
+                testID="home-hero-desktop"
+              />
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop by Brand</Text>
           <View style={styles.categoryGrid}>
-            {brands.map((brand) => (
-              <TouchableOpacity 
-                key={brand.id} 
-                style={styles.categoryCard}
-                onPress={() => router.push(`/shop?brand=${brand.id}`)}
-              >
-                <Ionicons name="flash" size={32} color="#6366f1" />
-                <Text style={styles.categoryName}>{brand.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {brands.map((brand) => {
+              const brandImg = brand.image
+                ? (brand.image.startsWith('/') ? `${API_URL}${brand.image}` : brand.image)
+                : null;
+              return (
+                <TouchableOpacity 
+                  key={brand.id} 
+                  style={styles.categoryCard}
+                  onPress={() => router.push(`/shop?brand=${brand.id}`)}
+                >
+                  {brandImg ? (
+                    Platform.OS === 'web' ? (
+                      <img src={brandImg} style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8 }} alt={brand.name} />
+                    ) : (
+                      <Image source={{ uri: brandImg }} style={{ width: 48, height: 48, borderRadius: 8 }} resizeMode="contain" />
+                    )
+                  ) : (
+                    <Ionicons name="flash" size={32} color="#6366f1" />
+                  )}
+                  <Text style={styles.categoryName}>{brand.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -115,27 +193,7 @@ export default function Home() {
           </View>
           <View style={styles.productGrid}>
             {products.map((product) => (
-              <TouchableOpacity
-                key={product.id}
-                style={styles.productCard}
-                onPress={() => router.push(`/product/${product.id}`)}
-              >
-                {product.image && (
-                  <Image 
-                    source={{ uri: product.image }} 
-                    style={styles.productImage}
-                  />
-                )}
-                <View style={styles.productInfo}>
-                  <Text style={styles.productBrand}>{product.brand}</Text>
-                  <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                  <Text style={styles.productFlavor}>{product.flavor}</Text>
-                  <View style={styles.productFooter}>
-                    <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-                    <Text style={styles.productPuffs}>{product.puffCount} puffs</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+              <ProductCard key={product.id} product={product} />
             ))}
           </View>
         </View>
@@ -163,17 +221,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    paddingTop: Platform.OS === 'web' ? 'max(12px, env(safe-area-inset-top))' as any : 8,
   },
-  greeting: {
-    fontSize: 14,
-    color: '#A0A0A0',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+  headerIcon: {
+    height: 36,
+    width: 36,
+    borderRadius: 8,
   },
   headerRight: {
     flexDirection: 'row',
@@ -216,21 +271,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  promoBox: {
-    margin: 16,
-    padding: 24,
-    backgroundColor: '#2E6BFF',
-    borderRadius: 18,
+  heroBannerMobile: {
+    overflow: 'hidden',
   },
-  promoTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+  heroBannerDesktop: {
+    marginHorizontal: 16,
+    marginTop: 2,
     marginBottom: 4,
-  },
-  promoSubtitle: {
-    fontSize: 16,
-    color: '#e0e7ff',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   section: {
     padding: 16,
@@ -275,52 +324,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
-  productCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#151515',
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  productImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#222222',
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productBrand: {
-    fontSize: 12,
-    color: '#2E6BFF',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productFlavor: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    marginBottom: 8,
-  },
-  productFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productPrice: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  productPuffs: {
-    fontSize: 11,
-    color: '#666',
-  },
   adminButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -335,5 +338,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  drawerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  drawerPanel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 280,
+    backgroundColor: '#111',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  drawerLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+  },
+  drawerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#222',
+    marginBottom: 12,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  drawerItemText: {
+    color: '#ddd',
+    fontSize: 15,
+    fontWeight: '500',
   },
 });

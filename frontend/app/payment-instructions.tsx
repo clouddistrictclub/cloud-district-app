@@ -47,7 +47,7 @@ export default function PaymentInstructions() {
       [
         {
           text: 'Call/Text',
-          onPress: () => Linking.openURL('sms:6084179336')
+          onPress: () => Linking.openURL('sms:6083017091')
         },
         {
           text: 'Cancel',
@@ -60,13 +60,13 @@ export default function PaymentInstructions() {
   const paymentInfo: any = {
     zelle: {
       title: 'Pay with Zelle',
-      username: '6084179336',
+      username: '6083017091',
       icon: 'flash',
       color: '#6d1ed4',
       instructions: [
         'Open your banking app',
         'Select Zelle',
-        'Send to: 6084179336',
+        'Send to: 6083017091',
         `Add memo: Order #${shortOrderId}`
       ],
       deepLink: null, // Zelle is bank-dependent, no universal deep link

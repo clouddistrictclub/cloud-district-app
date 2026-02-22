@@ -1,11 +1,13 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import base64
+import uuid
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -18,6 +20,8 @@ import secrets as sec_module
 import httpx
 
 ROOT_DIR = Path(__file__).parent
+UPLOADS_DIR = ROOT_DIR / 'uploads' / 'products'
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
@@ -612,8 +616,12 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
 
     # Handle tier-based reward redemption at checkout
     if order_data.rewardId:
+        try:
+            reward_oid = ObjectId(order_data.rewardId)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid reward ID format")
         reward = await db.loyalty_rewards.find_one({
-            "_id": ObjectId(order_data.rewardId),
+            "_id": reward_oid,
             "userId": str(user["_id"]),
             "used": False,
         })
@@ -644,6 +652,20 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
     result = await db.orders.insert_one(order_dict)
     
     order_dict["id"] = str(result.inserted_id)
+
+    # Send order confirmation email (non-blocking, only if SMTP configured)
+    try:
+        from email_utils import is_email_configured, send_email, build_order_confirmation_html
+        if is_email_configured():
+            email_html = build_order_confirmation_html(
+                order_id=order_dict["id"],
+                items=order_dict["items"],
+                total=order_dict["total"],
+            )
+            send_email(user.get("email", ""), "Order Confirmation - Cloud District Club", email_html)
+    except Exception as e:
+        logging.warning(f"Order confirmation email skipped: {e}")
+
     return Order(**order_dict)
 
 @api_router.get("/orders", response_model=List[Order])
@@ -1170,8 +1192,231 @@ async def get_categories():
         {"name": "All Products", "value": "all"}
     ]
 
+# ==================== LIVE CHAT ====================
+
+class ChatMessage(BaseModel):
+    message: str
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[str, list[WebSocket]] = {}
+
+    async def connect(self, chat_id: str, websocket: WebSocket):
+        await websocket.accept()
+        if chat_id not in self.active_connections:
+            self.active_connections[chat_id] = []
+        self.active_connections[chat_id].append(websocket)
+
+    def disconnect(self, chat_id: str, websocket: WebSocket):
+        if chat_id in self.active_connections:
+            self.active_connections[chat_id] = [ws for ws in self.active_connections[chat_id] if ws != websocket]
+            if not self.active_connections[chat_id]:
+                del self.active_connections[chat_id]
+
+    async def broadcast(self, chat_id: str, message: dict):
+        if chat_id in self.active_connections:
+            for ws in self.active_connections[chat_id]:
+                try:
+                    await ws.send_json(message)
+                except Exception:
+                    pass
+
+    def get_active_chat_ids(self) -> list[str]:
+        return list(self.active_connections.keys())
+
+chat_manager = ConnectionManager()
+
+@api_router.get("/chat/messages/{chat_id}")
+async def get_chat_messages(chat_id: str, user=Depends(get_current_user)):
+    messages = await db.chat_messages.find(
+        {"chatId": chat_id}, {"_id": 0}
+    ).sort("createdAt", 1).to_list(200)
+    return messages
+
+@api_router.get("/admin/chats")
+async def get_admin_chats(admin=Depends(get_admin_user)):
+    sessions = await db.chat_sessions.find({}, {"_id": 0}).sort("lastMessageAt", -1).to_list(100)
+    active_ids = chat_manager.get_active_chat_ids()
+    for s in sessions:
+        s["online"] = s.get("chatId") in active_ids
+        uid = s.get("userId")
+        if uid:
+            try:
+                u = await db.users.find_one({"_id": ObjectId(uid)}, {"name": 1, "email": 1})
+                s["userName"] = u.get("name", u.get("email", "Unknown")) if u else "Unknown"
+            except Exception:
+                s["userName"] = "Unknown"
+    return sessions
+
+# --- Image Upload ---
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+@api_router.post("/upload/product-image")
+async def upload_product_image(file: UploadFile = File(...), admin=Depends(get_admin_user)):
+    ext = Path(file.filename or "image.jpg").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+    data = await file.read()
+    if len(data) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = UPLOADS_DIR / filename
+    filepath.write_bytes(data)
+    return {"url": f"/api/uploads/products/{filename}"}
+
+# --- Migration: base64 → file ---
+async def migrate_base64_images():
+    # Migrate product images
+    cursor = db.products.find({"image": {"$regex": "^data:image/"}})
+    count = 0
+    async for product in cursor:
+        b64 = product["image"]
+        try:
+            header, encoded = b64.split(",", 1)
+            mime = header.split(";")[0].split(":")[1]
+            ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+            ext = ext_map.get(mime, ".jpg")
+            raw = base64.b64decode(encoded)
+            if len(raw) < 100:
+                # Invalid base64 data — clear the image field
+                await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": ""}})
+                logging.info(f"Cleared invalid image for product {product['_id']}")
+                continue
+            filename = f"{uuid.uuid4().hex}{ext}"
+            filepath = UPLOADS_DIR / filename
+            filepath.write_bytes(raw)
+            url = f"/api/uploads/products/{filename}"
+            await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": url}})
+            count += 1
+        except Exception as e:
+            # Clear corrupted image data
+            await db.products.update_one({"_id": product["_id"]}, {"$set": {"image": ""}})
+            logging.warning(f"Migration cleared corrupt image for product {product['_id']}: {e}")
+    if count:
+        logging.info(f"Migrated {count} product images from base64 to files")
+
+    # Migrate brand images
+    cursor = db.brands.find({"image": {"$regex": "^data:image/"}})
+    bcount = 0
+    async for brand in cursor:
+        b64 = brand["image"]
+        try:
+            header, encoded = b64.split(",", 1)
+            mime = header.split(";")[0].split(":")[1]
+            ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+            ext = ext_map.get(mime, ".jpg")
+            raw = base64.b64decode(encoded)
+            if len(raw) < 100:
+                continue
+            filename = f"brand_{uuid.uuid4().hex}{ext}"
+            filepath = UPLOADS_DIR / filename
+            filepath.write_bytes(raw)
+            url = f"/api/uploads/products/{filename}"
+            await db.brands.update_one({"_id": brand["_id"]}, {"$set": {"image": url}})
+            bcount += 1
+        except Exception as e:
+            logging.warning(f"Migration skip brand {brand['_id']}: {e}")
+    if bcount:
+        logging.info(f"Migrated {bcount} brand images from base64 to files")
+
+@app.on_event("startup")
+async def startup_migrate():
+    await migrate_base64_images()
+
 # Include router
 app.include_router(api_router)
+
+# Serve uploaded images
+app.mount("/api/uploads/products", StaticFiles(directory=str(UPLOADS_DIR)), name="product-uploads")
+
+# WebSocket must be on app directly, not on router
+@app.websocket("/api/ws/chat/{chat_id}")
+async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")  # JWT stores user_id in 'sub' field
+        if not user_id:
+            await websocket.close(code=4001)
+            return
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            await websocket.close(code=4001)
+            return
+    except Exception:
+        await websocket.close(code=4001)
+        return
+
+    await chat_manager.connect(chat_id, websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "message")
+
+            # Typing indicator — just broadcast, don't persist
+            if msg_type == "typing":
+                await chat_manager.broadcast(chat_id, {
+                    "type": "typing",
+                    "senderId": user_id,
+                    "senderName": user.get("name", user.get("email", "User")),
+                    "isTyping": data.get("isTyping", False),
+                })
+                continue
+
+            # Read receipt — mark messages as read and broadcast
+            if msg_type == "read":
+                await db.chat_messages.update_many(
+                    {"chatId": chat_id, "senderId": {"$ne": user_id}, "readAt": {"$exists": False}},
+                    {"$set": {"readAt": datetime.utcnow().isoformat(), "readBy": user_id}},
+                )
+                await chat_manager.broadcast(chat_id, {
+                    "type": "read",
+                    "readBy": user_id,
+                    "readAt": datetime.utcnow().isoformat(),
+                })
+                continue
+
+            # Regular message
+            msg_text = data.get("message", "").strip()
+            if not msg_text:
+                continue
+            msg_doc = {
+                "type": "message",
+                "chatId": chat_id,
+                "senderId": user_id,
+                "senderName": user.get("name", user.get("email", "User")),
+                "isAdmin": user.get("isAdmin", False),
+                "message": msg_text,
+                "createdAt": datetime.utcnow().isoformat(),
+            }
+            await db.chat_messages.insert_one({**msg_doc})
+            await db.chat_sessions.update_one(
+                {"chatId": chat_id},
+                {"$set": {
+                    "chatId": chat_id,
+                    "userId": chat_id.replace("chat_", ""),
+                    "lastMessage": msg_text,
+                    "lastMessageAt": datetime.utcnow().isoformat(),
+                    "updatedAt": datetime.utcnow().isoformat(),
+                }, "$setOnInsert": {"createdAt": datetime.utcnow().isoformat()}},
+                upsert=True,
+            )
+            msg_doc.pop("_id", None)
+            await chat_manager.broadcast(chat_id, msg_doc)
+    except WebSocketDisconnect:
+        chat_manager.disconnect(chat_id, websocket)
+
+@app.get("/")
+def health_check():
+    return {"status": "ok"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -1191,3 +1436,8 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
