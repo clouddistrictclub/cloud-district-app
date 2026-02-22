@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, PersistStorage, StorageValue } from 'zustand/middleware';
 import { Platform } from 'react-native';
 
 const BULK_DISCOUNT_THRESHOLD = 10;
@@ -30,62 +30,53 @@ interface CartStore {
 // Custom PersistStorage that lazily checks for window/localStorage on EVERY call.
 // This avoids the SSR trap where createJSONStorage caches the storage at module-load time.
 const cartStorage: PersistStorage<CartStore> = {
-  getItem: (name) => {
+  getItem: (name): StorageValue<CartStore> | Promise<StorageValue<CartStore> | null> | null => {
     if (Platform.OS !== 'web') {
       // Native: use AsyncStorage (dynamic import to avoid web bundling issues)
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         return AsyncStorage.getItem(name).then((str: string | null) => {
           if (!str) return null;
-          const parsed = JSON.parse(str);
-          console.log('[cartStorage] Native getItem parsed:', parsed);
-          return parsed;
+          return JSON.parse(str) as StorageValue<CartStore>;
         });
-      } catch (e) {
-        console.log('[cartStorage] Native getItem error:', e);
+      } catch {
         return null;
       }
     }
-    // Web: safely access localStorage
-    if (typeof window === 'undefined') {
-      console.log('[cartStorage] Web getItem: window undefined');
+    // Web: safely access localStorage - check window on EVERY call
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
       return null;
     }
     try {
       const str = window.localStorage.getItem(name);
-      console.log('[cartStorage] Web getItem raw:', str);
       if (!str) return null;
-      const parsed = JSON.parse(str);
-      console.log('[cartStorage] Web getItem parsed:', parsed);
-      return parsed;
-    } catch (e) {
-      console.log('[cartStorage] Web getItem error:', e);
+      return JSON.parse(str) as StorageValue<CartStore>;
+    } catch {
       return null;
     }
   },
-  setItem: (name, value) => {
-    console.log('[cartStorage] setItem:', name, value);
+  setItem: (name, value): void | Promise<void> => {
     if (Platform.OS !== 'web') {
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        AsyncStorage.setItem(name, JSON.stringify(value));
+        return AsyncStorage.setItem(name, JSON.stringify(value));
       } catch {}
       return;
     }
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
     try {
       window.localStorage.setItem(name, JSON.stringify(value));
     } catch {}
   },
-  removeItem: (name) => {
+  removeItem: (name): void | Promise<void> => {
     if (Platform.OS !== 'web') {
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        AsyncStorage.removeItem(name);
+        return AsyncStorage.removeItem(name);
       } catch {}
       return;
     }
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
     try {
       window.localStorage.removeItem(name);
     } catch {}
@@ -160,17 +151,12 @@ export const useCartStore = create<CartStore>()(
       name: 'cloud-district-cart',
       storage: cartStorage,
       skipHydration: true,
-      merge: (persisted, current) => {
-        // persisted comes from storage in format {state: {...}, version: N}
-        // We need to extract items from persisted.state if it exists
-        const persistedData = persisted as any;
-        const persistedState = persistedData?.state || persistedData;
-        const items = Array.isArray(persistedState?.items) ? persistedState.items : [];
-        return {
-          ...current,
-          items,
-          _hydrated: true,
-        };
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('[cartStore] Rehydration error:', error);
+        } else {
+          console.log('[cartStore] Rehydration finished, items:', state?.items);
+        }
       },
     }
   )
