@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (Platform.OS === 'web') {
         token = readToken();
       } else {
-        token = await AsyncStorage.getItem(TOKEN_KEY);
+        token = await AsyncStorage.getItem('cloud-district-token');
       }
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
