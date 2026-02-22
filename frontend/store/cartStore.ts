@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -27,58 +27,43 @@ interface CartStore {
   getItemCount: () => number;
 }
 
-// In-memory fallback when localStorage is unavailable
-const memoryStore = new Map<string, string>();
-const fallbackStorage = {
-  getItem: (name: string) => memoryStore.get(name) ?? null,
-  setItem: (name: string, value: string) => { memoryStore.set(name, value); },
-  removeItem: (name: string) => { memoryStore.delete(name); },
-};
-
-// Custom storage adapter for Zustand persist
-const customStorage = {
-  getItem: (name: string): string | null => {
-    if (Platform.OS !== 'web') {
-      // For native, use AsyncStorage (returns Promise, but Zustand handles this)
-      return null; // AsyncStorage handled separately
-    }
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      try {
-        return window.localStorage.getItem(name);
-      } catch {
-        return memoryStore.get(name) ?? null;
+// Custom storage that works for both web and native
+const createCustomStorage = (): StateStorage => {
+  const isWeb = Platform.OS === 'web';
+  
+  return {
+    getItem: async (name: string): Promise<string | null> => {
+      if (isWeb) {
+        if (typeof window !== 'undefined') {
+          const value = window.localStorage.getItem(name);
+          return value;
+        }
+        return null;
       }
-    }
-    return memoryStore.get(name) ?? null;
-  },
-  setItem: (name: string, value: string): void => {
-    if (Platform.OS !== 'web') {
-      return; // AsyncStorage handled separately
-    }
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      try {
-        window.localStorage.setItem(name, value);
-      } catch {
-        memoryStore.set(name, value);
+      // Native - use AsyncStorage
+      return AsyncStorage.getItem(name);
+    },
+    setItem: async (name: string, value: string): Promise<void> => {
+      if (isWeb) {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(name, value);
+        }
+        return;
       }
-    } else {
-      memoryStore.set(name, value);
-    }
-  },
-  removeItem: (name: string): void => {
-    if (Platform.OS !== 'web') {
-      return;
-    }
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      try {
-        window.localStorage.removeItem(name);
-      } catch {
-        memoryStore.delete(name);
+      // Native - use AsyncStorage
+      return AsyncStorage.setItem(name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+      if (isWeb) {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(name);
+        }
+        return;
       }
-    } else {
-      memoryStore.delete(name);
-    }
-  },
+      // Native - use AsyncStorage
+      return AsyncStorage.removeItem(name);
+    },
+  };
 };
 
 export const useCartStore = create<CartStore>()(
