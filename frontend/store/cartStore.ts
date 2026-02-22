@@ -79,9 +79,12 @@ export const useCartStore = create<CartStore>()((set, get) => ({
   _hydrated: false,
 
   hydrateCart: () => {
+    console.log('[CartStore] hydrateCart called, Platform.OS:', Platform.OS);
     if (Platform.OS === 'web') {
       const items = readCart();
+      console.log('[CartStore] readCart returned:', items.length, 'items');
       set({ items, _hydrated: true });
+      console.log('[CartStore] set() called, store items:', get().items.length);
     } else {
       // Native: async read
       try {
