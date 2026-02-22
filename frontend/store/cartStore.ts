@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, PersistStorage, StorageValue } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Platform } from 'react-native';
 
 const BULK_DISCOUNT_THRESHOLD = 10;
@@ -27,60 +27,34 @@ interface CartStore {
   getItemCount: () => number;
 }
 
-// Custom PersistStorage that lazily checks for window/localStorage on EVERY call.
-// This avoids the SSR trap where createJSONStorage caches the storage at module-load time.
-const cartStorage: PersistStorage<CartStore> = {
-  getItem: (name): StorageValue<CartStore> | Promise<StorageValue<CartStore> | null> | null => {
-    if (Platform.OS !== 'web') {
-      // Native: use AsyncStorage (dynamic import to avoid web bundling issues)
-      try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        return AsyncStorage.getItem(name).then((str: string | null) => {
-          if (!str) return null;
-          return JSON.parse(str) as StorageValue<CartStore>;
-        });
-      } catch {
-        return null;
-      }
-    }
-    // Web: safely access localStorage - check window on EVERY call
-    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-      return null;
-    }
-    try {
-      const str = window.localStorage.getItem(name);
-      if (!str) return null;
-      return JSON.parse(str) as StorageValue<CartStore>;
-    } catch {
-      return null;
-    }
+// Create a proper web storage that checks for browser environment
+const webStorage: StateStorage = {
+  getItem: (name: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(name);
   },
-  setItem: (name, value): void | Promise<void> => {
-    if (Platform.OS !== 'web') {
-      try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        return AsyncStorage.setItem(name, JSON.stringify(value));
-      } catch {}
-      return;
-    }
-    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
-    try {
-      window.localStorage.setItem(name, JSON.stringify(value));
-    } catch {}
+  setItem: (name: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(name, value);
   },
-  removeItem: (name): void | Promise<void> => {
-    if (Platform.OS !== 'web') {
-      try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        return AsyncStorage.removeItem(name);
-      } catch {}
-      return;
-    }
-    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
-    try {
-      window.localStorage.removeItem(name);
-    } catch {}
+  removeItem: (name: string): void => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(name);
   },
+};
+
+// For native, we need AsyncStorage
+const getStorage = () => {
+  if (Platform.OS === 'web') {
+    return createJSONStorage(() => webStorage);
+  }
+  // Native platforms
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return createJSONStorage(() => AsyncStorage);
+  } catch {
+    return createJSONStorage(() => webStorage);
+  }
 };
 
 export const useCartStore = create<CartStore>()(
@@ -149,15 +123,9 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cloud-district-cart',
-      storage: cartStorage,
+      storage: getStorage(),
       skipHydration: true,
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('[cartStore] Rehydration error:', error);
-        } else {
-          console.log('[cartStore] Rehydration finished, items:', state?.items);
-        }
-      },
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );
