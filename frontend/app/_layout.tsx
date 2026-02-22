@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { useCartStore } from '../store/cartStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 
@@ -20,6 +21,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     loadToken();
+    // Manually rehydrate cart from localStorage/AsyncStorage on client mount.
+    // skipHydration: true in cartStore prevents SSR from caching empty fallback storage.
+    useCartStore.persist.rehydrate();
   }, []);
 
   useEffect(() => {
