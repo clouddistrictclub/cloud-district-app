@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +15,15 @@ const resolveImageUri = (image: string | undefined | null) => {
 
 export default function Cart() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, getTotal, getSubtotal, getDiscount, getBulkDiscountActive, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotal, getSubtotal, getDiscount, getBulkDiscountActive, clearCart, hydrateCart, _hydrated } = useCartStore();
+
+  // Ensure cart is hydrated from storage on client mount
+  useEffect(() => {
+    if (!_hydrated) {
+      hydrateCart();
+    }
+  }, [_hydrated, hydrateCart]);
+
   const subtotal = getSubtotal();
   const discount = getDiscount();
   const total = getTotal();
