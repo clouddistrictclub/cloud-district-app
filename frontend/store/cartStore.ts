@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, PersistStorage } from 'zustand/middleware';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BULK_DISCOUNT_THRESHOLD = 10;
 const BULK_DISCOUNT_RATE = 0.10;
@@ -16,6 +15,7 @@ interface CartItem {
 
 interface CartStore {
   items: CartItem[];
+  _hydrated: boolean;
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -27,36 +27,65 @@ interface CartStore {
   getItemCount: () => number;
 }
 
-// In-memory fallback when localStorage is unavailable
-const memoryStore = new Map<string, string>();
-const fallbackStorage = {
-  getItem: (name: string) => memoryStore.get(name) ?? null,
-  setItem: (name: string, value: string) => { memoryStore.set(name, value); },
-  removeItem: (name: string) => { memoryStore.delete(name); },
-};
-
-// Lazy storage resolver — never touches localStorage at module-load time
-const getStorage = () => {
-  if (Platform.OS !== 'web') {
-    return AsyncStorage;
-  }
-  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-    try {
-      const testKey = '__zustand_cart_test__';
-      window.localStorage.setItem(testKey, '1');
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
-    } catch {
-      return fallbackStorage;
+// Custom PersistStorage that lazily checks for window/localStorage on EVERY call.
+// This avoids the SSR trap where createJSONStorage caches the storage at module-load time.
+const cartStorage: PersistStorage<CartStore> = {
+  getItem: (name) => {
+    if (Platform.OS !== 'web') {
+      // Native: use AsyncStorage (dynamic import to avoid web bundling issues)
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        return AsyncStorage.getItem(name).then((str: string | null) => {
+          if (!str) return null;
+          return JSON.parse(str);
+        });
+      } catch {
+        return null;
+      }
     }
-  }
-  return fallbackStorage;
+    // Web: safely access localStorage
+    if (typeof window === 'undefined') return null;
+    try {
+      const str = window.localStorage.getItem(name);
+      if (!str) return null;
+      return JSON.parse(str);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    if (Platform.OS !== 'web') {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        AsyncStorage.setItem(name, JSON.stringify(value));
+      } catch {}
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(name, JSON.stringify(value));
+    } catch {}
+  },
+  removeItem: (name) => {
+    if (Platform.OS !== 'web') {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        AsyncStorage.removeItem(name);
+      } catch {}
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(name);
+    } catch {}
+  },
 };
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      _hydrated: false,
 
       addItem: (item) => {
         set((state) => {
@@ -118,11 +147,13 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cloud-district-cart',
-      storage: createJSONStorage(getStorage),
+      storage: cartStorage,
+      skipHydration: true,
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as Partial<CartStore>),
         items: Array.isArray((persisted as any)?.items) ? (persisted as any).items : [],
+        _hydrated: true,
       }),
     }
   )
