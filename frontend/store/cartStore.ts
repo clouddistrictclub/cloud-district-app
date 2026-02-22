@@ -37,23 +37,34 @@ const cartStorage: PersistStorage<CartStore> = {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         return AsyncStorage.getItem(name).then((str: string | null) => {
           if (!str) return null;
-          return JSON.parse(str);
+          const parsed = JSON.parse(str);
+          console.log('[cartStorage] Native getItem parsed:', parsed);
+          return parsed;
         });
-      } catch {
+      } catch (e) {
+        console.log('[cartStorage] Native getItem error:', e);
         return null;
       }
     }
     // Web: safely access localStorage
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') {
+      console.log('[cartStorage] Web getItem: window undefined');
+      return null;
+    }
     try {
       const str = window.localStorage.getItem(name);
+      console.log('[cartStorage] Web getItem raw:', str);
       if (!str) return null;
-      return JSON.parse(str);
-    } catch {
+      const parsed = JSON.parse(str);
+      console.log('[cartStorage] Web getItem parsed:', parsed);
+      return parsed;
+    } catch (e) {
+      console.log('[cartStorage] Web getItem error:', e);
       return null;
     }
   },
   setItem: (name, value) => {
+    console.log('[cartStorage] setItem:', name, value);
     if (Platform.OS !== 'web') {
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
