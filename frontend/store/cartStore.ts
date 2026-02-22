@@ -35,22 +35,50 @@ const fallbackStorage = {
   removeItem: (name: string) => { memoryStore.delete(name); },
 };
 
-// Lazy storage resolver — never touches localStorage at module-load time
-const getStorage = () => {
-  if (Platform.OS !== 'web') {
-    return AsyncStorage;
-  }
-  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-    try {
-      const testKey = '__zustand_cart_test__';
-      window.localStorage.setItem(testKey, '1');
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
-    } catch {
-      return fallbackStorage;
+// Custom storage adapter for Zustand persist
+const customStorage = {
+  getItem: (name: string): string | null => {
+    if (Platform.OS !== 'web') {
+      // For native, use AsyncStorage (returns Promise, but Zustand handles this)
+      return null; // AsyncStorage handled separately
     }
-  }
-  return fallbackStorage;
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        return window.localStorage.getItem(name);
+      } catch {
+        return memoryStore.get(name) ?? null;
+      }
+    }
+    return memoryStore.get(name) ?? null;
+  },
+  setItem: (name: string, value: string): void => {
+    if (Platform.OS !== 'web') {
+      return; // AsyncStorage handled separately
+    }
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        window.localStorage.setItem(name, value);
+      } catch {
+        memoryStore.set(name, value);
+      }
+    } else {
+      memoryStore.set(name, value);
+    }
+  },
+  removeItem: (name: string): void => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        window.localStorage.removeItem(name);
+      } catch {
+        memoryStore.delete(name);
+      }
+    } else {
+      memoryStore.delete(name);
+    }
+  },
 };
 
 export const useCartStore = create<CartStore>()(
