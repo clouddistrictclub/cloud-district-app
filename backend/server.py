@@ -1418,10 +1418,6 @@ def health():
 def healthz():
     return {"status": "ok"}
 
-@api_router.get("/health")
-def api_health():
-    return {"status": "ok"}
-
 
 app.add_middleware(
     CORSMiddleware,
