@@ -8,30 +8,31 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const TOKEN_KEY = 'cloud-district-token';
 
 // Storage helpers — same pattern as cartStore
+// Using literal strings to avoid bundler constant inlining issues
 function readToken(): string | null {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined') return null;
-    try { return window.localStorage.getItem(TOKEN_KEY); } catch { return null; }
+    try { return window.localStorage.getItem('cloud-district-token'); } catch { return null; }
   }
   return null; // native handled async
 }
 
-function writeToken(token: string) {
+function writeToken(tokenValue: string) {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(TOKEN_KEY, token); } catch {}
+    try { window.localStorage.setItem('cloud-district-token', tokenValue); } catch {}
     return;
   }
-  try { AsyncStorage.setItem(TOKEN_KEY, token); } catch {}
+  try { AsyncStorage.setItem('cloud-district-token', tokenValue); } catch {}
 }
 
 function clearToken() {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined') return;
-    try { window.localStorage.removeItem(TOKEN_KEY); } catch {}
+    try { window.localStorage.removeItem('cloud-district-token'); } catch {}
     return;
   }
-  try { AsyncStorage.removeItem(TOKEN_KEY); } catch {}
+  try { AsyncStorage.removeItem('cloud-district-token'); } catch {}
 }
 
 interface User {
