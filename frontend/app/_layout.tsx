@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
@@ -18,25 +18,12 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   const loadToken = useAuthStore(state => state.loadToken);
-  const [hydrated, setHydrated] = useState(useCartStore.persist.hasHydrated());
+  const hydrateCart = useCartStore(state => state.hydrateCart);
 
   useEffect(() => {
     loadToken();
-    
-    // Manually rehydrate cart from localStorage/AsyncStorage on client mount.
-    // skipHydration: true in cartStore prevents SSR from caching empty fallback storage.
-    if (!useCartStore.persist.hasHydrated()) {
-      useCartStore.persist.rehydrate();
-    }
-    
-    // Listen for hydration finish
-    const unsubFinish = useCartStore.persist.onFinishHydration(() => {
-      setHydrated(true);
-    });
-    
-    return () => {
-      unsubFinish();
-    };
+    // Hydrate cart from localStorage (web) or AsyncStorage (native) on client mount.
+    hydrateCart();
   }, []);
 
   useEffect(() => {
