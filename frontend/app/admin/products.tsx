@@ -143,9 +143,12 @@ export default function ProductsManagement() {
         }
 
         const res = await axios.post(`${API_URL}/api/upload/product-image`, formPayload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Content-Type intentionally omitted — browser auto-sets multipart boundary
+          },
         });
-        setFormData({ ...formData, image: res.data.url });
+        setFormData(prev => ({ ...prev, image: res.data.url }));
       } catch (error: any) {
         Alert.alert('Upload Failed', error.response?.data?.detail || 'Could not upload image');
       } finally {
