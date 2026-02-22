@@ -18,14 +18,11 @@ function readToken(): string | null {
 }
 
 function writeToken(tokenValue: string) {
-  console.log('[authStore] writeToken called with Platform.OS =', Platform.OS);
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined') return;
-    console.log('[authStore] Writing to localStorage with key: cloud-district-token');
     try { window.localStorage.setItem('cloud-district-token', tokenValue); } catch {}
     return;
   }
-  console.log('[authStore] Writing to AsyncStorage with key: cloud-district-token');
   try { AsyncStorage.setItem('cloud-district-token', tokenValue); } catch {}
 }
 
