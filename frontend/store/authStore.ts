@@ -5,6 +5,35 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const TOKEN_KEY = 'cloud-district-token';
+
+// Storage helpers — same pattern as cartStore
+// Using literal strings to avoid bundler constant inlining issues
+function readToken(): string | null {
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined') return null;
+    try { return window.localStorage.getItem('cloud-district-token'); } catch { return null; }
+  }
+  return null; // native handled async
+}
+
+function writeToken(tokenValue: string) {
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem('cloud-district-token', tokenValue); } catch {}
+    return;
+  }
+  try { AsyncStorage.setItem('cloud-district-token', tokenValue); } catch {}
+}
+
+function clearToken() {
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.removeItem('cloud-district-token'); } catch {}
+    return;
+  }
+  try { AsyncStorage.removeItem('cloud-district-token'); } catch {}
+}
 
 interface User {
   id: string;
@@ -43,7 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
     const { access_token, user } = response.data;
-    await AsyncStorage.setItem('token', access_token);
+    writeToken(access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     set({ user, token: access_token, isAuthenticated: true });
     get().registerPushToken();
@@ -51,29 +80,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, referralCode?: string) => {
     const response = await axios.post(`${API_URL}/api/auth/register`, {
-      email,
-      password,
-      firstName,
-      lastName,
-      dateOfBirth,
+      email, password, firstName, lastName, dateOfBirth,
       referralCode: referralCode || undefined,
     });
     const { access_token, user } = response.data;
-    await AsyncStorage.setItem('token', access_token);
+    writeToken(access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     set({ user, token: access_token, isAuthenticated: true });
     get().registerPushToken();
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('token');
+    clearToken();
     delete axios.defaults.headers.common['Authorization'];
     set({ user: null, token: null, isAuthenticated: false });
   },
 
   loadToken: async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      let token: string | null = null;
+      if (Platform.OS === 'web') {
+        token = readToken();
+      } else {
+        token = await AsyncStorage.getItem('cloud-district-token');
+      }
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const response = await axios.get(`${API_URL}/api/auth/me`);
@@ -83,7 +113,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false });
       }
     } catch (error) {
-      await AsyncStorage.removeItem('token');
+      clearToken();
       set({ isLoading: false });
     }
   },

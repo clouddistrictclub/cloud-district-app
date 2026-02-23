@@ -2,6 +2,14 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Modal, TextI
 import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const setAgeVerified = () => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') try { window.localStorage.setItem('ageVerified', 'true'); } catch {}
+  } else {
+    AsyncStorage.setItem('ageVerified', 'true');
+  }
+};
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
@@ -95,7 +103,7 @@ export default function AgeGate() {
       return;
     }
 
-    await AsyncStorage.setItem('ageVerified', 'true');
+    setAgeVerified();
     router.replace('/auth/login');
   };
 

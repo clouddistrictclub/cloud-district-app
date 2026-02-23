@@ -1324,6 +1324,10 @@ async def migrate_base64_images():
 async def startup_migrate():
     await migrate_base64_images()
 
+@api_router.get("/health")
+def api_health():
+    return {"status": "ok"}
+
 # Include router
 app.include_router(api_router)
 
