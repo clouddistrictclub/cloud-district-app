@@ -1422,7 +1422,6 @@ def health():
 def healthz():
     return {"status": "ok"}
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
