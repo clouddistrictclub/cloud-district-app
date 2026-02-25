@@ -142,16 +142,15 @@ export default function ProductsManagement() {
           } as any);
         }
 
-        console.log("TOKEN:", token);
-        alert("UPLOAD TOKEN: " + token);
         const res = await axios.post(`${API_URL}/api/upload/product-image`, formPayload, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          validateStatus: () => true,
         });
-        console.log("UPLOAD RESPONSE:", res.status, res.data);
-        alert("UPLOAD RESPONSE: " + res.status + " | " + JSON.stringify(res.data));
+        if (res.status !== 200 && res.status !== 201) {
+          Alert.alert('Upload Failed', res.data?.detail || 'Server error');
+          return;
+        }
         setFormData(prev => ({ ...prev, image: res.data.url }));
       } catch (error: any) {
         Alert.alert('Upload Failed', error.response?.data?.detail || 'Could not upload image');
@@ -162,7 +161,6 @@ export default function ProductsManagement() {
   };
 
   const handleSaveProduct = async () => {
-    alert("SAVE TOKEN: " + token);
     if (!formData.name || !formData.brandId || !formData.flavor || !formData.image) {
       Alert.alert('Error', 'Please fill all required fields and add an image');
       return;
