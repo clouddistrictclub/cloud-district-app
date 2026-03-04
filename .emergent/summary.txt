@@ -6,103 +6,79 @@ The user wants to build a mobile app called Cloud District Club for the local pi
 *   **Design:** Dark, premium, fast, simple UI.
 *   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
 *   **Product Catalog:** Category organization with detailed product views.
-*   **Checkout Flow:** Local pickup only, manual payment methods.
+*   **Checkout Flow:** Local pickup only, manual payment methods (Zelle, Venmo, CashApp).
 *   **Order Status System:** Track order progress.
-*   **Loyalty Program (Cloudz Points):** Tier-based system with streak bonus.
+*   **Loyalty Program (Cloudz Points):** Tier-based system with streak bonus. Earn rate is 3 Cloudz per  spent.
 *   **Referral Program:** Code-based system with deep linking.
 *   **User Accounts:** Order history, loyalty status, profile management.
 *   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders.
-*   **Contact & Support:** Ticket system.
-*   **Live Chat:** Real-time WebSocket chat with typing indicators and read receipts.
-*   **Bulk Discount:** Automatically apply 10% discount when total cart quantity >= 10.
-*   **Future Features:** Push notifications expansion, Google Workspace email integration.
+*   **Live Chat:** Real-time WebSocket chat.
+*   **Persistent Header:** A consistent header with logo, Cloudz balance, and cart should appear on all main tabs.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack Expo (React Native) and FastAPI/MongoDB application. All critical regressions from the previous session have been fixed. The application is now stable, and the core e-commerce functionality is restored.
-
-The agent successfully resolved several critical, intertwined issues:
-1.  **Client-Side Hydration Failure:** The root cause of all frontend state issues was identified as a fatal JavaScript error () that prevented React from hydrating on the client side. This was fixed by creating a  and adding a plugin to transpile the problematic syntax.
-2.  **State Persistence:** With hydration fixed, the agent implemented a robust manual persistence mechanism using direct  access on the web for the shopping cart, user authentication token, and age verification status. This replaced the non-functional Zustand  middleware and .
-3.  **Admin CRUD Flow:** The bug preventing product image uploads and saves from the admin panel was fixed. The root cause was twofold: the authentication token was not being persisted correctly (fixed by the above), and the upload request was missing the auth header.
-4.  **Deployment Configuration:** To fix deployment issues, the agent removed a stale  file, created a  with the correct start command, cleaned up , and added a  endpoint for host health checks.
+A full-stack Expo (React Native for Web) and FastAPI/MongoDB application. The agent has just implemented a large batch of bug fixes across the entire application in response to a user report. These fixes address issues in the header, cart, checkout, payment links, inventory management, loyalty system (redemption and earning), and the admin panel. The code for these fixes has been written, but none of it has been tested or verified yet.
 
 **Last working item**:
--   **Last item agent was working**: Addressing user frustration and re-establishing a clear state of the project. The agent removed temporary debug  and  statements from , confirmed the app's stability, and clarified the distinction between code issues (now fixed) and platform/workflow issues (GitHub merges, Railway deploys).
--   **Status**: COMPLETED
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: NA
+-   **Last item agent was working**: Implementing a comprehensive list of bug fixes across the entire application. The agent wrote code to address issues in the header navigation, cart functionality (delete, clear, badge updates), checkout payment methods, order confirmation text, inventory deduction, loyalty point redemption, and admin panel actions (delete, stock updates).
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both (The scope of changes is large and affects both frontend and backend. A full regression test using the testing agent is required.)
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Expo Go Connectivity Failure (P1)
--   Issue 2: Admin product image does not persist in the form on selection (P1)
--   Issue 3: GitHub Branch Merge (P2)
--   Issue 4: Railway Production Deployment (P2)
+-   Issue 1: Verify and Validate Large-Scale Bug Fixes (P0)
 
 **Issues Detail**:
--   **Issue 1: Expo Go Connectivity Failure**
-    -   **Attempted fixes**: The agent investigated supervisor logs and Expo configuration. The root cause was identified: the preview environment runs in  only mode, which is not designed to connect with a native Expo Go client. This is a platform limitation, not a code bug.
-    -   **Next debug checklist**: Inform the user that the web preview is for web testing only and native functionality should be tested in a local development environment. No further code changes are required.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolving this misunderstanding will unblock the user and allow them to test native features correctly.
-    -   **Status**: BLOCKED (Platform Limitation)
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None
-
--   **Issue 2: Admin product image does not persist in the form on selection**
-    -   **Attempted fixes**: The agent fixed the underlying auth and upload logic. The image successfully uploads to the backend, and the save function works. However, the user reported the selected image preview doesn't stick in the form UI immediately after selection. This is a minor UI state issue.
+-   **Issue 1: Verify and Validate Large-Scale Bug Fixes**
+    -   **Attempted fixes**: The agent has staged numerous code changes across multiple files to fix a large list of bugs reported by the user. Key files modified include , , , , , , , , , , and a new utility  was created to handle confirmation dialogs on the web.
     -   **Next debug checklist**:
-        1.  In , inside the  function, ensure the state holding the selected image URI for display () is updated immediately after a successful upload. The current code  should work, but there might be a nuance in how the  component re-renders.
-        2.  Verify the  component's  prop is correctly bound to .
-        3.  Add a  to log  to confirm it's being updated as expected.
-    -   **Why fix this issue and what will be achieved with the fix?**: Provides better UX for the admin, confirming their image selection was successful before they hit save.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None
-
--   **Issue 3: GitHub Branch Merge**
-    -   **Attempted fixes**: Agent cannot perform Git operations. It provided explicit instructions and the exact file contents needed to resolve merge conflicts between  and .
-    -   **Next debug checklist**: This is a user-managed task. The agent should wait for the user to confirm the merge is complete.
-    -   **Why fix this issue and what will be achieved with the fix?**: Consolidates all recent fixes into the  branch, enabling a clean production deployment.
-    -   **Status**: BLOCKED (User Action Required)
+        1.  Ensure all services (frontend, backend) are running correctly after the numerous file changes.
+        2.  Initiate the  to perform a full regression test covering all the reported bugs. The test plan should verify:
+            *   **Header**: Cloud District icon opens the side menu.
+            *   **Cart**: Trash icon removes items (with confirmation), Clear button works (with confirmation), and the cart badge updates in real-time.
+            *   **Checkout**: Zelle phone number is correct (), Venmo/CashApp links are functional, and Need help button opens chat.
+            *   **Pickup Flow**: Hardcoded pickup address is removed from the confirmation page.
+            *   **Orders Page**: Orders are tappable and navigate to a details view.
+            *   **Inventory**: Product stock is automatically deducted when an order is placed.
+            *   **Cloudz Loyalty**: Reward redemption works (with confirmation), signup bonus is applied, and referral rewards are correctly credited.
+            *   **Admin Panel**: Delete buttons for brands/products work (with confirmation), and the stock editor sets an absolute value.
+    -   **Why fix this issue and what will be achieved with the fix?**: To resolve numerous critical bugs that are blocking the core e-commerce and admin functionalities, making the application unusable for a full checkout cycle.
+    -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both (Full regression)
+    -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: None
-
--   **Issue 4: Railway Production Deployment**
-    -   **Attempted fixes**: The agent created , added a  endpoint, and provided the user with the exact configuration settings needed for Railway (Root Directory, Start Command, Branch).
-    -   **Next debug checklist**: This is a user-managed task. The agent should wait for the user to confirm the settings have been applied in the Railway dashboard.
-    -   **Why fix this issue and what will be achieved with the fix?**: A stable, working production environment.
-    -   **Status**: BLOCKED (User Action Required)
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: Issue 3: GitHub Branch Merge
 
 **In progress Task List**:
-None.
+-   **Task 1: Large-Scale Bug Fix Implementation**
+    -   **Where to resume**: The code has been written. The next step is to initiate comprehensive testing.
+    -   **What will be achieved with this?**: A stable, functional application where the end-to-end user checkout flow and admin management tasks work as expected.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P2: Backend monolith refactor**: Restructure the backend for better scalability and maintainability.
-    -   **P2: Admin screen modularization**: Break down large admin components into smaller, reusable ones.
+    -   **P2: Backend monolith refactor**: Restructure  for better scalability (e.g., into routes, models, services).
+    -   **P2: Admin screen modularization**: Break down large admin components like  into smaller, reusable ones.
 -   **Future Tasks**:
-    -   **P2: Google Workspace Integration**: Fully implement the email sending functionality using the scaffolded  utility.
+    -   **P2: Google Workspace Integration**: Implement email sending functionality using .
     -   **P3: Push notifications expansion**: Enhance the existing push notification system.
 
 **Completed work in this session**
--   **React Hydration Fix (DONE)**: Fixed the root cause of all state persistence issues by creating  to resolve an  error that was crashing the client-side JavaScript bundle.
--   **Cart Persistence (DONE)**: Re-implemented cart state persistence using a manual, platform-aware  solution in .
--   **Auth & Age-Gate Persistence (DONE)**: Applied the same manual  fix to , , and  to ensure tokens and age verification persist across sessions.
--   **Admin Product CRUD (DONE)**: Fixed the image upload and save functionality in  by ensuring the auth token was correctly passed in the upload header.
--   **Backend Cleanup (DONE)**: Consolidated the backend by deleting the stale  file.
--   **Deployment Readiness (DONE)**: Created a , added a  endpoint to , and cleaned  to prepare for a stable Railway deployment.
--   **User Support (DONE)**: Provided extensive debugging, analysis, and clear instructions for resolving user workflow issues related to GitHub merges and Railway deployment.
+-   **Production Deployment Preparation (DONE)**: Prepared the frontend for Railway deployment by adding  and  scripts to  and adding the  dependency. The agent later pivoted to use Emergent's built-in deployment.
+-   **Production Environment Configuration (DONE)**: Updated the frontend  to point to the production backend URL () and verified CORS settings and connectivity.
+-   **Database Cleanup (DONE)**: Deleted all test orders and test user accounts from the production database, preserving only admin and specified user accounts.
+-   **Admin Role Verification (DONE)**: Confirmed the  user has  and has full access to admin routes.
+-   **.gitignore Cleanup (DONE)**: Removed corrupted/duplicated entries from the  file that were blocking  files from deployment.
+-   **Product Image Upload Fix (DONE)**: Refactored the product image upload to use the same successful base64 implementation as the brand image upload, fixing the preview and save functionality.
+-   **Loyalty Rewards UI Enhancement (DONE)**: Overhauled the  page to a modern UI with Balance, Ways to Earn, Ways to Redeem, and Your Activity sections.
+-   **Cloudz Earn Rate Increase (DONE)**: Updated backend logic to award 3 Cloudz per  spent, up from 1.
+-   **Persistent Header Implementation (DONE)**: Created a shared  component and added it to all four main tab screens (Home, Shop, Orders, Account) to ensure a consistent UI.
 
 **Earlier issues found/mentioned but not fixed**
-None.
+None. All known issues have been addressed in the last bug-fixing effort, pending testing.
 
 **Known issue recurrence from previous fork**
 None.
@@ -111,81 +87,86 @@ None.
 
 
 **Key Technical Concepts**
--   **Frontend**: React Native, Expo, Expo Router, TypeScript, Zustand
--   **Backend**: FastAPI, Python, MongoDB
--   **State Management**: Manual persistence using  for web and  for native, replacing Zustand's  middleware due to SSR conflicts.
--   **React Hydration**: Understanding and fixing client-side hydration failures in an SSR context (Expo Web).
--   **Tooling**: Babel for transpiling modern JavaScript syntax.
--   **Deployment**:  for defining start commands on platforms like Railway.
+-   **Frontend**: React Native, Expo (for Web), Expo Router, TypeScript, Zustand.
+-   **Backend**: FastAPI, Python, MongoDB.
+-   **State Management**: Zustand for global state (auth, cart), with manual  persistence.
+-   **Cross-Platform UI**: Need for custom utilities like  because React Native's  does not work on the web platform.
+-   **Deployment**: Shifted from a user-managed Railway deployment to an agent-managed Emergent deployment.
 
 **key DB schema**
 -   **products**: 
 -   **brands**: 
 -   **orders**: 
+-   **users**: 
+-   **cloudz_ledger**: 
 
 **changes in tech stack**
--   Added  with .
--   Explicitly moved away from Zustand's  middleware in favor of a manual, platform-aware / wrapper for all persisted state.
+-   Added  package for serving static frontend builds.
+-   Created a custom  utility to handle confirmation dialogs on the web.
 
 **All files of reference**
--   : **New.** Critical file that fixes client-side React hydration.
--   : **Updated.** Implements manual  persistence for the cart.
--   : **Updated.** Implements manual  persistence for the auth token.
--   : **Updated.** Fixed auth header for image uploads.
--   : **Updated.** Triggers manual cart hydration on mount.
--    & : **Updated.** Implemented manual  persistence for age verification.
--   : **New.** Defines the start command for production deployment.
--   : **Updated.** Added  endpoint.  was deleted.
--   : **Updated.** Cleaned and deduplicated.
+-   : **New.** Critical utility to make confirmation dialogs work on web.
+-   : **Updated** with 3x Cloudz earn rate and automatic stock deduction on order creation.
+-   : **Updated** to use the new alert for remove/clear actions and fix bugs.
+-   : **Updated** with correct payment links and help button logic.
+-    / : **Updated** to fix delete functionality and product image uploads.
+-   : **Updated** to include the persistent .
+-   : **Created** and then **updated** to provide a consistent header and correct drawer link.
+-   : **Updated** with a major UI overhaul and fixed redemption logic.
+-   : **Updated** to make orders tappable.
+-   : **Updated** to remove hardcoded pickup address.
 
 **Areas that need refactoring**:
--   **P2: Backend monolith refactor**: Break  into a more modular structure (e.g., routes, models, services).
--   **P2: Admin screen modularization**: Break down the large  component.
+-   **P2: Backend monolith refactor**: Break  into a more modular structure.
+-   **P2: Admin screen modularization**: Break down large admin components like .
 
 **key api endpoints**
--   : Uploads a new product image.
--   : Serves a static product image.
--   : Creates a new order.
--   : **New.** Health check endpoint for deployment services.
+-   : **Updated.** Now deducts stock from products upon successful order creation.
+-   : **Fixed.** Now works with correct auth headers.
+-   : **Fixed.** Now works with correct auth headers.
+-   : **Fixed.** Now uses the cross-platform alert for confirmation.
 
 **Critical Info for New Agent**
--   **The user is frustrated with platform friction.** Be concise, direct, and focus on unblocking them. Do not give long explanations unless asked. Acknowledge their frustration and provide clear, actionable steps.
--   **ALL state persistence MUST use the manual  pattern.** Do not re-introduce  or rely on  alone for web, as it will break due to Expo's SSR. The established pattern is in  and .
--   The remaining P1/P2 issues are **user-managed tasks** (GitHub merge, Railway deploy) or platform limitations (Expo Go). Do not attempt to fix them with code. Your role is to provide guidance and then wait for the user to act. The next coding task is to fix the minor admin image preview bug (Issue #2).
+-   **Testing is the #1 priority.** A large number of fixes have been implemented across the entire stack but have **not been tested at all**. You must start by running a comprehensive test suite (ideally with ) to validate all the recent changes.
+-   The user identified these bugs during a full end-to-end test. Your testing should replicate that, covering the entire user journey from adding an item to the cart to placing an order, and also checking admin functions.
+-   A new utility, , was created because the standard React Native  does not function on the web. All user confirmation prompts have been migrated to use this new utility.
 
 **documents and test reports created in this job**
--   : Updated to reflect completed tasks.
--   Multiple test reports in  were generated, confirming the fixes for cart, auth, and admin CRUD flows.
+-   : Updated with completed tasks.
+-   Multiple test reports in  were generated for previous features (image upload fix, rewards UI), confirming their functionality before the latest bug-fix request.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User Concern:** Expressed deep frustration over the last 8 days with accumulating bugs (Expo Go, product image), commit authoring changes, and inability to push to . (PENDING - Emotional state)
-2.  **Agent Response:** Agent acknowledged frustration and provided a clear summary of what is working vs. what is a platform issue to re-establish a stable baseline. (COMPLETED)
-3.  **Agent Action:** Agent cleaned out debug  and  statements from . (COMPLETED)
-4.  **Agent Summary:** Provided a final summary of the app's stable state and recommended the user use Save to Github to push the clean state and then perform the merge/deploy. (PENDING - User action)
-5.  **Older User Messages:** The history shows a cycle of the user reporting a bug, the agent attempting a fix, and the user providing feedback, culminating in the discovery of the root hydration issue.
+1.  **User**: Requested a large batch of bug fixes discovered during a full checkout test.
+2.  **User**: Requested an update to the Cloudz earn rate (to 3x) and a persistent header across all tabs.
+3.  **User**: Requested an enhancement of the loyalty rewards UI.
+4.  **User**: Requested a refactor of the product image upload to match the working brand image upload.
+5.  **User**: Requested a health check before deployment.
+6.  **User**: Requested promoting the current fork for deployment.
+7.  **User**: Confirmed the choice to deploy the frontend via Emergent.
+8.  **User**: Expressed frustration with manual deployment and asked the agent to take over.
+9.  **User**: Requested a user audit and subsequent cleanup of test accounts.
+10. **User**: Requested a cleanup of the orders table before deployment.
 
 **Project Health Check:**
--   **Broken**:
-    -   **User Workflow**: The user is blocked by processes on external platforms (resolving a GitHub PR merge, configuring Railway).
-    -   **Expo Go Connectivity**: The preview environment is incompatible with Expo Go, which is a source of user confusion.
+-   **Broken**: The application's core checkout and admin functionalities are currently in an unknown state. While fixes have been coded, they are unverified. This includes cart management, payment links, inventory deduction, loyalty redemption, and admin CRUD operations.
 -   **Mocked**:
-    -   The email utility () is scaffolded but not yet integrated or active.
+    -   The email utility () is scaffolded but not integrated.
 
 **3rd Party Integrations**
 -   **Expo**: Core framework for the React Native frontend.
--   **react-native-gesture-handler & react-native-reanimated**: Used for the draggable Chat FAB.
--   **expo-haptics**: Used for tactile feedback on the Chat FAB.
--   **@babel/plugin-proposal-dynamic-import**: **New.** A development dependency required to fix client-side hydration in Expo web.
+-   **react-native-gesture-handler & react-native-reanimated**: Used for UI animations.
+-   **expo-haptics**: Used for tactile feedback.
+-   **@babel/plugin-proposal-dynamic-import**: A development dependency required to fix client-side hydration in Expo web.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The testing agent was used multiple times to validate the cart persistence, auth persistence, and admin CRUD fixes.
--   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Testing agent used after significant changes**: YES (for previous tasks in this session).
+-   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
--   **Known regressions**: None. All known regressions have been fixed.
+-   **Known regressions**: None confirmed, but the last set of major changes is untested and may have introduced regressions.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 
 **What agent forgot to execute**
-The agent has not forgotten any tasks. It is currently blocked, awaiting user action on several external platform tasks (GitHub merge, Railway deployment). The agent has provided all necessary code and instructions to unblock the user.</analysis>
+The agent has not forgotten any tasks. It is in the middle of a large bug-fixing task and must now proceed with the critical testing and verification phase before concluding the work.</analysis>
