@@ -2,11 +2,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Act
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+import AppHeader from '../../components/AppHeader';
 import axios from 'axios';
 import * as Clipboard from 'expo-clipboard';
 
@@ -131,7 +131,8 @@ export default function Account() {
   const tierColor = highestTier ? TIER_ACCENT[highestTier.id] || theme.colors.primary : theme.colors.textMuted;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
+      <AppHeader />
       <View style={styles.header}>
         <Text style={styles.title}>Account</Text>
         <TouchableOpacity onPress={() => router.push('/profile')} data-testid="edit-profile-btn">
@@ -408,7 +409,7 @@ export default function Account() {
           <Text style={styles.footerSubtext}>Local Pickup Only - 21+ Only</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

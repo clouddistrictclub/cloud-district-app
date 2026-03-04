@@ -610,7 +610,7 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
                 detail=f"Insufficient stock for {product['name']}. Available: {product['stock']}"
             )
     
-    points_earned = int(order_data.total)
+    points_earned = int(order_data.total) * 3
     reward_discount = 0.0
     reward_points_used = 0
 

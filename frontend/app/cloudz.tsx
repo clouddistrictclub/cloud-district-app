@@ -39,7 +39,7 @@ interface LedgerEntry {
 }
 
 const EARN_ACTIONS = [
-  { id: 'order', icon: 'cart', label: 'Place an Order', desc: '1 Cloudz per $1 spent', enabled: true },
+  { id: 'order', icon: 'cart', label: 'Place an Order', desc: '3 Cloudz per $1 spent', enabled: true },
   { id: 'signup', icon: 'person-add', label: 'Signup Bonus', desc: '500 Cloudz on registration', enabled: true },
   { id: 'referral', icon: 'people', label: 'Refer a Friend', desc: '1,000 Cloudz per referral', enabled: true },
   { id: 'twitter', icon: 'logo-twitter', label: 'Share on X', desc: 'Coming soon', enabled: false },

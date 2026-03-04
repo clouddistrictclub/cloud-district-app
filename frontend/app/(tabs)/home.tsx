@@ -1,12 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, Link } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
-import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import HeroBanner from '../../components/HeroBanner';
+import AppHeader from '../../components/AppHeader';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -30,7 +29,6 @@ const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
-  const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const [products, setProducts] = useState<Product[]>([]);
@@ -79,31 +77,8 @@ export default function Home() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={openDrawer} data-testid="header-menu-btn" activeOpacity={0.7}>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={styles.headerIcon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-        <View style={styles.headerRight}>
-          <View style={styles.loyaltyBadge}>
-            <Ionicons name="star" size={16} color="#fbbf24" />
-            <Text style={styles.loyaltyPoints}>{user?.loyaltyPoints || 0}</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartButton} data-testid="header-cart-btn">
-            <Ionicons name="cart" size={24} color="#fff" />
-            {itemCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{itemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
+    <View style={styles.container}>
+      <AppHeader />
       {/* Side Drawer */}
       {drawerOpen && (
         <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
@@ -208,7 +183,7 @@ export default function Home() {
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -216,57 +191,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0c0c0c',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    paddingTop: Platform.OS === 'web' ? 'max(12px, env(safe-area-inset-top))' as any : 8,
-  },
-  headerIcon: {
-    height: 36,
-    width: 36,
-    borderRadius: 8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loyaltyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#151515',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
-  },
-  loyaltyPoints: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cartButton: {
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#2E6BFF',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   content: {
     flex: 1,

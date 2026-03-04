@@ -1,0 +1,78 @@
+{
+  "summary": "Backend 3x Cloudz earn rate WORKING. Frontend AppHeader only visible on Home tab - NOT visible on Shop, Orders, Account tabs despite code showing <AppHeader /> is present in all 4 tab files. Critical UI bug found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "critical": [
+      {
+        "component": "AppHeader",
+        "issue": "AppHeader NOT visible on Shop, Orders, Account tabs despite <AppHeader /> being in JSX. Only visible on Home tab.",
+        "affected_tabs": ["Shop", "Orders", "Account"],
+        "working_tab": "Home",
+        "priority": "HIGH"
+      }
+    ],
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_earn_rate_3x.py",
+    "/app/test_reports/pytest/pytest_earn_rate_3x.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix AppHeader visibility on Shop, Orders, Account tabs - currently only shows on Home tab",
+    "Investigate why AppHeader renders on Home but not other tabs despite identical code pattern <AppHeader /> at top of container View"
+  ],
+  "critical_code_review_comments": [
+    "Backend earn rate CORRECT: server.py line 613 shows `points_earned = int(order_data.total) * 3`",
+    "AppHeader component exists with correct data-testid attributes (app-header, header-icon-btn, header-cloudz-badge, header-cart-btn)",
+    "All 4 tab files (home.tsx, shop.tsx, orders.tsx, account.tsx) import and use <AppHeader /> at top of container",
+    "BUG: AppHeader visually renders ONLY on Home tab - likely CSS/rendering issue, not code logic issue"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_earn_rate_3x.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "25% (1/4 tabs showing AppHeader)"
+  },
+  "test_credentials": {
+    "admin_email": "jkaatz@gmail.com",
+    "admin_password": "Just1n23$",
+    "admin_cloudz_balance": 30000
+  },
+  "seed_data_creation": "None needed",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AppHeader is visually rendering on Home tab only. Shop/Orders/Account tabs show their titles (Shop, My Orders, Account) at top with NO header above them. The DOM contains '30000' text on all pages but it's not visually rendered as the header badge on non-Home tabs. This appears to be a React Native Web rendering issue, not a code logic issue.",
+  "visual_verification": {
+    "home_tab": {
+      "header_visible": true,
+      "icon_visible": true,
+      "cloudz_badge_visible": true,
+      "cloudz_value": "30000",
+      "cart_icon_visible": true
+    },
+    "shop_tab": {
+      "header_visible": false,
+      "first_visible_element": "Shop title"
+    },
+    "orders_tab": {
+      "header_visible": false,
+      "first_visible_element": "My Orders title"
+    },
+    "account_tab": {
+      "header_visible": false,
+      "first_visible_element": "Account title",
+      "note": "30,000 shows in Cloudz Points card body, not header"
+    }
+  },
+  "backend_test_results": {
+    "test_3x_earn_rate_$20_order": "PASS - Expected 60 Cloudz, got 60 Cloudz",
+    "test_3x_earn_rate_various_amounts": "PASS - $10->30, $25.50->75, $50->150, $100->300",
+    "test_admin_balance_30000": "PASS - Admin user has 30,000 Cloudz"
+  }
+}
