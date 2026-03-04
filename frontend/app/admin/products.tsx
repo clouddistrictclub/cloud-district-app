@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Alert, RefreshControl, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -66,7 +66,6 @@ export default function ProductsManagement() {
   });
 
   const [stockAdjustment, setStockAdjustment] = useState({ amount: 0, reason: '' });
-  const [uploading, setUploading] = useState(false);
   const token = useAuthStore(state => state.token);
 
   useEffect(() => {
@@ -116,47 +115,12 @@ export default function ProductsManagement() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.5,
+      base64: true,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      setUploading(true);
-      try {
-        const formPayload = new FormData();
-        const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase().split('?')[0];
-        const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-
-        if (Platform.OS === 'web') {
-          // On web: fetch the blob URI and convert to File
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
-          const file = new File([blob], `product.${ext}`, { type: mimeType });
-          formPayload.append('file', file);
-        } else {
-          // On native: use RN FormData syntax
-          formPayload.append('file', {
-            uri: asset.uri,
-            name: `product.${ext}`,
-            type: mimeType,
-          } as any);
-        }
-
-        const res = await axios.post(`${API_URL}/api/upload/product-image`, formPayload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (res.status !== 200 && res.status !== 201) {
-          Alert.alert('Upload Failed', res.data?.detail || 'Server error');
-          return;
-        }
-        setFormData(prev => ({ ...prev, image: res.data.url }));
-      } catch (error: any) {
-        Alert.alert('Upload Failed', error.response?.data?.detail || 'Could not upload image');
-      } finally {
-        setUploading(false);
-      }
+    if (!result.canceled && result.assets[0].base64) {
+      setFormData({ ...formData, image: `data:image/jpeg;base64,${result.assets[0].base64}` });
     }
   };
 
@@ -379,14 +343,9 @@ export default function ProductsManagement() {
               </TouchableOpacity>
             </View>
 
-              <TouchableOpacity style={styles.imageUpload} onPress={pickImage} disabled={uploading}>
-                {uploading ? (
-                  <View style={styles.uploadPlaceholder}>
-                    <ActivityIndicator size="large" color="#2E6BFF" />
-                    <Text style={styles.uploadText}>Uploading...</Text>
-                  </View>
-                ) : formData.image ? (
-                  <Image source={{ uri: formData.image.startsWith('/') ? `${API_URL}${formData.image}` : formData.image }} style={styles.uploadedImage} />
+              <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
+                {formData.image ? (
+                  <Image source={{ uri: formData.image }} style={styles.uploadedImage} />
                 ) : (
                   <View style={styles.uploadPlaceholder}>
                     <Ionicons name="camera" size={40} color="#666" />
