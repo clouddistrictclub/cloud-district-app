@@ -12,62 +12,64 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 ```
 /app
 ├── backend/
-│   ├── Procfile              (Railway start command: uvicorn)
-│   ├── server.py             (canonical — only server file)
-│   ├── utils/email.py        (scaffolded, MOCKED)
-│   └── uploads/              (product/brand images)
+│   ├── Procfile
+│   ├── server.py
+│   ├── utils/email.py        (MOCKED)
+│   └── uploads/
 ├── frontend/
 │   ├── app/
+│   │   ├── (tabs)/           (Home, Shop, Orders, Account)
 │   │   ├── cloudz.tsx        (Rewards dashboard - 4 sections)
-│   │   ├── cloudz-history.tsx (Full ledger history)
-│   │   └── admin/products.tsx (Fixed image upload)
-│   ├── store/authStore.ts    (localStorage on web)
-│   ├── store/cartStore.ts    (localStorage on web)
-│   ├── babel.config.js       (import.meta fix)
-│   └── dist/                 (static web export output)
+│   │   ├── cloudz-history.tsx
+│   │   └── admin/
+│   ├── components/
+│   │   ├── AppHeader.tsx     (Shared header: icon + cloudz badge + cart)
+│   │   ├── ProductCard.tsx
+│   │   ├── HeroBanner.tsx
+│   │   └── ChatBubble.tsx
+│   ├── store/
+│   └── dist/
 ```
 
-## Critical Web Persistence Pattern
-All client state uses direct `localStorage` on web (NOT AsyncStorage):
-- Auth token: key `cloud-district-token`
-- Age verified: key `ageVerified`
-- Cart: key `cloud-district-cart`
+## Cloudz Earn Rate
+- **3 Cloudz per $1 spent** (changed from 1x)
+- Formula: `points_earned = int(order_data.total) * 3`
+- Example: $20 purchase = 60 Cloudz
+
+## Loyalty Tiers (unchanged)
+- Bronze Cloud — 1,000 pts → $5.00
+- Silver Storm — 5,000 pts → $30.00
+- Gold Thunder — 10,000 pts → $75.00
+- Platinum Haze — 20,000 pts → $175.00
+- Diamond Sky — 30,000 pts → $300.00
+
+## Persistent AppHeader
+- Renders on ALL tab screens (Home, Shop, Orders, Account)
+- Shows: Cloud District icon, Cloudz balance badge, Cart icon with count
+- Component: `components/AppHeader.tsx`
+- Each tab imports and renders `<AppHeader />` at top of container
 
 ## Deployment Configuration
 
 ### Backend (DEPLOYED on Railway at api.clouddistrict.club)
-- Root Directory: `backend`
-- Start Command: `uvicorn server:app --host 0.0.0.0 --port ${PORT:-8080}`
-- Health Check: `GET /api/health`
+- Start: `uvicorn server:app --host 0.0.0.0 --port ${PORT:-8080}`
+- Health: `GET /api/health`
 - CORS: `allow_origins=["*"]`
 
-### Frontend (READY for Emergent deployment at clouddistrict.club)
-- Runs via Expo dev server (supervisor: `expo` process on port 3000)
-- Backend URL: `EXPO_PUBLIC_BACKEND_URL=https://api.clouddistrict.club`
-- Also has Railway-compatible build/start scripts in package.json as fallback
-
-## Loyalty Tiers (Backend)
-- tier_1: Bronze Cloud — 1,000 pts → $5.00
-- tier_2: Silver Storm — 5,000 pts → $30.00
-- tier_3: Gold Thunder — 10,000 pts → $75.00
-- tier_4: Platinum Haze — 20,000 pts → $175.00
-- tier_5: Diamond Sky — 30,000 pts → $300.00
+### Frontend (READY for Emergent deployment)
+- `EXPO_PUBLIC_BACKEND_URL=https://api.clouddistrict.club`
+- Also has Railway build/start scripts as fallback
 
 ## Completed
-- Cart persistence (localStorage + babel fix)
-- Server file consolidation
-- Auth/age-gate persistence
-- Admin upload fix
-- Backend Procfile for Railway
-- Frontend Railway/Emergent production setup
+- Cart/Auth/Age-gate persistence (localStorage + babel fix)
+- Server consolidation, backend Procfile
+- Product image upload fix (base64 inline)
+- Cloudz Rewards UI (4-section dashboard)
 - DB cleanup (7 users, 0 orders, loyalty intact)
 - Admin role verified (jkaatz@gmail.com = isAdmin: true)
-- Product image upload fix (base64 inline, matching brands)
-- **Cloudz Rewards UI overhaul** — 4-section dashboard:
-  1. Balance Panel (balance + next threshold + active reward chips)
-  2. Ways to Earn (6 cards: 3 active + 3 disabled social placeholders)
-  3. Ways to Redeem (5 tier cards with Redeem buttons)
-  4. Your Activity (latest 5 ledger entries + View All link)
+- **Cloudz earn rate 3x** (backend verified: $20 → 60 pts)
+- **Persistent AppHeader across all tabs**
+- Production deployment prep (Emergent + Railway fallback)
 
 ## Credentials
 - Admin: jkaatz@gmail.com / Just1n23$
@@ -81,4 +83,4 @@ All client state uses direct `localStorage` on web (NOT AsyncStorage):
 - Admin screen modularization
 - Google Workspace email integration
 - Push notifications expansion
-- Social sharing integration (X, Facebook, Instagram) for Ways to Earn
+- Social sharing (X, Facebook, Instagram) for Ways to Earn
