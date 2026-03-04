@@ -55,13 +55,14 @@ All client state uses direct `localStorage` on web (NOT AsyncStorage):
 - Backend Procfile for Railway deploy
 - Frontend Railway production setup (build/start scripts, serve dep)
 - Frontend Emergent deployment prep (env var, .gitignore cleanup, deployment agent check)
+- **Product image upload fix** — refactored to use same base64 inline approach as working brand upload
 
 ## Credentials
 - Admin: jkaatz@gmail.com / Just1n23$
 
 ## Pending
-- Admin product image preview not persisting in form UI (P1, minor UX)
 - Custom domain DNS setup for clouddistrict.club (after Emergent deploy)
+- DB cleanup done: 7 users, 0 orders, loyalty intact
 
 ## Future (P2+)
 - Backend monolith refactor
