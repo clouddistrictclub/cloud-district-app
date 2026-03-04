@@ -5,8 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 const STORE_NAME = 'Cloud District Club';
-const STORE_ADDRESS = '123 Main St, Suite 100, Los Angeles, CA 90001';
-const STORE_COORDS = { lat: 34.0522, lng: -118.2437 };
 
 export default function OrderConfirmation() {
   const router = useRouter();
@@ -38,7 +36,7 @@ export default function OrderConfirmation() {
           <View style={styles.checkCircle} data-testid="order-confirmation-check">
             <Ionicons name="checkmark" size={48} color="#fff" />
           </View>
-          <Text style={styles.successTitle} data-testid="order-confirmation-title">Order Confirmed!</Text>
+          <Text style={styles.successTitle} data-testid="order-confirmation-title">Order Placed!</Text>
           <View style={styles.orderBadge}>
             <Text style={styles.orderBadgeText} data-testid="order-confirmation-id">Order #{shortOrderId}</Text>
           </View>
@@ -116,13 +114,15 @@ export default function OrderConfirmation() {
             <Ionicons name="location" size={24} color={theme.colors.danger} />
             <View style={{ flex: 1 }}>
               <Text style={styles.storeName} data-testid="store-name">{STORE_NAME}</Text>
-              <Text style={styles.storeAddress} data-testid="store-address">{STORE_ADDRESS}</Text>
+              <Text style={styles.storeAddress} data-testid="store-address">
+                Please contact the store to confirm your pickup location.
+              </Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.mapsButton} onPress={openInMaps} data-testid="open-in-maps-btn">
-            <Ionicons name="navigate" size={20} color="#fff" />
-            <Text style={styles.mapsButtonText}>Open in Maps</Text>
+          <TouchableOpacity style={styles.mapsButton} onPress={() => Linking.openURL('sms:6084179336')} data-testid="contact-store-btn">
+            <Ionicons name="chatbubble" size={20} color="#fff" />
+            <Text style={styles.mapsButtonText}>Contact Store</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

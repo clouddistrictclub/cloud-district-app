@@ -41,32 +41,19 @@ export default function PaymentInstructions() {
   };
 
   const handleContactSupport = () => {
-    Alert.alert(
-      'Need Help?',
-      'Contact us for payment assistance',
-      [
-        {
-          text: 'Call/Text',
-          onPress: () => Linking.openURL('sms:6083017091')
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        }
-      ]
-    );
+    router.push('/support-chat');
   };
 
   const paymentInfo: any = {
     zelle: {
       title: 'Pay with Zelle',
-      username: '6083017091',
+      username: '6084179336',
       icon: 'flash',
       color: '#6d1ed4',
       instructions: [
         'Open your banking app',
         'Select Zelle',
-        'Send to: 6083017091',
+        'Send to: 6084179336',
         `Add memo: Order #${shortOrderId}`
       ],
       deepLink: null, // Zelle is bank-dependent, no universal deep link
@@ -83,7 +70,7 @@ export default function PaymentInstructions() {
         'Verify order number in note',
         'Complete payment'
       ],
-      deepLink: `venmo://paycharge?txn=pay&recipients=CloudDistrictClub&amount=${amountStr}&note=Order%20%23${shortOrderId}`,
+      deepLink: `https://venmo.com/CloudDistrictClub?txn=pay&amount=${amountStr}&note=Order%20%23${shortOrderId}`,
       canDeepLink: true,
     },
     cashapp: {
@@ -97,7 +84,7 @@ export default function PaymentInstructions() {
         'Add this to note: Order #' + shortOrderId,
         'Complete payment'
       ],
-      deepLink: `https://cash.app/$CloudDistrictClub/${amountStr}`,
+      deepLink: `https://cash.app/$CloudDistrictClub/${amountStr}?note=Order%20%23${shortOrderId}`,
       canDeepLink: true,
     },
     chime: {
