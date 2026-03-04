@@ -29,12 +29,38 @@ interface Reward {
   createdAt: string;
 }
 
-const TIER_COLORS: Record<string, { bg: string; border: string; accent: string }> = {
-  tier_1: { bg: '#1a1510', border: '#CD7F32', accent: '#CD7F32' },
-  tier_2: { bg: '#151518', border: '#C0C0C0', accent: '#C0C0C0' },
-  tier_3: { bg: '#1a1810', border: '#FFD700', accent: '#FFD700' },
-  tier_4: { bg: '#141418', border: '#A8B8D0', accent: '#A8B8D0' },
-  tier_5: { bg: '#141620', border: '#B9F2FF', accent: '#B9F2FF' },
+interface LedgerEntry {
+  userId: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  reference: string;
+  createdAt: string;
+}
+
+const EARN_ACTIONS = [
+  { id: 'order', icon: 'cart', label: 'Place an Order', desc: '1 Cloudz per $1 spent', enabled: true },
+  { id: 'signup', icon: 'person-add', label: 'Signup Bonus', desc: '500 Cloudz on registration', enabled: true },
+  { id: 'referral', icon: 'people', label: 'Refer a Friend', desc: '1,000 Cloudz per referral', enabled: true },
+  { id: 'twitter', icon: 'logo-twitter', label: 'Share on X', desc: 'Coming soon', enabled: false },
+  { id: 'facebook', icon: 'logo-facebook', label: 'Share on Facebook', desc: 'Coming soon', enabled: false },
+  { id: 'instagram', icon: 'logo-instagram', label: 'Follow on Instagram', desc: 'Coming soon', enabled: false },
+];
+
+const TYPE_LABELS: Record<string, string> = {
+  purchase_reward: 'Purchase Reward',
+  referral_bonus: 'Referral Bonus',
+  tier_redemption: 'Tier Redemption',
+  admin_adjustment: 'Admin Adjustment',
+  signup_bonus: 'Signup Bonus',
+};
+
+const TYPE_ICONS: Record<string, string> = {
+  purchase_reward: 'cart',
+  referral_bonus: 'people',
+  tier_redemption: 'diamond',
+  admin_adjustment: 'shield',
+  signup_bonus: 'person-add',
 };
 
 export default function Cloudz() {
@@ -42,7 +68,7 @@ export default function Cloudz() {
   const { user, refreshUser, token } = useAuthStore();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
-  const [history, setHistory] = useState<Reward[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
@@ -50,14 +76,14 @@ export default function Cloudz() {
 
   const loadData = useCallback(async () => {
     try {
-      const [tiersRes, rewardsRes, historyRes] = await Promise.all([
+      const [tiersRes, rewardsRes, ledgerRes] = await Promise.all([
         axios.get(`${API_URL}/api/loyalty/tiers`, authHeaders),
         axios.get(`${API_URL}/api/loyalty/rewards`, authHeaders),
-        axios.get(`${API_URL}/api/loyalty/history`, authHeaders),
+        axios.get(`${API_URL}/api/loyalty/ledger`, authHeaders),
       ]);
       setTiers(tiersRes.data.tiers);
       setRewards(rewardsRes.data);
-      setHistory(historyRes.data);
+      setLedger(ledgerRes.data);
     } catch (error) {
       console.error('Failed to load loyalty data:', error);
     } finally {
@@ -80,7 +106,7 @@ export default function Cloudz() {
 
     Alert.alert(
       `Redeem ${tier.name}`,
-      `Spend ${tier.pointsRequired.toLocaleString()} points for a $${tier.reward.toFixed(2)} reward?\n\nThis will deduct ${tier.pointsRequired.toLocaleString()} Cloudz Points from your balance.`,
+      `Spend ${tier.pointsRequired.toLocaleString()} Cloudz for a $${tier.reward.toFixed(2)} reward?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -91,7 +117,7 @@ export default function Cloudz() {
               await axios.post(`${API_URL}/api/loyalty/redeem`, { tierId: tier.id }, authHeaders);
               await refreshUser();
               await loadData();
-              Alert.alert('Redeemed!', `You now have a $${tier.reward.toFixed(2)} reward ready to use at checkout.`);
+              Alert.alert('Redeemed!', `$${tier.reward.toFixed(2)} reward is ready to use at checkout.`);
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.detail || 'Failed to redeem');
             } finally {
@@ -104,17 +130,12 @@ export default function Cloudz() {
   };
 
   const userPoints = user?.loyaltyPoints || 0;
-
-  // Find the next tier to work towards
   const nextTier = tiers.find(t => !t.unlocked);
-  const progressPercent = nextTier
-    ? Math.min(100, (userPoints / nextTier.pointsRequired) * 100)
-    : 100;
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
+      <SafeAreaView style={s.container} edges={['top']}>
+        <View style={s.loadingWrap}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       </SafeAreaView>
@@ -122,110 +143,132 @@ export default function Cloudz() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="cloudz-back-btn">
+    <SafeAreaView style={s.container} edges={['top']}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} data-testid="cloudz-back-btn">
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Cloudz Rewards</Text>
+        <Text style={s.headerTitle}>Cloudz Rewards</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Points Balance Card */}
-        <View style={styles.balanceCard} data-testid="cloudz-balance-card">
-          <Ionicons name="star" size={36} color="#fbbf24" />
-          <Text style={styles.balanceLabel}>Your Cloudz Points</Text>
-          <Text style={styles.balanceValue} data-testid="cloudz-points-balance">{userPoints.toLocaleString()}</Text>
-          {nextTier && (
-            <View style={styles.progressSection}>
-              <Text style={styles.progressLabel}>
-                {nextTier.pointsNeeded.toLocaleString()} pts to {nextTier.name}
-              </Text>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-              </View>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ═══ BALANCE PANEL ═══ */}
+        <View style={s.balancePanel} data-testid="cloudz-balance-card">
+          <View style={s.balanceGlow} />
+          <View style={s.balanceIconRow}>
+            <View style={s.balanceIconCircle}>
+              <Ionicons name="star" size={22} color="#000" />
             </View>
+          </View>
+          <Text style={s.balanceLabel}>Your Cloudz Balance</Text>
+          <Text style={s.balanceValue} data-testid="cloudz-points-balance">
+            {userPoints.toLocaleString()}
+          </Text>
+          {nextTier ? (
+            <View style={s.thresholdRow}>
+              <View style={s.progressTrack}>
+                <View style={[s.progressFill, { width: `${Math.min(100, (userPoints / nextTier.pointsRequired) * 100)}%` }]} />
+              </View>
+              <Text style={s.thresholdText}>
+                {nextTier.pointsRequired.toLocaleString()} Cloudz  {'->'} ${nextTier.reward.toFixed(2)} reward
+              </Text>
+            </View>
+          ) : (
+            <Text style={s.thresholdText}>All reward tiers unlocked</Text>
           )}
-          {!nextTier && (
-            <Text style={styles.maxTierText}>All tiers unlocked!</Text>
+
+          {/* Active rewards badges */}
+          {rewards.length > 0 && (
+            <View style={s.activeRewardStrip}>
+              {rewards.map(r => (
+                <View key={r.id} style={s.activeRewardChip} data-testid={`active-reward-${r.tierId}`}>
+                  <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
+                  <Text style={s.activeRewardChipText}>${r.rewardAmount.toFixed(2)} ready</Text>
+                </View>
+              ))}
+            </View>
           )}
         </View>
 
-        {/* Active Rewards */}
-        {rewards.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Rewards</Text>
-            <Text style={styles.sectionSubtitle}>Use at checkout</Text>
-            {rewards.map((reward) => (
-              <View key={reward.id} style={styles.activeRewardCard} data-testid={`active-reward-${reward.tierId}`}>
-                <View style={styles.rewardBadge}>
-                  <Text style={styles.rewardBadgeText}>${reward.rewardAmount.toFixed(2)}</Text>
+        {/* ═══ SECTION 1: WAYS TO EARN ═══ */}
+        <View style={s.section} data-testid="ways-to-earn-section">
+          <Text style={s.sectionTitle}>Ways to Earn</Text>
+          <Text style={s.sectionSub}>Stack up Cloudz with every action</Text>
+          <View style={s.earnGrid}>
+            {EARN_ACTIONS.map(action => (
+              <View
+                key={action.id}
+                style={[s.earnCard, !action.enabled && s.earnCardDisabled]}
+                data-testid={`earn-action-${action.id}`}
+              >
+                <View style={[s.earnIconCircle, !action.enabled && s.earnIconDisabled]}>
+                  <Ionicons
+                    name={action.icon as any}
+                    size={20}
+                    color={action.enabled ? '#fff' : '#555'}
+                  />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rewardName}>{reward.tierName}</Text>
-                  <Text style={styles.rewardDesc}>Ready to use at checkout</Text>
-                </View>
-                <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
+                <Text style={[s.earnLabel, !action.enabled && { color: '#444' }]}>{action.label}</Text>
+                <Text style={[s.earnDesc, !action.enabled && { color: '#333' }]}>{action.desc}</Text>
+                {!action.enabled && (
+                  <View style={s.comingSoonBadge}>
+                    <Ionicons name="lock-closed" size={10} color="#555" />
+                    <Text style={s.comingSoonText}>Soon</Text>
+                  </View>
+                )}
               </View>
             ))}
           </View>
-        )}
+        </View>
 
-        {/* Tiers */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reward Tiers</Text>
-          <Text style={styles.sectionSubtitle}>Redeem points for discounts</Text>
+        {/* ═══ SECTION 2: WAYS TO REDEEM ═══ */}
+        <View style={s.section} data-testid="ways-to-redeem-section">
+          <Text style={s.sectionTitle}>Ways to Redeem</Text>
+          <Text style={s.sectionSub}>Turn your Cloudz into real savings</Text>
 
-          {tiers.map((tier) => {
-            const colors = TIER_COLORS[tier.id] || TIER_COLORS.tier_1;
-            const hasActiveReward = rewards.some(r => r.tierId === tier.id);
+          {tiers.map(tier => {
+            const hasActive = rewards.some(r => r.tierId === tier.id);
             const isRedeeming = redeeming === tier.id;
+            const pct = tier.unlocked ? 100 : Math.min(100, (userPoints / tier.pointsRequired) * 100);
 
             return (
               <View
                 key={tier.id}
-                style={[
-                  styles.tierCard,
-                  { backgroundColor: tier.unlocked ? colors.bg : '#0f0f0f', borderColor: tier.unlocked ? colors.border : '#222' },
-                ]}
+                style={[s.redeemCard, tier.unlocked && s.redeemCardUnlocked]}
                 data-testid={`tier-card-${tier.id}`}
               >
-                <View style={styles.tierHeader}>
-                  <View style={[styles.tierIconCircle, { borderColor: tier.unlocked ? colors.accent : '#333' }]}>
-                    <Ionicons
-                      name={(tier.icon as any) || 'cloud'}
-                      size={24}
-                      color={tier.unlocked ? colors.accent : '#444'}
-                    />
+                <View style={s.redeemTop}>
+                  <View style={s.redeemRewardBadge}>
+                    <Text style={s.redeemRewardAmount}>${tier.reward.toFixed(2)}</Text>
+                    <Text style={s.redeemRewardLabel}>reward</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.tierName, { color: tier.unlocked ? colors.accent : '#555' }]}>
+                  <View style={s.redeemInfo}>
+                    <Text style={[s.redeemTierName, !tier.unlocked && { color: '#555' }]}>
                       {tier.name}
                     </Text>
-                    <Text style={[styles.tierPoints, { color: tier.unlocked ? '#aaa' : '#444' }]}>
-                      {tier.pointsRequired.toLocaleString()} points
-                    </Text>
-                  </View>
-                  <View style={styles.tierRewardBadge}>
-                    <Text style={[styles.tierRewardText, { color: tier.unlocked ? '#fff' : '#555' }]}>
-                      ${tier.reward.toFixed(2)}
+                    <Text style={s.redeemPoints}>
+                      {tier.pointsRequired.toLocaleString()} Cloudz
                     </Text>
                   </View>
                 </View>
 
+                {/* Mini progress */}
                 {!tier.unlocked && (
-                  <View style={styles.tierLockedBar}>
-                    <Ionicons name="lock-closed" size={14} color="#555" />
-                    <Text style={styles.tierLockedText}>
-                      {tier.pointsNeeded.toLocaleString()} more points needed
+                  <View style={s.redeemProgress}>
+                    <View style={s.redeemProgressTrack}>
+                      <View style={[s.redeemProgressFill, { width: `${pct}%` }]} />
+                    </View>
+                    <Text style={s.redeemProgressText}>
+                      {tier.pointsNeeded.toLocaleString()} more needed
                     </Text>
                   </View>
                 )}
 
-                {tier.unlocked && !hasActiveReward && (
+                {tier.unlocked && !hasActive && (
                   <TouchableOpacity
-                    style={[styles.redeemButton, { backgroundColor: colors.accent }]}
+                    style={s.redeemBtn}
                     onPress={() => handleRedeem(tier)}
                     disabled={isRedeeming}
                     data-testid={`redeem-btn-${tier.id}`}
@@ -233,15 +276,15 @@ export default function Cloudz() {
                     {isRedeeming ? (
                       <ActivityIndicator size="small" color="#000" />
                     ) : (
-                      <Text style={styles.redeemButtonText}>Redeem {tier.name}</Text>
+                      <Text style={s.redeemBtnText}>Redeem</Text>
                     )}
                   </TouchableOpacity>
                 )}
 
-                {tier.unlocked && hasActiveReward && (
-                  <View style={styles.alreadyRedeemedBar}>
+                {tier.unlocked && hasActive && (
+                  <View style={s.redeemActiveBar}>
                     <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
-                    <Text style={styles.alreadyRedeemedText}>Reward active — use at checkout</Text>
+                    <Text style={s.redeemActiveText}>Active — use at checkout</Text>
                   </View>
                 )}
               </View>
@@ -249,281 +292,266 @@ export default function Cloudz() {
           })}
         </View>
 
-        {/* Redemption History */}
-        {history.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>History</Text>
-            {history.map((item) => (
-              <View key={item.id} style={styles.historyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.historyName}>{item.tierName}</Text>
-                  <Text style={styles.historyDate}>
-                    {new Date(item.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <Text style={styles.historyAmount}>-{item.pointsSpent.toLocaleString()} pts</Text>
-                <View style={[styles.historyBadge, { backgroundColor: item.used ? '#333' : theme.colors.success + '22' }]}>
-                  <Text style={[styles.historyBadgeText, { color: item.used ? '#666' : theme.colors.success }]}>
-                    {item.used ? 'Used' : 'Active'}
-                  </Text>
-                </View>
-              </View>
-            ))}
+        {/* ═══ SECTION 3: YOUR ACTIVITY ═══ */}
+        <View style={s.section} data-testid="activity-section">
+          <View style={s.activityHeader}>
+            <View>
+              <Text style={s.sectionTitle}>Your Activity</Text>
+              <Text style={s.sectionSub}>Points earned and redeemed</Text>
+            </View>
+            {ledger.length > 5 && (
+              <TouchableOpacity onPress={() => router.push('/cloudz-history')} data-testid="view-all-activity-btn">
+                <Text style={s.viewAllLink}>View All</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
 
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
-          <Text style={styles.infoText}>
-            Earn 1 Cloudz Point for every $1 spent. Points are awarded when your order is confirmed as paid.
-          </Text>
+          {ledger.length === 0 ? (
+            <View style={s.emptyActivity} data-testid="empty-activity">
+              <Ionicons name="receipt-outline" size={36} color="#333" />
+              <Text style={s.emptyText}>No activity yet</Text>
+              <Text style={s.emptySubtext}>Place an order to start earning Cloudz</Text>
+            </View>
+          ) : (
+            ledger.slice(0, 5).map((entry, idx) => {
+              const isPositive = entry.amount > 0;
+              const icon = TYPE_ICONS[entry.type] || 'ellipse';
+              const label = TYPE_LABELS[entry.type] || entry.type;
+              const date = new Date(entry.createdAt);
+
+              return (
+                <View key={idx} style={s.activityRow} data-testid={`activity-entry-${idx}`}>
+                  <View style={[s.activityIcon, { backgroundColor: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }]}>
+                    <Ionicons name={icon as any} size={16} color={isPositive ? '#22c55e' : '#ef4444'} />
+                  </View>
+                  <View style={s.activityContent}>
+                    <Text style={s.activityLabel}>{label}</Text>
+                    <Text style={s.activityRef} numberOfLines={1}>{entry.reference}</Text>
+                    <Text style={s.activityDate}>
+                      {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                  <View style={s.activityRight}>
+                    <Text style={[s.activityAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]}>
+                      {isPositive ? '+' : ''}{entry.amount.toLocaleString()}
+                    </Text>
+                    <Text style={s.activityBal}>bal {entry.balanceAfter.toLocaleString()}</Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
         </View>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  // Header
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+  backBtn: { width: 40 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  scroll: { flex: 1, padding: 16 },
+
+  // Balance Panel
+  balancePanel: {
+    backgroundColor: '#0f1628',
+    borderRadius: theme.borderRadius.xl,
+    padding: 28,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  backButton: {
-    width: 40,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  balanceCard: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: '#e0e7ff',
-    marginTop: 8,
-  },
-  balanceValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 4,
-  },
-  progressSection: {
-    width: '100%',
-    marginTop: 16,
-  },
-  progressLabel: {
-    fontSize: 12,
-    color: '#e0e7ff',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(46,107,255,0.2)',
     overflow: 'hidden',
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 3,
+  balanceGlow: {
+    position: 'absolute',
+    top: -40,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(46,107,255,0.08)',
   },
-  maxTierText: {
-    fontSize: 14,
-    color: '#e0e7ff',
-    marginTop: 12,
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textMuted,
-    marginBottom: 12,
-  },
-  activeRewardCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.success + '15',
-    borderWidth: 1,
-    borderColor: theme.colors.success + '44',
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    gap: 12,
-    marginBottom: 8,
-  },
-  rewardBadge: {
-    backgroundColor: theme.colors.success,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  rewardBadgeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  rewardName: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  rewardDesc: {
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  tierCard: {
-    borderWidth: 1,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    marginBottom: 12,
-  },
-  tierHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  tierIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
+  balanceIconRow: { marginBottom: 8 },
+  balanceIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fbbf24',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  tierName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  balanceLabel: { fontSize: 13, color: '#8899bb', letterSpacing: 0.5 },
+  balanceValue: { fontSize: 52, fontWeight: '800', color: '#fff', marginTop: 2, letterSpacing: -1 },
+  thresholdRow: { width: '100%', marginTop: 16, alignItems: 'center' },
+  progressTrack: {
+    width: '100%',
+    height: 5,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
   },
-  tierPoints: {
-    fontSize: 13,
-    marginTop: 2,
+  progressFill: { height: '100%', backgroundColor: theme.colors.primary, borderRadius: 3 },
+  thresholdText: { fontSize: 12, color: '#667799' },
+  activeRewardStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'center',
   },
-  tierRewardBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  activeRewardChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(27,196,125,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(27,196,125,0.25)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  activeRewardChipText: { fontSize: 12, fontWeight: '600', color: theme.colors.success },
+
+  // Section base
+  section: { marginBottom: 28 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  sectionSub: { fontSize: 13, color: '#667', marginTop: 2, marginBottom: 14 },
+
+  // Ways to Earn
+  earnGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  earnCard: {
+    width: '31%',
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.md,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+  },
+  earnCardDisabled: { opacity: 0.45 },
+  earnIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  earnIconDisabled: { backgroundColor: '#222' },
+  earnLabel: { fontSize: 11, fontWeight: '600', color: '#ddd', textAlign: 'center' },
+  earnDesc: { fontSize: 9, color: '#777', textAlign: 'center', marginTop: 3 },
+  comingSoonBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  tierRewardText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  comingSoonText: { fontSize: 9, color: '#555' },
+
+  // Ways to Redeem
+  redeemCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
-  tierLockedBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#222',
-  },
-  tierLockedText: {
-    fontSize: 12,
-    color: '#555',
-  },
-  redeemButton: {
-    marginTop: 12,
+  redeemCardUnlocked: { borderColor: 'rgba(46,107,255,0.3)' },
+  redeemTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  redeemRewardBadge: {
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  redeemRewardAmount: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  redeemRewardLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  redeemInfo: { flex: 1 },
+  redeemTierName: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  redeemPoints: { fontSize: 12, color: '#778', marginTop: 2 },
+
+  redeemProgress: { marginTop: 12 },
+  redeemProgressTrack: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  redeemProgressFill: { height: '100%', backgroundColor: theme.colors.primary, borderRadius: 2 },
+  redeemProgressText: { fontSize: 11, color: '#556' },
+
+  redeemBtn: {
+    marginTop: 12,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    paddingVertical: 11,
     alignItems: 'center',
   },
-  redeemButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  alreadyRedeemedBar: {
+  redeemBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  redeemActiveBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: 12,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#222',
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
-  alreadyRedeemedText: {
-    fontSize: 12,
-    color: theme.colors.success,
+  redeemActiveText: { fontSize: 12, color: theme.colors.success },
+
+  // Activity
+  activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  viewAllLink: { fontSize: 13, color: theme.colors.primary, fontWeight: '600' },
+
+  emptyActivity: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.lg,
+    gap: 6,
   },
-  historyRow: {
+  emptyText: { fontSize: 14, fontWeight: '600', color: '#555' },
+  emptySubtext: { fontSize: 12, color: '#444' },
+
+  activityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
-    padding: 14,
-    marginBottom: 8,
-    gap: 12,
-  },
-  historyName: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  historyDate: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  historyAmount: {
-    color: theme.colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  historyBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  historyBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 12,
+    marginBottom: 6,
     gap: 10,
-    alignItems: 'flex-start',
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.textMuted,
-    lineHeight: 18,
+  activityIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  activityContent: { flex: 1 },
+  activityLabel: { fontSize: 13, fontWeight: '600', color: '#ddd' },
+  activityRef: { fontSize: 11, color: '#667', marginTop: 1 },
+  activityDate: { fontSize: 10, color: '#445', marginTop: 2 },
+  activityRight: { alignItems: 'flex-end' },
+  activityAmount: { fontSize: 15, fontWeight: '700' },
+  activityBal: { fontSize: 10, color: '#445', marginTop: 2 },
 });
