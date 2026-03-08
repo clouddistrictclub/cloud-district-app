@@ -1,0 +1,53 @@
+name: Frontend Build Check
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-check:
+    name: Cloud District Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npx expo export --platform web
+
+      - name: Verify required routes exist
+        run: |
+          MISSING=0
+          for FILE in \
+            dist/index.html \
+            dist/admin/orders.html \
+            dist/admin/reviews.html \
+            dist/order-detail.html; do
+            if [ -f "frontend/$FILE" ]; then
+              echo "OK: $FILE"
+            else
+              echo "MISSING: $FILE"
+              MISSING=1
+            fi
+          done
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "Cloud District frontend build FAILED — missing routes"
+            exit 1
+          fi
+
+          echo "Cloud District frontend build verified"
