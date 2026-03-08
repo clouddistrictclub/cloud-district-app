@@ -17,6 +17,9 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Production build output — generated during deployment, never committed
+dist/
+
 # Metro
 .metro-health-check*
 .metro-cache/

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Text } from 'react-native';
 import { theme } from '../../theme';
 
-const BUILD_VERSION = "2026-03-05-2";
+const BUILD_VERSION = process.env.EXPO_PUBLIC_BUILD_VERSION ?? "2026-03-05-2";
 
 export default function AdminLayout() {
   return (
