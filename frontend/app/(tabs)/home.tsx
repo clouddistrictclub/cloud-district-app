@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, useWindowDimensions, Platform, Modal, Animated, Pressable, Dimensions } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -29,6 +30,7 @@ const desktopHeroAsset = require('../../assets/images/heroes/CloudDistrict_Hero_
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
+  const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const [products, setProducts] = useState<Product[]>([]);
@@ -79,6 +81,35 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <AppHeader />
+      {/* Side Drawer */}
+      {drawerOpen && (
+        <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
+          <Pressable style={styles.drawerOverlay} onPress={closeDrawer}>
+            <Animated.View style={[styles.drawerPanel, { left: slideAnim }]}>
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                <View style={styles.drawerHeader}>
+                  <Image source={require('../../assets/images/icon.png')} style={styles.drawerLogo} resizeMode="contain" />
+                  <Text style={styles.drawerTitle}>Cloud District</Text>
+                </View>
+                <View style={styles.drawerDivider} />
+                {[
+                  { icon: 'person' as const, label: 'Profile', path: '/profile' },
+                  { icon: 'star' as const, label: 'Cloudz Points', path: '/cloudz' },
+                  { icon: 'receipt' as const, label: 'Orders', path: '/orders' },
+                  { icon: 'chatbubble-ellipses' as const, label: 'Support', path: '/support' },
+                  ...(user?.isAdmin ? [{ icon: 'shield' as const, label: 'Admin', path: '/admin/orders' }] : []),
+                ].map((item) => (
+                  <TouchableOpacity key={item.path} style={styles.drawerItem} onPress={() => navigateFromDrawer(item.path)}>
+                    <Ionicons name={item.icon} size={20} color="#aaa" />
+                    <Text style={styles.drawerItemText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Modal>
+      )}
+
       {/* Side Drawer */}
       {drawerOpen && (
         <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
@@ -191,6 +222,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0c0c0c',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    paddingTop: Platform.OS === 'web' ? 'max(12px, env(safe-area-inset-top))' as any : 8,
+  },
+  headerIcon: {
+    height: 36,
+    width: 36,
+    borderRadius: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loyaltyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#151515',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4,
+  },
+  loyaltyPoints: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cartButton: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#2E6BFF',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,

@@ -2,6 +2,8 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import ProductCard from '../../components/ProductCard';
 import AppHeader from '../../components/AppHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ProductCard from '../../components/ProductCard';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
