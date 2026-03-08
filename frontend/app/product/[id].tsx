@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import AppHeader from '../../components/AppHeader';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -95,14 +96,11 @@ export default function ProductDetail() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/cart')}>
-          <Ionicons name="cart" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <AppHeader />
+      <TouchableOpacity onPress={() => router.back()} style={styles.backRow}>
+        <Ionicons name="arrow-back" size={20} color="#fff" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView style={styles.content}>
         {product.image && (
@@ -184,14 +182,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0c0c0c',
   },
-  header: {
+  backRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  backButton: {
-    padding: 4,
+  backText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   loadingText: {
     fontSize: 16,

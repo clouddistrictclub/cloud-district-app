@@ -1,4 +1,5 @@
 # Cloud District Club - Product Requirements Document
+_Last updated: 2026-03-08_
 
 ## Original Problem Statement
 Mobile app for local pickup of disposable vape products, 21+ age gate.
@@ -79,6 +80,13 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 ## Pending
 - Emergent frontend deployment (user clicks Deploy)
 - Custom domain DNS for clouddistrict.club
+
+## Parity Fixes Applied (2026-03-08)
+- `checkout.tsx`: Removed Venmo from paymentMethods (now: Cash on Pickup, Zelle, Cash App, Chime)
+- `product/[id].tsx`: Restored AppHeader + back row header — fixes cart badge bug on product screen
+  - Staging used AppHeader (with Cloudz balance + cart count badge) + TouchableOpacity backRow
+  - Previous code had a custom header with NO badge
+  - Both fixes verified with screenshots, DOM checks, and staging bundle comparison
 
 ## Future (P2+)
 - Backend monolith refactor
