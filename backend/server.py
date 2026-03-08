@@ -2011,6 +2011,11 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
     except WebSocketDisconnect:
         chat_manager.disconnect(chat_id, websocket)
 
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    """Bare /health for Railway and other load-balancer health checks."""
+    return {"status": "ok"}
+
 @app.get("/", include_in_schema=False)
 async def serve_index():
     """Serve the Expo web build at root."""
