@@ -85,9 +85,9 @@ export default function AdminCloudzLedger() {
         </View>
         <View style={styles.rowRight}>
           <Text style={[styles.rowAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]} data-testid="admin-ledger-amount">
-            {isPositive ? '+' : ''}{item.amount.toLocaleString()}
+            {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
           </Text>
-          <Text style={styles.rowBalance}>Bal: {item.balanceAfter.toLocaleString()}</Text>
+          <Text style={styles.rowBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
           <Text style={styles.rowDate}>
             {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </Text>

@@ -7,12 +7,16 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 interface Product {
   id: string;
   name: string;
-  brand: string;
+  model?: string;
+  brand?: string;
+  brandName?: string;
   image: string;
   puffCount: number;
   flavor: string;
   price: number;
   stock: number;
+  cloudzReward?: number;
+  loyaltyEarnRate?: number;
 }
 
 const resolveImageUri = (image: string | null | undefined) => {
@@ -24,6 +28,9 @@ const resolveImageUri = (image: string | null | undefined) => {
 const ProductCard = memo(({ product }: { product: Product }) => {
   const router = useRouter();
   const imageUri = resolveImageUri(product.image);
+  const displayBrand = product.brandName || product.brand || '';
+  const cloudzReward = product.cloudzReward ?? Math.round(product.price * (product.loyaltyEarnRate ?? 3));
+  const isLowStock = product.stock > 0 && product.stock <= 3;
 
   return (
     <TouchableOpacity
@@ -55,16 +62,19 @@ const ProductCard = memo(({ product }: { product: Product }) => {
             <Text style={styles.outOfStockText}>Sold Out</Text>
           </View>
         )}
+        {isLowStock && (
+          <View style={styles.lowStockBadge} data-testid={`low-stock-${product.id}`}>
+            <Text style={styles.lowStockText}>Low Stock</Text>
+          </View>
+        )}
       </View>
       <View style={styles.info}>
-        <Text style={styles.brand}>{product.brand}</Text>
-        <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
+        <Text style={styles.brand} data-testid={`product-brand-${product.id}`}>{displayBrand}</Text>
+        <Text style={styles.name} numberOfLines={1}>{product.model || product.name}</Text>
         <Text style={styles.flavor} numberOfLines={1}>{product.flavor}</Text>
         <View style={styles.footer}>
           <Text style={styles.price} data-testid={`product-price-${product.id}`}>${product.price.toFixed(2)}</Text>
-          <View style={styles.puffPill}>
-            <Text style={styles.puffText}>{product.puffCount.toLocaleString()} puffs</Text>
-          </View>
+          <Text style={styles.cloudz} data-testid={`product-cloudz-${product.id}`}>Earn {cloudzReward} Cloudz</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -160,5 +170,26 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#888',
     fontWeight: '600',
+  },
+  cloudz: {
+    fontSize: 11,
+    color: '#F4C430',
+    fontWeight: '700',
+  },
+  lowStockBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(234,179,8,0.9)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  lowStockText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });
