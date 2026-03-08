@@ -17,6 +17,13 @@ export default function AdminLayout() {
       }}
     >
       <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
@@ -58,8 +65,14 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="reviews"
+        options={{
+          title: 'Reviews',
+          tabBarIcon: ({ color, size }) => <Ionicons name="star" size={size} color={color} />,
+        }}
+      />
       <Tabs.Screen name="user-profile" options={{ href: null }} />
-      <Tabs.Screen name="reviews" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -180,13 +180,24 @@ export default function AdminDashboard() {
                 ))}
               </View>
 
-              <TouchableOpacity 
-                style={styles.updateButton}
-                onPress={() => showStatusOptions(order)}
-              >
-                <Ionicons name="create" size={16} color="#6366f1" />
-                <Text style={styles.updateButtonText}>Update Status</Text>
-              </TouchableOpacity>
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.editBtn]}
+                  onPress={() => router.push(`/admin/user-profile?orderId=${order.id}`)}
+                  data-testid={`edit-order-${order.id}`}
+                >
+                  <Ionicons name="create-outline" size={15} color="#fbbf24" />
+                  <Text style={[styles.actionBtnText, { color: '#fbbf24' }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.updateButton]}
+                  onPress={() => showStatusOptions(order)}
+                  data-testid={`update-status-${order.id}`}
+                >
+                  <Ionicons name="swap-horizontal" size={15} color="#6366f1" />
+                  <Text style={styles.updateButtonText}>Status</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
@@ -310,16 +321,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#0c0c0c',
-    padding: 12,
-    borderRadius: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#6366f1',
+    flex: 1,
   },
   updateButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6366f1',
     fontWeight: '600',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#0c0c0c',
+  },
+  editBtn: {
+    borderColor: '#fbbf24',
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
