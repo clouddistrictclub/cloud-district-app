@@ -1,10 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import { crossAlert } from '../utils/crossAlert';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const resolveImageUri = (image: string | undefined | null) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
