@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import GlobalDrawer from '../components/GlobalDrawer';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -41,6 +42,7 @@ export default function RootLayout() {
           headerShown: false
         }}
       />
+      <GlobalDrawer />
     </SafeAreaProvider>
   );
 }

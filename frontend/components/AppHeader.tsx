@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
+import { useDrawerStore } from '../store/drawerStore';
 
 export default function AppHeader() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore(state => state.user);
   const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
+  const openDrawer = useDrawerStore(state => state.open);
 
   const paddingTop = Platform.OS === 'web'
     ? ('max(12px, env(safe-area-inset-top))' as any)
@@ -17,7 +19,7 @@ export default function AppHeader() {
 
   return (
     <View style={[styles.header, { paddingTop }]} data-testid="app-header">
-      <TouchableOpacity onPress={() => router.push('/cloudz')} data-testid="header-icon-btn" activeOpacity={0.7}>
+      <TouchableOpacity onPress={openDrawer} data-testid="header-icon-btn" activeOpacity={0.7}>
         <Image
           source={require('../assets/images/icon.png')}
           style={styles.headerIcon}

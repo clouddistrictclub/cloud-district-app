@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshCon
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { useDrawerStore } from '../../store/drawerStore';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/ProductCard';
 import HeroBanner from '../../components/HeroBanner';
@@ -61,52 +62,30 @@ export default function Home() {
     loadProducts();
   };
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isOpen: drawerOpen, close: closeDrawerStore } = useDrawerStore();
   const slideAnim = useRef(new Animated.Value(-280)).current;
 
-  const openDrawer = () => {
-    setDrawerOpen(true);
-    Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
-  };
+  useEffect(() => {
+    if (drawerOpen) {
+      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
+    }
+  }, [drawerOpen]);
+
   const closeDrawer = () => {
-    Animated.timing(slideAnim, { toValue: -280, duration: 200, useNativeDriver: false }).start(() => setDrawerOpen(false));
+    Animated.timing(slideAnim, { toValue: -280, duration: 200, useNativeDriver: false }).start(() => closeDrawerStore());
   };
   const navigateFromDrawer = (path: string) => {
     closeDrawer();
     setTimeout(() => router.push(path as any), 220);
   };
 
+  // Drawer is now rendered globally via GlobalDrawer in _layout.tsx
+  // The drawerOpen state and animation are kept for home-page legacy nav compatibility
+
   return (
     <View style={styles.container}>
       <AppHeader />
-      {/* Side Drawer */}
-      {drawerOpen && (
-        <Modal transparent visible animationType="none" onRequestClose={closeDrawer}>
-          <Pressable style={styles.drawerOverlay} onPress={closeDrawer}>
-            <Animated.View style={[styles.drawerPanel, { left: slideAnim }]}>
-              <Pressable onPress={(e) => e.stopPropagation()}>
-                <View style={styles.drawerHeader}>
-                  <Image source={require('../../assets/images/icon.png')} style={styles.drawerLogo} resizeMode="contain" />
-                  <Text style={styles.drawerTitle}>Cloud District</Text>
-                </View>
-                <View style={styles.drawerDivider} />
-                {[
-                  { icon: 'person' as const, label: 'Profile', path: '/profile' },
-                  { icon: 'star' as const, label: 'Cloudz Points', path: '/cloudz' },
-                  { icon: 'receipt' as const, label: 'Orders', path: '/orders' },
-                  { icon: 'chatbubble-ellipses' as const, label: 'Support', path: '/support' },
-                  ...(user?.isAdmin ? [{ icon: 'shield' as const, label: 'Admin', path: '/admin/orders' }] : []),
-                ].map((item) => (
-                  <TouchableOpacity key={item.path} style={styles.drawerItem} onPress={() => navigateFromDrawer(item.path)}>
-                    <Ionicons name={item.icon} size={20} color="#aaa" />
-                    <Text style={styles.drawerItemText}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </Pressable>
-            </Animated.View>
-          </Pressable>
-        </Modal>
-      )}
+      {/* Drawer is rendered globally via GlobalDrawer in _layout.tsx */}
 
       <ScrollView 
         style={styles.content}
