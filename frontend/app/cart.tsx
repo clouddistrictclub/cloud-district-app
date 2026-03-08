@@ -4,6 +4,15 @@ import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
+import { crossAlert } from '../utils/crossAlert';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const resolveImageUri = (image: string | undefined | null) => {
+  if (!image) return '';
+  if (image.startsWith('/')) return `${API_URL}${image}`;
+  return image;
+};
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -32,14 +41,14 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (items.length === 0) {
-      Alert.alert('Cart Empty', 'Please add items to your cart first');
+      crossAlert('Cart Empty', 'Please add items to your cart first');
       return;
     }
     router.push('/checkout');
   };
 
   const handleRemoveItem = (productId: string, productName: string) => {
-    Alert.alert(
+    crossAlert(
       'Remove Item',
       `Remove ${productName} from cart?`,
       [
@@ -58,7 +67,7 @@ export default function Cart() {
         <Text style={styles.title}>Cart</Text>
         {items.length > 0 && (
           <TouchableOpacity onPress={() => {
-            Alert.alert(
+            crossAlert(
               'Clear Cart',
               'Remove all items from cart?',
               [

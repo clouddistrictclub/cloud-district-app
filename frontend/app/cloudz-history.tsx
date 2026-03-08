@@ -22,6 +22,7 @@ interface LedgerEntry {
 const TYPE_LABELS: Record<string, string> = {
   purchase_reward: 'Purchase Reward',
   referral_bonus: 'Referral Bonus',
+  referral_reward: 'Referral Reward',
   tier_redemption: 'Tier Redemption',
   admin_adjustment: 'Admin Adjustment',
 };
@@ -29,6 +30,7 @@ const TYPE_LABELS: Record<string, string> = {
 const TYPE_ICONS: Record<string, string> = {
   purchase_reward: 'cart',
   referral_bonus: 'people',
+  referral_reward: 'people',
   tier_redemption: 'diamond',
   admin_adjustment: 'shield',
 };
@@ -45,7 +47,7 @@ export default function CloudzHistory() {
         const res = await axios.get(`${API_URL}/api/loyalty/ledger`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setEntries(res.data);
+        setEntries(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         console.error('Failed to load ledger:', e);
       } finally {
@@ -74,9 +76,9 @@ export default function CloudzHistory() {
         </View>
         <View style={styles.rowRight}>
           <Text style={[styles.rowAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]} data-testid="ledger-amount">
-            {isPositive ? '+' : ''}{item.amount.toLocaleString()}
+            {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
           </Text>
-          <Text style={styles.rowBalance}>Bal: {item.balanceAfter.toLocaleString()}</Text>
+          <Text style={styles.rowBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
         </View>
       </View>
     );

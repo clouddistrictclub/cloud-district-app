@@ -41,20 +41,7 @@ export default function PaymentInstructions() {
   };
 
   const handleContactSupport = () => {
-    Alert.alert(
-      'Need Help?',
-      'Contact us for payment assistance',
-      [
-        {
-          text: 'Call/Text',
-          onPress: () => Linking.openURL('sms:6083017091')
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        }
-      ]
-    );
+    router.push('/support-chat');
   };
 
   const paymentInfo: any = {
@@ -83,7 +70,7 @@ export default function PaymentInstructions() {
         'Verify order number in note',
         'Complete payment'
       ],
-      deepLink: `venmo://paycharge?txn=pay&recipients=CloudDistrictClub&amount=${amountStr}&note=Order%20%23${shortOrderId}`,
+      deepLink: `https://venmo.com/CloudDistrictClub?txn=pay&amount=${amountStr}&note=Order%20%23${shortOrderId}`,
       canDeepLink: true,
     },
     cashapp: {
@@ -97,7 +84,7 @@ export default function PaymentInstructions() {
         'Add this to note: Order #' + shortOrderId,
         'Complete payment'
       ],
-      deepLink: `https://cash.app/$CloudDistrictClub/${amountStr}`,
+      deepLink: `https://cash.app/$CloudDistrictClub/${amountStr}?note=Order%20%23${shortOrderId}`,
       canDeepLink: true,
     },
     chime: {
