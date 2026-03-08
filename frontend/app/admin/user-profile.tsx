@@ -1,0 +1,365 @@
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { getLedgerLabel, getLedgerDescription } from '../../constants/ledger';
+import { useToast } from '../../components/Toast';
+import axios from 'axios';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const statusColors: Record<string, string> = {
+  'Pending Payment': '#fbbf24',
+  'Paid': '#3b82f6',
+  'Ready for Pickup': '#10b981',
+  'Completed': '#6b7280',
+  'Cancelled': '#ef4444',
+};
+
+export default function AdminUserProfile() {
+  const router = useRouter();
+  const { userId } = useLocalSearchParams();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'orders' | 'reviews' | 'referral' | 'ledger'>('orders');
+  const [ledger, setLedger] = useState<any[]>([]);
+  const [ledgerLoaded, setLedgerLoaded] = useState(false);
+  const [referrerInput, setReferrerInput] = useState('');
+  const [assigningReferrer, setAssigningReferrer] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustDesc, setAdjustDesc] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (userId) loadProfile();
+  }, [userId]);
+
+  const loadProfile = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/admin/users/${userId}/profile`);
+      setProfile(res.data);
+    } catch (e) {
+      console.error('Failed to load user profile', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadLedger = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/admin/users/${userId}/cloudz-ledger`);
+      setLedger(res.data);
+      setLedgerLoaded(true);
+    } catch { toast.show('Failed to load ledger', 'error'); }
+  };
+
+  const assignReferrer = async () => {
+    const val = referrerInput.trim() || null;
+    setAssigningReferrer(true);
+    try {
+      const res = await axios.patch(`${API_URL}/api/admin/users/${userId}/referrer`, { referrerIdentifier: val });
+      toast.show(res.data.warning || 'Referrer updated');
+      setProfile((prev: any) => prev ? { ...prev, user: { ...prev.user, referredByUserId: val } } : prev);
+      setReferrerInput('');
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to update referrer', 'error');
+    } finally {
+      setAssigningReferrer(false); }
+  };
+
+  const adjustCloudz = async () => {
+    const amt = parseInt(adjustAmount);
+    if (!adjustDesc.trim() || isNaN(amt)) { toast.show('Enter amount and description', 'error'); return; }
+    setAdjusting(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/users/${userId}/cloudz-adjust`, { amount: amt, description: adjustDesc });
+      toast.show(`Balance updated: ${res.data.newBalance} Cloudz`);
+      setAdjustAmount(''); setAdjustDesc('');
+      setProfile((prev: any) => prev ? { ...prev, user: { ...prev.user, loyaltyPoints: res.data.newBalance } } : prev);
+      if (ledgerLoaded) loadLedger();
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to adjust', 'error');
+    } finally { setAdjusting(false); }
+  };
+
+  const renderStars = (rating: number) => (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map(s => (
+        <Ionicons key={s} name={s <= rating ? 'star' : 'star-outline'} size={12} color="#fbbf24" />
+      ))}
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top']}>
+        <View style={styles.centered}><Text style={styles.loadingText}>Loading...</Text></View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top']}>
+        <View style={styles.centered}><Text style={styles.loadingText}>User not found</Text></View>
+      </SafeAreaView>
+    );
+  }
+
+  const { user, orders, totalSpent, reviews } = profile;
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }} edges={['top']}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Customer Profile</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* User Card */}
+          <View style={styles.userCard}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {(user.firstName?.[0] || '') + (user.lastName?.[0] || '') || '?'}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
+              <Text style={styles.userEmail}>{user.email}</Text>
+              {user.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
+              <Text style={styles.userId}>ID: {userId}</Text>
+            </View>
+          </View>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{orders.length}</Text>
+              <Text style={styles.statLabel}>Orders</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>${totalSpent.toFixed(2)}</Text>
+              <Text style={styles.statLabel}>Total Spent</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{(user.loyaltyPoints || 0).toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Cloudz</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{reviews.length}</Text>
+              <Text style={styles.statLabel}>Reviews</Text>
+            </View>
+          </View>
+
+          {/* Tabs */}
+          <View style={styles.tabRow}>
+            {(['orders', 'reviews', 'referral', 'ledger'] as const).map((t) => (
+              <TouchableOpacity
+                key={t}
+                style={[styles.tab, tab === t && styles.tabActive]}
+                onPress={() => { setTab(t); if (t === 'ledger' && !ledgerLoaded) loadLedger(); }}
+              >
+                <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+                  {t === 'orders' ? 'Orders' : t === 'reviews' ? 'Reviews' : t === 'referral' ? 'Referral' : 'Ledger'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {tab === 'orders' ? (
+            orders.length === 0 ? (
+              <Text style={styles.emptyText}>No orders yet</Text>
+            ) : (
+              orders.map((order: any) => (
+                <View key={order.id} style={styles.orderCard}>
+                  <View style={styles.orderRow}>
+                    <Text style={styles.orderId}>#{order.id.slice(-8)}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColors[order.status] || '#999' }]}>
+                      <Text style={styles.statusText}>{order.status}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.orderRow}>
+                    <Text style={styles.orderMeta}>
+                      {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                    <Text style={styles.orderTotal}>${order.total?.toFixed(2)}</Text>
+                  </View>
+                  <Text style={styles.orderItems}>
+                    {order.items?.map((it: any) => `${it.quantity}x ${it.name}`).join(', ')}
+                  </Text>
+                </View>
+              ))
+            )
+          ) : tab === 'reviews' ? (
+            reviews.length === 0 ? (
+              <Text style={styles.emptyText}>No reviews written</Text>
+            ) : (
+              reviews.map((rev: any) => (
+                <View key={rev.id} style={styles.reviewCard}>
+                  <View style={styles.orderRow}>
+                    {renderStars(rev.rating)}
+                    <Text style={styles.reviewDate}>
+                      {new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  {rev.comment ? <Text style={styles.reviewComment}>{rev.comment}</Text> : null}
+                </View>
+              ))
+            )
+          ) : tab === 'referral' ? (
+            <View>
+              <View style={adminProfileStyles.infoCard}>
+                <InfoRow label="Username" value={user.username ? `@${user.username}` : '—'} />
+                <InfoRow label="Referral Code" value={user.referralCode || '—'} />
+                <InfoRow label="Referred By" value={
+                  user.referredByUser
+                    ? (user.referredByUser.username ? `@${user.referredByUser.username}` : user.referredByUser.email || user.referredByUserId || 'None')
+                    : (user.referredByUserId || 'None')
+                } />
+              </View>
+              <View style={adminProfileStyles.infoCard}>
+                <Text style={adminProfileStyles.cardTitle}>Assign / Change Referrer</Text>
+                <TextInput
+                  style={adminProfileStyles.inputField}
+                  value={referrerInput}
+                  onChangeText={setReferrerInput}
+                  placeholder="Username, referral code, email or user ID"
+                  placeholderTextColor="#555"
+                  data-testid="referrer-input"
+                />
+                <TouchableOpacity
+                  style={[adminProfileStyles.actionBtn, assigningReferrer && { opacity: 0.5 }]}
+                  onPress={assignReferrer}
+                  disabled={assigningReferrer}
+                  data-testid="assign-referrer-btn"
+                >
+                  <Text style={adminProfileStyles.actionBtnText}>
+                    {assigningReferrer ? 'Saving...' : referrerInput.trim() ? 'Assign Referrer' : 'Remove Referrer'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View>
+              <View style={adminProfileStyles.infoCard}>
+                <Text style={adminProfileStyles.cardTitle}>Adjust Cloudz Balance</Text>
+                <Text style={adminProfileStyles.currentBalance}>Current: {(user.loyaltyPoints || 0).toLocaleString()} Cloudz</Text>
+                <TextInput
+                  style={adminProfileStyles.inputField}
+                  value={adjustAmount}
+                  onChangeText={setAdjustAmount}
+                  placeholder="Amount (e.g. 100 or -50)"
+                  placeholderTextColor="#555"
+                  keyboardType="numbers-and-punctuation"
+                  data-testid="cloudz-adjust-amount"
+                />
+                <TextInput
+                  style={adminProfileStyles.inputField}
+                  value={adjustDesc}
+                  onChangeText={setAdjustDesc}
+                  placeholder="Description / reason"
+                  placeholderTextColor="#555"
+                  data-testid="cloudz-adjust-desc"
+                />
+                <TouchableOpacity
+                  style={[adminProfileStyles.actionBtn, adjusting && { opacity: 0.5 }]}
+                  onPress={adjustCloudz}
+                  disabled={adjusting}
+                  data-testid="cloudz-adjust-btn"
+                >
+                  <Text style={adminProfileStyles.actionBtnText}>{adjusting ? 'Saving...' : 'Apply Adjustment'}</Text>
+                </TouchableOpacity>
+              </View>
+              {ledger.length === 0 ? (
+                <Text style={styles.emptyText}>No ledger entries</Text>
+              ) : (
+                ledger.map((entry: any, i: number) => (
+                  <View key={i} style={adminProfileStyles.ledgerRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={adminProfileStyles.ledgerDesc} numberOfLines={2}>{getLedgerDescription(entry)}</Text>
+                      <Text style={adminProfileStyles.ledgerType}>{getLedgerLabel(entry.type)}</Text>
+                      <Text style={adminProfileStyles.ledgerDate}>{new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
+                    </View>
+                    <Text style={[adminProfileStyles.ledgerAmount, entry.amount >= 0 ? adminProfileStyles.ledgerPos : adminProfileStyles.ledgerNeg]}>
+                      {entry.amount >= 0 ? '+' : ''}{entry.amount}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0c0c0c' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { color: '#999', fontSize: 16 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  content: { flex: 1, padding: 16 },
+  userCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#1a1a1a', borderRadius: 16, padding: 16, marginBottom: 14 },
+  avatarCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  userName: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  userEmail: { fontSize: 13, color: '#999', marginTop: 2 },
+  userPhone: { fontSize: 12, color: '#666', marginTop: 1 },
+  userId: { fontSize: 10, color: '#444', marginTop: 4 },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  statCard: { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 12, padding: 12, alignItems: 'center' },
+  statValue: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  statLabel: { fontSize: 10, color: '#666', textAlign: 'center' },
+  tabRow: { flexDirection: 'row', backgroundColor: '#1a1a1a', borderRadius: 12, padding: 4, marginBottom: 14 },
+  tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 10 },
+  tabActive: { backgroundColor: '#6366f1' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  tabTextActive: { color: '#fff' },
+  emptyText: { fontSize: 14, color: '#555', textAlign: 'center', paddingVertical: 24 },
+  orderCard: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 14, marginBottom: 8 },
+  orderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  orderId: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  statusText: { fontSize: 10, fontWeight: '700', color: '#000' },
+  orderMeta: { fontSize: 12, color: '#666' },
+  orderTotal: { fontSize: 14, fontWeight: '700', color: '#10b981' },
+  orderItems: { fontSize: 12, color: '#555', marginTop: 4 },
+  reviewCard: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 14, marginBottom: 8 },
+  reviewComment: { fontSize: 13, color: '#ccc', lineHeight: 19, marginTop: 6 },
+  reviewDate: { fontSize: 11, color: '#444' },
+});
+
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#222' }}>
+      <Text style={{ fontSize: 12, color: '#666' }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: '#fff', fontWeight: '600', maxWidth: '60%', textAlign: 'right' }} selectable>{value}</Text>
+    </View>
+  );
+}
+
+const adminProfileStyles = StyleSheet.create({
+  infoCard: { backgroundColor: '#1a1a1a', borderRadius: 14, padding: 14, marginBottom: 12 },
+  cardTitle: { fontSize: 13, fontWeight: '800', color: '#fff', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  currentBalance: { fontSize: 12, color: '#10b981', marginBottom: 10, fontWeight: '700' },
+  inputField: { backgroundColor: '#0c0c0c', borderRadius: 10, padding: 11, color: '#fff', fontSize: 13, borderWidth: 1, borderColor: '#333', marginBottom: 8 },
+  actionBtn: { backgroundColor: '#6366f1', borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
+  actionBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  ledgerRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, marginBottom: 6 },
+  ledgerDesc: { fontSize: 13, color: '#ccc' },
+  ledgerType: { fontSize: 10, color: '#888', marginTop: 2 },
+  ledgerDate: { fontSize: 11, color: '#444', marginTop: 2 },
+  ledgerAmount: { fontSize: 16, fontWeight: '800', minWidth: 50, textAlign: 'right' },
+  ledgerPos: { color: '#10b981' },
+  ledgerNeg: { color: '#ef4444' },
+});
