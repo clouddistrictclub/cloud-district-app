@@ -1,16 +1,22 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 
 export default function AppHeader() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore(state => state.user);
   const itemCount = useCartStore(state => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
+  const paddingTop = Platform.OS === 'web'
+    ? ('max(12px, env(safe-area-inset-top))' as any)
+    : Math.max(insets.top, 8);
+
   return (
-    <View style={styles.header} data-testid="app-header">
+    <View style={[styles.header, { paddingTop }]} data-testid="app-header">
       <TouchableOpacity onPress={() => router.push('/cloudz')} data-testid="header-icon-btn" activeOpacity={0.7}>
         <Image
           source={require('../assets/images/icon.png')}
@@ -43,7 +49,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 8,
-    paddingTop: Platform.OS === 'web' ? 'max(12px, env(safe-area-inset-top))' as any : 8,
     backgroundColor: '#0C0C0C',
   },
   headerIcon: {

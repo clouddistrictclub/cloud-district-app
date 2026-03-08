@@ -81,9 +81,9 @@ export default function Cloudz() {
         axios.get(`${API_URL}/api/loyalty/rewards`, authHeaders),
         axios.get(`${API_URL}/api/loyalty/ledger`, authHeaders),
       ]);
-      setTiers(tiersRes.data.tiers);
-      setRewards(rewardsRes.data);
-      setLedger(ledgerRes.data);
+      setTiers(Array.isArray(tiersRes.data?.tiers) ? tiersRes.data.tiers : []);
+      setRewards(Array.isArray(rewardsRes.data) ? rewardsRes.data : []);
+      setLedger(Array.isArray(ledgerRes.data) ? ledgerRes.data : []);
     } catch (error) {
       console.error('Failed to load loyalty data:', error);
     } finally {
@@ -333,9 +333,9 @@ export default function Cloudz() {
                   </View>
                   <View style={s.activityRight}>
                     <Text style={[s.activityAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]}>
-                      {isPositive ? '+' : ''}{entry.amount.toLocaleString()}
+                      {isPositive ? '+' : ''}{(entry.amount ?? 0).toLocaleString()}
                     </Text>
-                    <Text style={s.activityBal}>bal {entry.balanceAfter.toLocaleString()}</Text>
+                    <Text style={s.activityBal}>bal {(entry.balanceAfter ?? 0).toLocaleString()}</Text>
                   </View>
                 </View>
               );

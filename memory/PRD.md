@@ -70,6 +70,8 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 - **Cloudz earn rate 3x** (backend verified: $20 → 60 pts)
 - **Persistent AppHeader across all tabs**
 - Production deployment prep (Emergent + Railway fallback)
+- **SafeArea Fix** (Mar 2026): AppHeader now uses `useSafeAreaInsets()` hook — fixes iPhone Dynamic Island/status bar overlap on iOS native. Web still uses `env(safe-area-inset-top)`.
+- **Cloudz History Crash Fix** (Mar 2026): Fixed `undefined.toLocaleString()` crash on cloudz-history.tsx — added `?? 0` guard for `item.amount` and `item.balanceAfter`. Added `Array.isArray()` guard on API response in both cloudz.tsx and cloudz-history.tsx. Also added missing `referral_reward` type to TYPE_LABELS/TYPE_ICONS.
 
 ## Credentials
 - Admin: jkaatz@gmail.com / Just1n23$
