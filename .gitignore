@@ -27,8 +27,6 @@ next-env.d.ts
 
 # Production builds
 /build
-dist/
-dist
 
 # Credentials (not .env files — those are managed by deployment)
 *token.json*
