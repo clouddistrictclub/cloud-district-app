@@ -1,0 +1,21 @@
+name: Backend Health Check
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: Cloud District Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check backend health
+        run: |
+          if curl -fsS https://vape-shop-staging.emergent.host/health > /dev/null 2>&1; then
+            echo "Cloud District backend healthy"
+          else
+            echo "Cloud District backend DOWN"
+            exit 1
+          fi
