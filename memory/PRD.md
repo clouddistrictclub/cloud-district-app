@@ -1,5 +1,5 @@
 # Cloud District Club - Product Requirements Document
-_Last updated: 2026-03-08_
+_Last updated: 2026-03-09_
 
 ## Original Problem Statement
 Mobile app for local pickup of disposable vape products, 21+ age gate.
@@ -71,22 +71,18 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 - **Cloudz earn rate 3x** (backend verified: $20 → 60 pts)
 - **Persistent AppHeader across all tabs**
 - Production deployment prep (Emergent + Railway fallback)
-- **SafeArea Fix** (Mar 2026): AppHeader now uses `useSafeAreaInsets()` hook — fixes iPhone Dynamic Island/status bar overlap on iOS native. Web still uses `env(safe-area-inset-top)`.
-- **Cloudz History Crash Fix** (Mar 2026): Fixed `undefined.toLocaleString()` crash on cloudz-history.tsx — added `?? 0` guard for `item.amount` and `item.balanceAfter`. Added `Array.isArray()` guard on API response in both cloudz.tsx and cloudz-history.tsx. Also added missing `referral_reward` type to TYPE_LABELS/TYPE_ICONS.
-
-## Credentials
-- Admin: jkaatz@gmail.com / Just1n23$
-
-## Pending
-- Emergent frontend deployment (user clicks Deploy)
-- Custom domain DNS for clouddistrict.club
-
-## Parity Fixes Applied (2026-03-08)
-- `checkout.tsx`: Removed Venmo from paymentMethods (now: Cash on Pickup, Zelle, Cash App, Chime)
-- `product/[id].tsx`: Restored AppHeader + back row header — fixes cart badge bug on product screen
-  - Staging used AppHeader (with Cloudz balance + cart count badge) + TouchableOpacity backRow
-  - Previous code had a custom header with NO badge
-  - Both fixes verified with screenshots, DOM checks, and staging bundle comparison
+- **SafeArea Fix** (Mar 2026): AppHeader now uses `useSafeAreaInsets()` hook
+- **Cloudz History Crash Fix** (Mar 2026): Fixed `undefined.toLocaleString()` crash
+- **Parity Fixes** (2026-03-08): Removed Venmo, restored AppHeader on product page
+- **Admin Password Management** (2026-03-09):
+  - `POST /api/admin/users/{user_id}/set-password` — hash + update password (min 8 chars, admin-only)
+  - `POST /api/admin/users/{user_id}/force-logout` — stores `forceLogoutAt` timestamp to invalidate sessions
+  - `isDisabled` check in `/auth/login` — disabled accounts get 403
+  - `isDisabled` + `forceLogoutAt` check in `get_current_user` — auto-blocks disabled/force-logged-out users
+  - Admin user profile page: ADMIN ACTIONS section with Reset Password / Disable Account / Force Logout
+  - Reset Password modal with validation (min 8 chars, confirm match)
+  - Users list: "Profile" button navigates to user detail page
+  - Auth race condition fix: `users.tsx` and `user-profile.tsx` now wait for token before calling admin APIs
 
 ## Future (P2+)
 - Backend monolith refactor

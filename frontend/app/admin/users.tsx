@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useAuthStore } from '../../store/authStore';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -22,6 +23,7 @@ interface User {
 
 export default function UsersManagement() {
   const router = useRouter();
+  const token = useAuthStore(state => state.token);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,8 +41,8 @@ export default function UsersManagement() {
   });
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (token) loadUsers();
+  }, [token]);
 
   const loadUsers = async () => {
     try {
@@ -173,6 +175,11 @@ export default function UsersManagement() {
               </View>
 
               <View style={styles.userActions}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push(`/admin/user-profile?userId=${user.id}` as any)} data-testid={`view-profile-btn-${user.id}`}>
+                  <Ionicons name="person-circle-outline" size={18} color="#10b981" />
+                  <Text style={[styles.actionButtonText, { color: '#10b981' }]}>Profile</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.actionButton} onPress={() => openEditModal(user)}>
                   <Ionicons name="pencil" size={18} color="#6366f1" />
                   <Text style={styles.actionButtonText}>Edit</Text>

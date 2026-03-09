@@ -5,7 +5,7 @@ The user wants to build a mobile-first web app called Cloud District Club for th
 *   **Age Verification:** Mandatory 21+ age gate.
 *   **Design:** Dark, premium, fast, simple UI.
 *   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
-*   **Product Catalog:** Category organization with detailed product views. The catalog has been significantly expanded.
+*   **Product Catalog:** Category organization with detailed product views.
 *   **Checkout Flow:** Local pickup only, manual payment methods (Zelle, Venmo, CashApp).
 *   **Order Status System:** Track order progress.
 *   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus.
@@ -20,70 +20,63 @@ The user wants to build a mobile-first web app called Cloud District Club for th
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. This session was focused on major stabilization, UI bug fixing, and code recovery.
-
-Key issues resolved include:
-1.  **UI Bugs:** Fixed iPhone SafeArea/Dynamic Island overlap and multiple crashes on the Cloudz loyalty pages.
-2.  **Code Recovery:** Several critical frontend routes and components (,  modal, , etc.) that were lost from the source tree were recovered by analyzing old git commits and compiled JS bundles. The UI now matches a previously working deployed version.
-3.  **Data Synchronization:** A major issue where the preview environment used a different database than production was fixed by unifying the  environment variable. All environments now point to the same backend.
-4.  **Deployment & Build Workflow:** The build process was made robust. The  directory is no longer tracked by git and is now generated during deployment. Build versioning is now automated.
-5.  **CI/CD:** Two new GitHub Actions were created: one to monitor the production backend health every 5 minutes and another to verify the frontend builds successfully on every push to .
+The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. The current session focused entirely on achieving parity between the code in the repository and a live staging environment to ensure deployment stability before connecting a custom domain. This involved identifying and fixing several UI and logic discrepancies, resolving a build failure related to a Babel dependency, and verifying the entire deployment architecture. A global state management solution (Zustand) was introduced to handle the navigation drawer, which is now available across all pages.
 
 **Last working item**:
--   **Last item agent was working**: Creating a GitHub Action workflow file () to verify that the frontend builds correctly on every push to the  branch. This was the final step in a series of infrastructure stabilization tasks.
--   **Status**: FINISHED
--   **Agent Testing Done**: Y (The agent created the workflow file and verified its contents and logic.)
--   **Which testing method agent to use?**: N/A (The task is complete. Testing of the workflow occurs automatically on GitHub after the code is pushed.)
--   **User Testing Done**: N (The user needs to push the changes to GitHub to see the workflow run for the first time.)
+-   **Last item agent was working**: Binding the custom domains  and  to the live deployment and triggering SSL certificate provisioning.
+-   **Status**: NOT STARTED
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Manual testing via  to verify  and  return a  response after the domain is bound and SSL is issued.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None. All issues raised and worked on during this session have been resolved.
+-   **Issue 1**: (P0) Bind custom domains and verify SSL certificate issuance.
+
+  **Issues Detail**:
+  - **Issue 1**: Bind  and  to the deployment.
+     - **Attempted fixes**: None. The agent was just instructed to perform this task.
+     - **Next debug checklist**:
+         1. Use the platform's tooling to add  and  as custom domains for the deployment.
+         2. Trigger SSL provisioning for both domains.
+         3. Ensure an external uptime service (like UptimeRobot) is pinging  to keep the environment awake, which is necessary for the ACME challenge to succeed.
+         4. Monitor the SSL status until it is issued.
+         5. Verify by running .
+     - **Why fix this issue and what will be achieved with the fix?**: This is the final step to make the application live on its production domain.
+     - **Status**: NOT STARTED
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: Both (frontend loading via the domain, backend health check via the domain).
+     - **Blocked on other issue**: None.
 
 **In progress Task List**:
--   None. All stabilization and recovery tasks from this session are complete.
+- None.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
--   **Future Tasks**:
-    -   **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
-    -   **P2: Admin screen modularization**: Break down large admin components.
-    -   **P2: Google Workspace Integration**: Implement email sending via .
-    -   **P3: Push notifications expansion**.
+- **Upcoming Tasks**:
+    - **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
+- **Future Tasks**:
+    - **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
+    - **P2: Admin screen modularization**: Break down large admin components.
+    - **P2: Google Workspace Integration**: Implement email sending via .
+    - **P3: Push notifications expansion**.
 
 **Completed work in this session**
--   **UI Bug Fixes & Restoration**:
-    -   Fixed iPhone SafeArea overlap in .
-    -   Fixed crashes in , , and  by adding defensive  and  guards.
-    -   Restored Low Stock and Earn Cloudz badges to .
--   **Code & Feature Recovery**:
-    -   Recovered lost source files for , , , and  from git history.
-    -   Recovered the full 780-line  component, which includes the critical Edit order modal functionality.
-    -   Restored the admin navigation to the correct 8-tab layout in .
--   **Infrastructure & Deployment Stabilization**:
-    -   **Data Sync**: Fixed data inconsistency by updating  to point  to the single production backend.
-    -   **Health Check**: Added a  endpoint to  to fix Railway deployment health checks.
-    -   **Build Process**:
-        -   Removed  from git tracking and added it to .
-        -   Created  to automate the - Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly... process and generate a dynamic build version.
-        -   Updated  to display the automated build version.
-    -   **Git Workflow**:
-        -   Created git tag  to mark a stable release.
-        -   Created  to document the new production-safe workflow.
-    -   **CI/CD (GitHub Actions)**:
-        -   Created  to monitor backend health every 5 minutes.
-        -   Created  to verify the frontend builds on push to .
+- **Code Parity Restoration**:
+  - Restored the navigation side drawer functionality by implementing a global  store () and a  component, fixing an issue where the header icon navigated incorrectly.
+  - Removed the Venmo payment option from  to match the staging environment.
+  - Restored the  component (with cart badge) to the product detail page ().
+- **Build & Deployment Fixes**:
+  - Resolved a deployment build failure by moving  from  to  in .
+  - Conducted extensive verification of the deployment architecture, confirming the backend URL strategy, deep-link routing, and the build process where  is generated at deploy time and served by FastAPI.
+  - Verified the  endpoint is available for an external uptime service to keep the environment awake for SSL provisioning.
+  - Re-built and verified the production bundle multiple times to include all parity fixes.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Deployment issues were a major recurring problem.
--   **Recurrence count**: Multiple times.
--   **Status**: RESOLVED. The entire build and deployment pipeline has been refactored to be more robust.  is no longer committed, and CI checks are in place to prevent broken builds from being deployed.
+-   **Issue recurrence in previous fork**: Mismatches between the local repository and the deployed environment.
+-   **Recurrence count**: Multiple times throughout the session.
+-   **Status**: RESOLVED. The agent performed a thorough audit and fixed all identified discrepancies (Venmo, Product Page Header, Drawer Navigation). The codebase is now in parity with the target staging environment.
 
 **Code Architecture**
 
@@ -92,80 +85,73 @@ Key issues resolved include:
 -   **Frontend**: React Native, Expo (for Web), Expo Router, TypeScript
 -   **Backend**: FastAPI, Python
 -   **Database**: MongoDB
--   **CI/CD**: GitHub Actions for build verification and health monitoring.
--   **Deployment**: A new, robust workflow is defined in . The frontend  directory is now built on the deployment server via , not committed to the repository.
+-   **State Management**: Zustand (newly introduced for global drawer state).
+-   **Deployment**: Single-container model where FastAPI serves both the API and the static frontend build artifacts. The  directory is generated on deployment.
 
 **key DB schema**
 -   No changes were made to the database schema.
 
 **changes in tech stack**
--   None.
+-   ****: Added to the frontend for global state management.
 
 **All files of reference**
--   : Modified to add the  endpoint.
--   : Modified to unify the backend API URL across environments.
--   , , : Restored and modified to bring the admin panel back to its fully functional state.
--   : New script that automates the production build and versioning.
--   , : New GitHub Actions for CI/CD.
--   : New documentation file explaining the production workflow.
--    (root) and : Modified to correctly ignore build artifacts () and caches ().
+-   : (New) Zustand store to manage the open/closed state of the navigation drawer globally.
+-   : (New) The UI component for the side drawer, which is now rendered in the root layout to be accessible from any page.
+-   : (Updated) The header icon's  handler was changed to call  instead of navigating to a different page.
+-   : (Updated) The new  component is mounted here to make it available throughout the app.
+-   : (Updated) Removed the old, locally-scoped drawer implementation.
+-   : (Updated) Removed 'Venmo' from the list of available payment methods.
+-   : (Updated) Re-instated the  to ensure the cart badge is visible.
+-   : (Updated) Moved  to  to fix production builds.
 
 **Areas that need refactoring**:
--    remains a large monolith.
+-    is still a large monolith.
 -   Admin screens could be broken down into smaller components.
 
 **key api endpoints**
--   : **New** root-level health check endpoint for deployment services like Railway.
--   : API endpoint used by the restored Edit order modal.
+-   : Verified to be working and unauthenticated. This is critical for the external uptime service needed to complete SSL provisioning.
 
 **Critical Info for New Agent**
--   **DO NOT COMMIT **: The  directory is now generated on the deployment server by the  script. It is git-ignored and should never be committed. The entire deployment workflow is documented in .
--   **Unified Backend**: All environments now use a single production backend API, defined by  in . This ensures data consistency.
--   **CI/CD is Active**: The repository now has GitHub Actions that run on push to  (build check) and on a schedule (health check). Be aware of these workflows.
--   **Manual Testing Only**: The user has consistently forbidden the use of automated testing agents (). All verification must be done manually.
--   **Git Tagging**: A new workflow of tagging stable releases has been established, starting with .
+-   The immediate task is to bind the custom domains  and  and ensure SSL is provisioned.
+-   An external uptime service must be configured to ping  every minute to keep the environment from sleeping, which is a prerequisite for the SSL certificate authority (ACME) to validate the domain.
+-   The project now uses **Zustand** for global state, specifically for the navigation drawer. The relevant files are  and .
+-   The user strictly forbids the use of automated testing agents (). All verification must be done manually with screenshots or .
+-   The codebase has been brought into parity with a known-good staging deployment. Do not re-introduce the features that were just removed (e.g., Venmo at checkout).
 
 **documents and test reports created in this job**
 -    (updated)
--    (new)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Requested to restore the UI to match a previously working deployment and synchronize all environments to a single backend to fix data inconsistencies. (Status: **Completed**)
-2.  **User**: Requested to stabilize the project by creating a git tag, fixing the fragile  build process, automating the build version footer, and documenting the new workflow. (Status: **Completed**)
-3.  **Agent**: Completed the stabilization tasks, including creating the tag, untracking , creating a build script, and creating . (Status: **Completed**)
-4.  **User**: Requested a simple deployment health monitor using a script and a 5-minute GitHub Action. (Status: **Completed**)
-5.  **Agent**: Created  and  and explained how they work. (Status: **Completed**)
-6.  **User**: Requested a build verification check via a GitHub Action that runs - Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly... on push to main. (Status: **Completed**)
-7.  **Agent**: Created  and explained its functionality. (Status: **Completed**)
-8.  There are no pending user messages.
+1.  **User**: Stop deployment. The CD icon in the header is broken; it should open the side drawer, not navigate to the Cloudz page. (Status: **Completed**)
+2.  **Agent**: Fixed the CD icon by implementing a global Zustand store for the drawer and mounting it in the root layout. (Status: **Completed**)
+3.  **User**: Deployment failed due to a missing  module. (Status: **Completed**)
+4.  **Agent**: Fixed the build by moving the Babel plugin from  to  in . (Status: **Completed**)
+5.  **User**: We need to finalize production stability. Verify health endpoints, confirm API paths, and explain how to keep the preview environment awake for domain binding. (Status: **Completed**)
+6.  **Agent**: Confirmed  works, recommended using an external uptime service like UptimeRobot, confirmed API paths are correct, and rebuilt the production bundle. (Status: **Completed**)
+7.  **User**: Bind  and  to the deployment and trigger SSL provisioning. (Status: **Pending**)
+8.  There are no other pending user messages.
 
 **Project Health Check:**
--   **Broken**: None. The critical UI bugs, data desync issues, and fragile deployment process have all been fixed.
+-   **Broken**:
+    -   Custom domain binding () is not yet complete. SSL has not been provisioned.
 -   **Mocked**:
     -   The email utility () is not integrated.
     -   The user-facing checkout flow does not yet allow spending .
 
 **3rd Party Integrations**
 -   **Expo**: Core framework for the React Native frontend.
--   **react-native-gesture-handler & react-native-reanimated**: UI animations and gestures.
--   **react-native-safe-area-context**: For handling device notches/islands.
+-   **Zustand**: For global state management in React.
 -   **GitHub Actions**: For CI/CD (build verification and health monitoring).
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO (explicitly forbidden by user).
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**:
-    -   
-    -   
-    -   
--   **Known regressions**: Multiple regressions (lost routes, missing UI elements) were identified and fully resolved during this session.
+-   **Test files created**: None.
+-   **Known regressions**: Several regressions from a previous stable build were identified and fixed during this session (Venmo payment, product page header, drawer navigation).
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 
 **What agent forgot to execute**
--   The agent successfully completed all user requests in a complex, multi-step recovery and stabilization effort. Nothing was forgotten.</analysis>
+-   The agent has followed all step-by-step user instructions meticulously. The final task of binding the domain was only just assigned and has not been executed yet.</analysis>

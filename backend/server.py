@@ -301,6 +301,9 @@ class CloudzAdjust(BaseModel):
     amount: int
     description: str
 
+class AdminSetPassword(BaseModel):
+    newPassword: str
+
 # ==================== CLOUDZ LEDGER ====================
 
 async def log_cloudz_transaction(user_id: str, tx_type: str, amount: int, reference: str = "", description: str = "", order_id: str = ""):
@@ -352,6 +355,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+    if user.get("isDisabled", False):
+        raise HTTPException(status_code=401, detail="Account has been disabled")
+    force_logout_at = user.get("forceLogoutAt")
+    if force_logout_at is not None:
+        token_iat = payload.get("iat", 0)
+        if token_iat < force_logout_at:
+            raise HTTPException(status_code=401, detail="Session has been invalidated")
     return user
 
 async def get_admin_user(user = Depends(get_current_user)):
@@ -465,6 +475,8 @@ async def login(user_data: UserLogin):
     user = await db.users.find_one({"email": user_data.email})
     if not user or not verify_password(user_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user.get("isDisabled", False):
+        raise HTTPException(status_code=403, detail="Account has been disabled. Contact support.")
     
     user_id = str(user["_id"])
     access_token = create_access_token(data={"sub": user_id})
@@ -1054,6 +1066,33 @@ async def admin_adjust_cloudz(user_id: str, data: CloudzAdjust, admin = Depends(
     await log_cloudz_transaction(user_id, "admin_adjustment", data.amount, data.description, data.description)
     updated = await db.users.find_one({"_id": ObjectId(user_id)}, {"loyaltyPoints": 1})
     return {"message": "Balance updated", "newBalance": updated.get("loyaltyPoints", 0) if updated else 0}
+
+
+@api_router.post("/admin/users/{user_id}/set-password")
+async def admin_set_user_password(user_id: str, data: AdminSetPassword, admin = Depends(get_admin_user)):
+    if len(data.newPassword) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    hashed = get_password_hash(data.newPassword)
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True}
+
+
+@api_router.post("/admin/users/{user_id}/force-logout")
+async def admin_force_logout(user_id: str, admin = Depends(get_admin_user)):
+    import time
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"forceLogoutAt": time.time()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True}
+
 
 # ==================== ADMIN ORDER EDITING ====================
 
