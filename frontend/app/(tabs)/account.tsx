@@ -50,6 +50,7 @@ export default function Account() {
   const { user, logout, token, refreshUser } = useAuthStore();
   const clearCart = useCartStore(state => state.clearCart);
   const [highestTier, setHighestTier] = useState<TierInfo | null>(null);
+  const [allTiers, setAllTiers] = useState<TierInfo[]>([]);
   const [history, setHistory] = useState<RedemptionRecord[]>([]);
   const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,7 @@ export default function Account() {
       ]);
       // Find highest unlocked tier
       const unlocked = (tiersRes.data.tiers as TierInfo[]).filter(t => t.unlocked);
+      setAllTiers(tiersRes.data.tiers as TierInfo[]);
       setHighestTier(unlocked.length > 0 ? unlocked[unlocked.length - 1] : null);
       setHistory(historyRes.data.slice(0, 5)); // Show last 5
       setStreakInfo(streakRes.data);
@@ -196,6 +198,34 @@ export default function Account() {
             <Ionicons name="chevron-forward" size={18} color="#e0e7ff" />
           </View>
         </TouchableOpacity>
+
+        {/* Cloudz Progress Reminder */}
+        {(() => {
+          const nextTier = allTiers.find(t => !t.unlocked && t.pointsRequired > userPoints);
+          if (!nextTier) return null;
+          const needed = nextTier.pointsRequired - userPoints;
+          const pct = needed / nextTier.pointsRequired;
+          if (pct > 0.20) return null; // Only show if within 20%
+          return (
+            <TouchableOpacity
+              style={styles.progressReminderCard}
+              onPress={() => router.push('/cloudz')}
+              activeOpacity={0.8}
+              data-testid="cloudz-progress-reminder"
+            >
+              <Ionicons name="rocket-outline" size={20} color="#10b981" />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.progressReminderTitle}>
+                  You're only {needed.toLocaleString()} Cloudz away from your next reward!
+                </Text>
+                <Text style={styles.progressReminderSub}>
+                  Reach {nextTier.pointsRequired.toLocaleString()} pts to unlock {nextTier.name} tier
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#10b981" />
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Streak Bonus Card */}
         {streakInfo && (
@@ -625,6 +655,27 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     borderColor: theme.colors.primary,
+  },
+  progressReminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d1f18',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#10b98133',
+  },
+  progressReminderTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10b981',
+    marginBottom: 2,
+  },
+  progressReminderSub: {
+    fontSize: 11,
+    color: '#4ade80',
+    opacity: 0.7,
   },
   streakCard: {
     backgroundColor: theme.colors.card,

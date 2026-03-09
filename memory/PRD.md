@@ -83,6 +83,18 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Reset Password modal with validation (min 8 chars, confirm match)
   - Users list: "Profile" button navigates to user detail page
   - Auth race condition fix: `users.tsx` and `user-profile.tsx` now wait for token before calling admin APIs
+- **Admin Capability Audit & Expansion** (2026-03-09):
+  - AUDITED: Cloudz Adjustment ✅ COMPLETE; Store Credit API ✅ (UI was missing); Order Status ✅; Order Edit (items/notes) ✅; Pickup Time + Payment Method edit ❌ added; Admin Notes on User ❌ added; Account Merge ❌ added; Next Order Coupon ❌ added; Cloudz Progress Reminder ❌ added
+  - NEW endpoints: `PATCH /api/admin/users/{id}/notes`, `POST /api/admin/users/merge`, `GET /api/me/coupon`
+  - `OrderEdit` model updated with optional `pickupTime` and `paymentMethod` fields
+  - `OrderCreate` model updated with `couponApplied: bool` for coupon redemption at checkout
+  - Auto-issues `nextOrderCoupon` ($5, 7-day expiry) when order status → Completed
+  - Frontend: Notes tab + Credit tab added to admin user-profile
+  - Frontend: Merge Into action with warning modal added to admin user-profile
+  - Frontend: Pickup time + payment method selectors added to admin order edit modal
+  - Frontend: Cloudz Progress Reminder in account.tsx (shows when within 20% of next tier)
+  - Frontend: Coupon section in checkout.tsx — display, toggle, and apply at order placement
+  - DB Consistency: preview uses local MongoDB (localhost:27017/test_database); production uses separate instance
 
 ## Future (P2+)
 - Backend monolith refactor

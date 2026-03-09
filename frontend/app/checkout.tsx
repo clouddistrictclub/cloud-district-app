@@ -42,6 +42,8 @@ export default function Checkout() {
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [selectedReward, setSelectedReward] = useState<ActiveReward | null>(null);
   const [activeRewards, setActiveRewards] = useState<ActiveReward[]>([]);
+  const [coupon, setCoupon] = useState<{ amount: number; expiresAt: string } | null>(null);
+  const [couponApplied, setCouponApplied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingRewards, setLoadingRewards] = useState(true);
 
@@ -49,7 +51,17 @@ export default function Checkout() {
 
   useEffect(() => {
     loadActiveRewards();
+    loadCoupon();
   }, []);
+
+  const loadCoupon = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/me/coupon`, { headers: { Authorization: `Bearer ${token}` } });
+      setCoupon(res.data.coupon);
+    } catch (e) {
+      // silent
+    }
+  };
 
   const loadActiveRewards = async () => {
     try {
@@ -66,7 +78,8 @@ export default function Checkout() {
   const selectedMethod = paymentMethods.find(m => m.id === selectedPayment);
   const convenienceFee = selectedMethod ? subtotal * selectedMethod.fee : 0;
   const rewardDiscount = selectedReward ? Math.min(selectedReward.rewardAmount, subtotal + convenienceFee) : 0;
-  const total = Math.max(0, subtotal + convenienceFee - rewardDiscount);
+  const couponDiscount = coupon && couponApplied ? Math.min(coupon.amount, subtotal + convenienceFee - rewardDiscount) : 0;
+  const total = Math.max(0, subtotal + convenienceFee - rewardDiscount - couponDiscount);
 
   const handlePlaceOrder = async () => {
     if (!selectedPickupTime) {
@@ -92,6 +105,7 @@ export default function Checkout() {
         pickupTime: selectedPickupTime,
         paymentMethod: selectedMethod?.name || '',
         rewardId: selectedReward?.id || null,
+        couponApplied: coupon && couponApplied ? true : false,
       };
 
       const response = await axios.post(`${API_URL}/api/orders`, orderData, authHeaders);
@@ -220,6 +234,29 @@ export default function Checkout() {
           </View>
         )}
 
+        {/* Next Order Coupon */}
+        {coupon && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={[styles.optionCard, couponApplied && styles.optionCardSelected, { borderColor: '#10b981', backgroundColor: couponApplied ? '#0d1f18' : '#111' }]}
+              onPress={() => setCouponApplied(!couponApplied)}
+              data-testid="coupon-toggle"
+            >
+              <View style={[styles.radioOuter, { borderColor: '#10b981' }]}>
+                {couponApplied && <View style={[styles.radioInner, { backgroundColor: '#10b981' }]} />}
+              </View>
+              <Ionicons name="gift-outline" size={20} color="#10b981" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionText, { color: '#10b981' }]}>Apply ${coupon.amount.toFixed(2)} Welcome-Back Coupon</Text>
+                <Text style={[styles.rewardDetail, { color: '#4ade80' }]}>
+                  Expires {new Date(coupon.expiresAt).toLocaleDateString()}
+                </Text>
+              </View>
+              <Text style={[styles.rewardAmount, { color: '#10b981' }]}>-${coupon.amount.toFixed(2)}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Order Summary */}
         <View style={styles.summaryCard} data-testid="order-summary">
           <Text style={styles.summaryTitle}>Order Summary</Text>
@@ -237,6 +274,12 @@ export default function Checkout() {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{selectedReward.tierName} Reward</Text>
               <Text style={[styles.summaryValue, { color: theme.colors.success }]}>-${rewardDiscount.toFixed(2)}</Text>
+            </View>
+          )}
+          {couponApplied && coupon && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Coupon Discount</Text>
+              <Text style={[styles.summaryValue, { color: '#10b981' }]}>-${couponDiscount.toFixed(2)}</Text>
             </View>
           )}
           <View style={styles.divider} />

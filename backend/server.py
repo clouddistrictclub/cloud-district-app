@@ -222,6 +222,7 @@ class OrderCreate(BaseModel):
     paymentMethod: str
     loyaltyPointsUsed: int = 0
     rewardId: Optional[str] = None
+    couponApplied: bool = False
 
 class Order(BaseModel):
     id: Optional[str] = None
@@ -251,6 +252,8 @@ class OrderEdit(BaseModel):
     items: List[OrderEditItem]
     total: float
     adminNotes: Optional[str] = None
+    pickupTime: Optional[str] = None
+    paymentMethod: Optional[str] = None
 
 # Admin User Management Models
 class AdminUserUpdate(BaseModel):
@@ -777,6 +780,27 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
     reward_discount = 0.0
     reward_points_used = 0
 
+    # Handle next-order coupon application
+    coupon_discount = 0.0
+    if order_data.couponApplied:
+        user_doc = await db.users.find_one({"_id": user["_id"]}, {"nextOrderCoupon": 1})
+        coupon = user_doc.get("nextOrderCoupon") if user_doc else None
+        if coupon and not coupon.get("used", False):
+            from datetime import timezone
+            try:
+                exp = datetime.fromisoformat(coupon["expiresAt"])
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=timezone.utc)
+                if exp >= datetime.now(timezone.utc):
+                    coupon_discount = float(coupon.get("amount", 0))
+                    # Mark coupon as used
+                    await db.users.update_one(
+                        {"_id": user["_id"]},
+                        {"$set": {"nextOrderCoupon.used": True, "nextOrderCoupon.usedAt": datetime.utcnow().isoformat()}}
+                    )
+            except Exception:
+                pass
+
     # Handle tier-based reward redemption at checkout
     if order_data.rewardId:
         try:
@@ -809,6 +833,7 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
         "loyaltyPointsUsed": reward_points_used,
         "rewardId": order_data.rewardId,
         "rewardDiscount": reward_discount,
+        "couponDiscount": coupon_discount,
         "createdAt": datetime.utcnow()
     }
     
@@ -1094,6 +1119,87 @@ async def admin_force_logout(user_id: str, admin = Depends(get_admin_user)):
     return {"success": True}
 
 
+class AdminUserNotes(BaseModel):
+    notes: str
+
+@api_router.patch("/admin/users/{user_id}/notes")
+async def update_admin_notes(user_id: str, data: AdminUserNotes, admin = Depends(get_admin_user)):
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"adminNotes": data.notes}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True}
+
+
+class MergeRequest(BaseModel):
+    sourceUserId: str
+    targetUserId: str
+
+@api_router.post("/admin/users/merge")
+async def merge_users(data: MergeRequest, admin = Depends(get_admin_user)):
+    source = await db.users.find_one({"_id": ObjectId(data.sourceUserId)})
+    target = await db.users.find_one({"_id": ObjectId(data.targetUserId)})
+    if not source or not target:
+        raise HTTPException(status_code=404, detail="One or both users not found")
+    if data.sourceUserId == data.targetUserId:
+        raise HTTPException(status_code=400, detail="Cannot merge a user with themselves")
+    # Move all orders from source to target
+    await db.orders.update_many(
+        {"userId": data.sourceUserId},
+        {"$set": {"userId": data.targetUserId}}
+    )
+    # Move cloudz ledger entries
+    await db.cloudz_ledger.update_many(
+        {"userId": data.sourceUserId},
+        {"$set": {"userId": data.targetUserId}}
+    )
+    # Add source credit and cloudz to target
+    source_credit = source.get("creditBalance", 0.0)
+    source_points = source.get("loyaltyPoints", 0)
+    if source_credit > 0 or source_points > 0:
+        await db.users.update_one(
+            {"_id": ObjectId(data.targetUserId)},
+            {"$inc": {"creditBalance": source_credit, "loyaltyPoints": source_points}}
+        )
+        if source_points > 0:
+            await log_cloudz_transaction(
+                data.targetUserId, "admin_adjustment", source_points,
+                f"Merged from account {data.sourceUserId}", "Account merge"
+            )
+    # Deactivate source account
+    await db.users.update_one(
+        {"_id": ObjectId(data.sourceUserId)},
+        {"$set": {"isDisabled": True, "mergedInto": data.targetUserId, "creditBalance": 0, "loyaltyPoints": 0}}
+    )
+    return {"success": True, "message": "Accounts merged successfully"}
+
+
+@api_router.get("/me/coupon")
+async def get_my_coupon(user = Depends(get_current_user)):
+    user_doc = await db.users.find_one({"_id": user["_id"]}, {"nextOrderCoupon": 1})
+    coupon = user_doc.get("nextOrderCoupon") if user_doc else None
+    if coupon:
+        from datetime import timezone
+        expires_at = coupon.get("expiresAt")
+        if expires_at:
+            try:
+                exp = datetime.fromisoformat(expires_at)
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=timezone.utc)
+                if exp < datetime.now(timezone.utc):
+                    # Coupon expired — clear it
+                    await db.users.update_one({"_id": user["_id"]}, {"$unset": {"nextOrderCoupon": ""}})
+                    return {"coupon": None}
+            except Exception:
+                pass
+        if coupon.get("used"):
+            return {"coupon": None}
+        return {"coupon": coupon}
+    return {"coupon": None}
+
+
 # ==================== ADMIN ORDER EDITING ====================
 
 @api_router.patch("/admin/orders/{order_id}/edit")
@@ -1117,6 +1223,10 @@ async def admin_edit_order(order_id: str, edit: OrderEdit, admin = Depends(get_a
     update_dict: dict = {"items": new_items, "total": edit.total}
     if edit.adminNotes is not None:
         update_dict["adminNotes"] = edit.adminNotes
+    if edit.pickupTime is not None:
+        update_dict["pickupTime"] = edit.pickupTime
+    if edit.paymentMethod is not None:
+        update_dict["paymentMethod"] = edit.paymentMethod
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": update_dict})
     return {"message": "Order updated"}
 
@@ -1190,6 +1300,19 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
 
         # Streak bonus: award once per ISO week
         streak_bonus = await maybe_award_streak_bonus(order["userId"], order_id)
+
+        # Issue next-order coupon ($5 off, 7 days) on order completion
+        coupon_expires = datetime.utcnow() + timedelta(days=7)
+        await db.users.update_one(
+            {"_id": ObjectId(order["userId"])},
+            {"$set": {"nextOrderCoupon": {
+                "amount": 5.00,
+                "expiresAt": coupon_expires.isoformat(),
+                "orderId": order_id,
+                "used": False,
+                "issuedAt": datetime.utcnow().isoformat(),
+            }}}
+        )
 
     # Per-order referral reward: 0.5 Cloudz per $1, fires whenever status becomes "Paid" (deduped per order)
     if status_update.status == "Paid" and not order.get("referralRewardIssued", False):

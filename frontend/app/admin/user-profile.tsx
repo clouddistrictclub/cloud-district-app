@@ -24,7 +24,7 @@ export default function AdminUserProfile() {
   const token = useAuthStore(state => state.token);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'orders' | 'reviews' | 'referral' | 'ledger'>('orders');
+  const [tab, setTab] = useState<'orders' | 'reviews' | 'referral' | 'ledger' | 'notes' | 'credit'>('orders');
   const [ledger, setLedger] = useState<any[]>([]);
   const [ledgerLoaded, setLedgerLoaded] = useState(false);
   const [referrerInput, setReferrerInput] = useState('');
@@ -32,6 +32,14 @@ export default function AdminUserProfile() {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustDesc, setAdjustDesc] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditDesc, setCreditDesc] = useState('');
+  const [adjustingCredit, setAdjustingCredit] = useState(false);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [merging, setMerging] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,6 +54,7 @@ export default function AdminUserProfile() {
     try {
       const res = await axios.get(`${API_URL}/api/admin/users/${userId}/profile`);
       setProfile(res.data);
+      setAdminNotes(res.data?.user?.adminNotes || '');
     } catch (e) {
       console.error('Failed to load user profile', e);
     } finally {
@@ -127,6 +136,43 @@ export default function AdminUserProfile() {
         }
       ]
     );
+  };
+
+  const handleCreditAdjust = async () => {
+    const amt = parseFloat(creditAmount);
+    if (!creditDesc.trim() || isNaN(amt)) { toast.show('Enter amount and description', 'error'); return; }
+    setAdjustingCredit(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/users/${userId}/credit`, { amount: amt, description: creditDesc });
+      toast.show(`Credit updated: $${res.data.newBalance?.toFixed(2)}`);
+      setCreditAmount(''); setCreditDesc('');
+      setProfile((prev: any) => prev ? { ...prev, user: { ...prev.user, creditBalance: res.data.newBalance } } : prev);
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to adjust credit', 'error');
+    } finally { setAdjustingCredit(false); }
+  };
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await axios.patch(`${API_URL}/api/admin/users/${userId}/notes`, { notes: adminNotes });
+      toast.show('Notes saved');
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to save notes', 'error');
+    } finally { setSavingNotes(false); }
+  };
+
+  const handleMerge = async () => {
+    if (!mergeTargetId.trim()) { toast.show('Enter target user ID', 'error'); return; }
+    setMerging(true);
+    try {
+      await axios.post(`${API_URL}/api/admin/users/merge`, { sourceUserId: userId, targetUserId: mergeTargetId.trim() });
+      toast.show('Accounts merged successfully');
+      setShowMergeModal(false); setMergeTargetId('');
+      router.back();
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Merge failed', 'error');
+    } finally { setMerging(false); }
   };
 
   const handleForceLogout = async () => {
@@ -256,6 +302,15 @@ export default function AdminUserProfile() {
                 <Ionicons name="log-out-outline" size={14} color="#fbbf24" />
                 <Text style={[adminProfileStyles.actionPillText, { color: '#fbbf24' }]}>Force Logout</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[adminProfileStyles.actionPill, { borderColor: '#f9731633' }]}
+                onPress={() => setShowMergeModal(true)}
+                data-testid="merge-account-btn"
+              >
+                <Ionicons name="git-merge-outline" size={14} color="#f97316" />
+                <Text style={[adminProfileStyles.actionPillText, { color: '#f97316' }]}>Merge Into</Text>
+              </TouchableOpacity>
             </View>
             {profile?.user?.isDisabled && (
               <View style={adminProfileStyles.disabledBanner}>
@@ -267,14 +322,14 @@ export default function AdminUserProfile() {
 
           {/* Tabs */}
           <View style={styles.tabRow}>
-            {(['orders', 'reviews', 'referral', 'ledger'] as const).map((t) => (
+            {(['orders', 'reviews', 'referral', 'ledger', 'notes', 'credit'] as const).map((t) => (
               <TouchableOpacity
                 key={t}
                 style={[styles.tab, tab === t && styles.tabActive]}
                 onPress={() => { setTab(t); if (t === 'ledger' && !ledgerLoaded) loadLedger(); }}
               >
                 <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-                  {t === 'orders' ? 'Orders' : t === 'reviews' ? 'Reviews' : t === 'referral' ? 'Referral' : 'Ledger'}
+                  {t === 'orders' ? 'Orders' : t === 'reviews' ? 'Reviews' : t === 'referral' ? 'Referral' : t === 'ledger' ? 'Ledger' : t === 'notes' ? 'Notes' : 'Credit'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -353,6 +408,58 @@ export default function AdminUserProfile() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : tab === 'notes' ? (
+            <View style={adminProfileStyles.infoCard}>
+              <Text style={adminProfileStyles.cardTitle}>Account Notes</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Private admin-only notes. Not visible to user.</Text>
+              <TextInput
+                style={[adminProfileStyles.inputField, { minHeight: 120, textAlignVertical: 'top' }]}
+                value={adminNotes}
+                onChangeText={setAdminNotes}
+                placeholder="Add notes about this account..."
+                placeholderTextColor="#555"
+                multiline
+                data-testid="admin-notes-input"
+              />
+              <TouchableOpacity
+                style={[adminProfileStyles.actionBtn, savingNotes && { opacity: 0.5 }]}
+                onPress={handleSaveNotes}
+                disabled={savingNotes}
+                data-testid="save-notes-btn"
+              >
+                <Text style={adminProfileStyles.actionBtnText}>{savingNotes ? 'Saving...' : 'Save Notes'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : tab === 'credit' ? (
+            <View style={adminProfileStyles.infoCard}>
+              <Text style={adminProfileStyles.cardTitle}>Store Credit</Text>
+              <Text style={adminProfileStyles.currentBalance}>Current Balance: ${(profile?.user?.creditBalance || 0).toFixed(2)}</Text>
+              <TextInput
+                style={adminProfileStyles.inputField}
+                value={creditAmount}
+                onChangeText={setCreditAmount}
+                placeholder="Amount (e.g. 10.00 or -5.00)"
+                placeholderTextColor="#555"
+                keyboardType="numbers-and-punctuation"
+                data-testid="credit-adjust-amount"
+              />
+              <TextInput
+                style={adminProfileStyles.inputField}
+                value={creditDesc}
+                onChangeText={setCreditDesc}
+                placeholder="Reason (e.g. Compensation for issue)"
+                placeholderTextColor="#555"
+                data-testid="credit-adjust-desc"
+              />
+              <TouchableOpacity
+                style={[adminProfileStyles.actionBtn, adjustingCredit && { opacity: 0.5 }]}
+                onPress={handleCreditAdjust}
+                disabled={adjustingCredit}
+                data-testid="credit-adjust-btn"
+              >
+                <Text style={adminProfileStyles.actionBtnText}>{adjustingCredit ? 'Saving...' : 'Apply Credit Adjustment'}</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View>
               <View style={adminProfileStyles.infoCard}>
@@ -405,6 +512,46 @@ export default function AdminUserProfile() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </View>
+
+      {/* Merge Account Modal */}
+      <Modal visible={showMergeModal} animationType="slide" transparent>
+        <View style={adminProfileStyles.modalOverlay}>
+          <View style={adminProfileStyles.modalBox}>
+            <View style={adminProfileStyles.modalTopRow}>
+              <Text style={adminProfileStyles.modalTitle}>Merge Account</Text>
+              <TouchableOpacity onPress={() => { setShowMergeModal(false); setMergeTargetId(''); }}>
+                <Ionicons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ backgroundColor: '#ef444415', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600', lineHeight: 18 }}>
+                Warning: This will move all orders, Cloudz, and credit from this account into the target account, then disable this account. This cannot be undone.
+              </Text>
+            </View>
+            <Text style={adminProfileStyles.inputLabel}>Source Account</Text>
+            <Text style={{ fontSize: 12, color: '#666', marginBottom: 12, padding: 10, backgroundColor: '#111', borderRadius: 8 }}>{String(userId)}</Text>
+
+            <Text style={adminProfileStyles.inputLabel}>Target Account ID</Text>
+            <TextInput
+              style={adminProfileStyles.inputField}
+              value={mergeTargetId}
+              onChangeText={setMergeTargetId}
+              placeholder="Paste target user ID"
+              placeholderTextColor="#555"
+              autoCapitalize="none"
+              data-testid="merge-target-id-input"
+            />
+            <TouchableOpacity
+              style={[adminProfileStyles.actionBtn, { backgroundColor: '#ef4444' }, merging && { opacity: 0.5 }]}
+              onPress={handleMerge}
+              disabled={merging}
+              data-testid="confirm-merge-btn"
+            >
+              <Text style={adminProfileStyles.actionBtnText}>{merging ? 'Merging...' : 'Confirm Merge'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Reset Password Modal */}
       <Modal visible={showPasswordModal} animationType="slide" transparent>
