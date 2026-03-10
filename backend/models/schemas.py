@@ -210,6 +210,7 @@ class OrderCreate(BaseModel):
     loyaltyPointsUsed: int = Field(default=0, ge=0)
     rewardId: Optional[str] = None
     couponApplied: bool = False
+    storeCreditApplied: float = Field(default=0.0, ge=0)
 
 
 class Order(BaseModel):
@@ -227,6 +228,7 @@ class Order(BaseModel):
     customerName: Optional[str] = None
     customerEmail: Optional[str] = None
     adminNotes: Optional[str] = None
+    storeCreditApplied: float = 0.0
 
 
 class OrderStatusUpdate(BaseModel):

@@ -44,6 +44,7 @@ export default function Checkout() {
   const [activeRewards, setActiveRewards] = useState<ActiveReward[]>([]);
   const [coupon, setCoupon] = useState<{ amount: number; expiresAt: string } | null>(null);
   const [couponApplied, setCouponApplied] = useState(false);
+  const [storeCreditApplied, setStoreCreditApplied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingRewards, setLoadingRewards] = useState(true);
 
@@ -79,7 +80,10 @@ export default function Checkout() {
   const convenienceFee = selectedMethod ? subtotal * selectedMethod.fee : 0;
   const rewardDiscount = selectedReward ? Math.min(selectedReward.rewardAmount, subtotal + convenienceFee) : 0;
   const couponDiscount = coupon && couponApplied ? Math.min(coupon.amount, subtotal + convenienceFee - rewardDiscount) : 0;
-  const total = Math.max(0, subtotal + convenienceFee - rewardDiscount - couponDiscount);
+  const availableCredit = user?.creditBalance || 0;
+  const preTotalBeforeCredit = Math.max(0, subtotal + convenienceFee - rewardDiscount - couponDiscount);
+  const creditDiscount = storeCreditApplied ? Math.min(availableCredit, preTotalBeforeCredit) : 0;
+  const total = Math.max(0, preTotalBeforeCredit - creditDiscount);
 
   const handlePlaceOrder = async () => {
     if (!selectedPickupTime) {
@@ -106,6 +110,7 @@ export default function Checkout() {
         paymentMethod: selectedMethod?.name || '',
         rewardId: selectedReward?.id || null,
         couponApplied: coupon && couponApplied ? true : false,
+        storeCreditApplied: parseFloat(creditDiscount.toFixed(2)),
       };
 
       const response = await axios.post(`${API_URL}/api/orders`, orderData, authHeaders);
@@ -234,6 +239,31 @@ export default function Checkout() {
           </View>
         )}
 
+        {/* Store Credit */}
+        {availableCredit > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={[styles.optionCard, storeCreditApplied && styles.optionCardSelected, { borderColor: '#38bdf8', backgroundColor: storeCreditApplied ? '#0c1d2a' : '#111' }]}
+              onPress={() => setStoreCreditApplied(!storeCreditApplied)}
+              data-testid="store-credit-toggle"
+            >
+              <View style={[styles.radioOuter, { borderColor: '#38bdf8' }]}>
+                {storeCreditApplied && <View style={[styles.radioInner, { backgroundColor: '#38bdf8' }]} />}
+              </View>
+              <Ionicons name="card-outline" size={20} color="#38bdf8" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionText, { color: '#38bdf8' }]}>Apply Store Credit</Text>
+                <Text style={[styles.rewardDetail, { color: '#7dd3fc' }]}>
+                  ${availableCredit.toFixed(2)} available
+                </Text>
+              </View>
+              <Text style={[styles.rewardAmount, { color: '#38bdf8' }]}>
+                -{storeCreditApplied ? `$${Math.min(availableCredit, preTotalBeforeCredit).toFixed(2)}` : `$${availableCredit.toFixed(2)}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Next Order Coupon */}
         {coupon && (
           <View style={styles.section}>
@@ -280,6 +310,12 @@ export default function Checkout() {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Coupon Discount</Text>
               <Text style={[styles.summaryValue, { color: '#10b981' }]}>-${couponDiscount.toFixed(2)}</Text>
+            </View>
+          )}
+          {storeCreditApplied && creditDiscount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Store Credit</Text>
+              <Text style={[styles.summaryValue, { color: '#38bdf8' }]}>-${creditDiscount.toFixed(2)}</Text>
             </View>
           )}
           <View style={styles.divider} />

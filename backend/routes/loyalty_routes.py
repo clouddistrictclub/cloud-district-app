@@ -5,7 +5,7 @@ from models.schemas import TierRedeemRequest, LOYALTY_TIERS
 from services.loyalty_service import (
     log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from typing import List
 
@@ -150,12 +150,25 @@ async def get_leaderboard(user=Depends(get_current_user)):
     by_points_raw = await db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20).to_list(20)
     by_referrals_raw = await db.users.find({}, projection).sort("referralCount", -1).limit(20).to_list(20)
 
+    # Load yesterday's snapshot for rank movement calculation
+    now = datetime.utcnow()
+    yesterday_midnight = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_snap = await db.leaderboard_snapshots.find_one({"date": yesterday_midnight})
+    prev_ranks: dict = {}
+    if yesterday_snap:
+        for r in yesterday_snap.get("rankings", []):
+            prev_ranks[r["userId"]] = r["rank"]
+
     def build_entry(doc, rank):
         first = doc.get("firstName", "")
         last = doc.get("lastName", "")
         display = f"{first} {last[0]}." if last else first
         pts = doc.get("loyaltyPoints", 0)
         tier_name, tier_color = resolve_tier(pts)
+        uid = str(doc["_id"])
+        prev_rank = prev_ranks.get(uid)
+        # Positive = moved up (e.g. was rank 5 yesterday, rank 3 today → +2)
+        movement = (prev_rank - rank) if prev_rank is not None else None
         return {
             "rank": rank,
             "displayName": display,
@@ -163,7 +176,8 @@ async def get_leaderboard(user=Depends(get_current_user)):
             "referralCount": doc.get("referralCount", 0),
             "tier": tier_name,
             "tierColor": tier_color,
-            "isCurrentUser": str(doc["_id"]) == current_uid,
+            "isCurrentUser": uid == current_uid,
+            "movement": movement,
         }
 
     return {

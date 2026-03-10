@@ -28,6 +28,15 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     reward_discount = 0.0
     reward_points_used = 0
 
+    # Handle store credit application
+    store_credit_applied = 0.0
+    if order_data.storeCreditApplied > 0:
+        user_doc = await db.users.find_one({"_id": user["_id"]}, {"creditBalance": 1})
+        available_credit = float(user_doc.get("creditBalance", 0)) if user_doc else 0.0
+        store_credit_applied = min(order_data.storeCreditApplied, available_credit)
+        if store_credit_applied > order_data.total:
+            store_credit_applied = order_data.total
+
     # Handle next-order coupon application
     coupon_discount = 0.0
     if order_data.couponApplied:
@@ -82,6 +91,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "rewardId": order_data.rewardId,
         "rewardDiscount": reward_discount,
         "couponDiscount": coupon_discount,
+        "storeCreditApplied": store_credit_applied,
         "createdAt": created_at,
         "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
         "referralRewardIssued": False,
@@ -89,6 +99,13 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
 
     result = await db.orders.insert_one(order_dict)
     order_dict["id"] = str(result.inserted_id)
+
+    # Deduct store credit from user balance
+    if store_credit_applied > 0:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$inc": {"creditBalance": -store_credit_applied}}
+        )
 
     # Atomic inventory deduction
     decremented = []
