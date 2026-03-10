@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import jwt
 from bson import ObjectId
+import asyncio
 import string
 import secrets as sec_module
 import httpx
@@ -235,6 +236,7 @@ class Order(BaseModel):
     loyaltyPointsEarned: int = 0
     loyaltyPointsUsed: int = 0
     createdAt: datetime = Field(default_factory=datetime.utcnow)
+    expiresAt: Optional[datetime] = None
     customerName: Optional[str] = None
     customerEmail: Optional[str] = None
     adminNotes: Optional[str] = None
@@ -823,6 +825,8 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
             {"$set": {"used": True, "usedAt": datetime.utcnow()}}
         )
     
+    created_at = datetime.utcnow()
+    is_pending_payment = order_data.paymentMethod != "Cash on Pickup"
     order_dict = {
         "userId": str(user["_id"]),
         "items": [item.dict() for item in order_data.items],
@@ -835,7 +839,8 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
         "rewardId": order_data.rewardId,
         "rewardDiscount": reward_discount,
         "couponDiscount": coupon_discount,
-        "createdAt": datetime.utcnow()
+        "createdAt": created_at,
+        "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
     }
     
     result = await db.orders.insert_one(order_dict)
@@ -1942,9 +1947,42 @@ async def migrate_base64_images():
     if bcount:
         logging.info(f"Migrated {bcount} brand images from base64 to files")
 
+async def expire_pending_orders_loop():
+    while True:
+        try:
+            now = datetime.utcnow()
+            expired = await db.orders.find({
+                "status": "Pending Payment",
+                "expiresAt": {"$lt": now},
+            }, {"_id": 1, "items": 1}).to_list(1000)
+
+            for order in expired:
+                # Restore inventory
+                for item in order.get("items", []):
+                    try:
+                        await db.products.update_one(
+                            {"_id": ObjectId(item["productId"])},
+                            {"$inc": {"stock": item["quantity"]}}
+                        )
+                    except Exception:
+                        pass
+                await db.orders.update_one(
+                    {"_id": order["_id"]},
+                    {"$set": {"status": "Expired"}}
+                )
+
+            if expired:
+                logging.info(f"Order expiry: expired {len(expired)} order(s)")
+        except Exception as e:
+            logging.error(f"Order expiry task error: {e}")
+
+        await asyncio.sleep(300)  # run every 5 minutes
+
+
 @app.on_event("startup")
 async def startup_migrate():
     await migrate_base64_images()
+    asyncio.create_task(expire_pending_orders_loop())
 
 @api_router.get("/health")
 def api_health():
