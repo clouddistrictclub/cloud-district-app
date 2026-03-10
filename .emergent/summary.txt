@@ -9,74 +9,96 @@ The user wants to build a mobile-first web app called Cloud District Club for th
 *   **Checkout Flow:** Local pickup only, manual payment methods (Zelle, Venmo, CashApp).
 *   **Order Status System:** Track order progress.
 *   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus.
-*   **Referral Program:** Code-based system.
+*   **Referral Program:** Code-based system, using a unique user handle.
 *   **User Accounts:** Order history, loyalty status, profile management.
-*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management and store credit.
+*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management (password reset, disable, force logout), store credit and Cloudz adjustment, account notes, and account merging.
 *   **Live Chat:** Real-time WebSocket chat.
 *   **Persistent Header & Drawer Navigation.**
-*   **Store Credit System:** Admin can add/deduct credit.
-*   **Incoming Inventory Tracking:** System to track inventory shipments.
+*   **Store Credit System:** Admin can add/deduct credit; users can apply it at checkout.
+*   **Retention Features:** Automatic next-order coupons and reward progress reminders.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. The current session focused entirely on achieving parity between the code in the repository and a live staging environment to ensure deployment stability before connecting a custom domain. This involved identifying and fixing several UI and logic discrepancies, resolving a build failure related to a Babel dependency, and verifying the entire deployment architecture. A global state management solution (Zustand) was introduced to handle the navigation drawer, which is now available across all pages.
+The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. In this session, the agent implemented two large sets of user requests. First, it added comprehensive admin password management (reset, disable, force logout). Second, it conducted a full audit of admin capabilities and built all missing features, including store credit/Cloudz adjustment UI, advanced order editing, private account notes, account merging, a next order coupon system, and a Cloudz progress reminder.
+
+Subsequently, the user reported several bugs. The agent investigated and fixed them all: restored the Reset Password functionality, added a UI for users to create a unique handle (username), fixed case-sensitivity bugs in the referral system, and prevented the API from leaking password hashes. The codebase now contains all these new features and fixes, which are ready for user validation.
 
 **Last working item**:
--   **Last item agent was working**: Binding the custom domains  and  to the live deployment and triggering SSL certificate provisioning.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Manual testing via  to verify  and  return a  response after the domain is bound and SSL is issued.
+-   **Last item agent was working on**: Implementing a list of bug fixes and feature restorations reported by the user. The final step was adding a UI to  for users to create their unique handle (), which also functions as their referral code.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y
+-   **Which testing method agent to use?**: Manual testing by user. The user has explicitly forbidden the use of automated testing agents. If issues are found, the agent should use  for backend verification and screenshots for frontend verification.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: (P0) Bind custom domains and verify SSL certificate issuance.
+-   Issue 1: (P0) User verification for new admin tools and bug fixes.
+-   Issue 2: (P1) Bind custom domains and verify SSL.
 
-  **Issues Detail**:
-  - **Issue 1**: Bind  and  to the deployment.
-     - **Attempted fixes**: None. The agent was just instructed to perform this task.
-     - **Next debug checklist**:
-         1. Use the platform's tooling to add  and  as custom domains for the deployment.
-         2. Trigger SSL provisioning for both domains.
-         3. Ensure an external uptime service (like UptimeRobot) is pinging  to keep the environment awake, which is necessary for the ACME challenge to succeed.
-         4. Monitor the SSL status until it is issued.
-         5. Verify by running .
-     - **Why fix this issue and what will be achieved with the fix?**: This is the final step to make the application live on its production domain.
-     - **Status**: NOT STARTED
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: Both (frontend loading via the domain, backend health check via the domain).
-     - **Blocked on other issue**: None.
+**Issues Detail**:
+-   **Issue 1**: User needs to verify that the recently implemented features and bug fixes are working as expected.
+    -   **Attempted fixes**: N/A. The work is complete and pending review.
+    -   **Next debug checklist**: The user will test the following flows:
+        1.  **Admin Password Reset**: From the admin user profile, reset a user's password and confirm they can log in with the new one.
+        2.  **Username Creation**: As a regular user, navigate to the Account page and create a unique handle.
+        3.  **Referral System**: Confirm that using the new handle as a referral code during signup works correctly.
+        4.  **Admin Tabs**: In the admin user profile, check that all tabs (Orders, Reviews, Referral, Ledger, Notes, Credit) load data correctly.
+        5.  **Admin Actions**: Test the Disable Account and Force Logout features.
+        6.  **Admin Tools**: Test Cloudz/Credit adjustment, Account Notes, and Account Merge.
+        7.  **Retention Features**: Complete an order and verify a coupon is issued. Check the Cloudz progress reminder on the account page.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will validate a large batch of critical admin and user-facing functionality, ensuring the application is stable and correct.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on other issue**: None.
+
+-   **Issue 2**: Bind  and  to the deployment.
+    -   **Attempted fixes**: None. This task was prioritized down after the user requested new features and bug fixes.
+    -   **Next debug checklist**:
+        1.  Use platform tooling to add  and  as custom domains.
+        2.  Trigger SSL provisioning.
+        3.  Ensure an external uptime service is pinging  to keep the environment awake for the ACME challenge.
+        4.  Verify by running .
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the final step to make the application live on its production domain.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
-- None.
-
-**Upcoming and Future Tasks**
-- **Upcoming Tasks**:
-    - **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
-- **Future Tasks**:
-    - **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
-    - **P2: Admin screen modularization**: Break down large admin components.
-    - **P2: Google Workspace Integration**: Implement email sending via .
-    - **P3: Push notifications expansion**.
-
-**Completed work in this session**
-- **Code Parity Restoration**:
-  - Restored the navigation side drawer functionality by implementing a global  store () and a  component, fixing an issue where the header icon navigated incorrectly.
-  - Removed the Venmo payment option from  to match the staging environment.
-  - Restored the  component (with cart badge) to the product detail page ().
-- **Build & Deployment Fixes**:
-  - Resolved a deployment build failure by moving  from  to  in .
-  - Conducted extensive verification of the deployment architecture, confirming the backend URL strategy, deep-link routing, and the build process where  is generated at deploy time and served by FastAPI.
-  - Verified the  endpoint is available for an external uptime service to keep the environment awake for SSL provisioning.
-  - Re-built and verified the production bundle multiple times to include all parity fixes.
-
-**Earlier issues found/mentioned but not fixed**
 -   None.
 
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks**:
+    -   **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
+-   **Future Tasks**:
+    -   **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
+    -   **P2: Admin screen modularization**: Break down large admin components like .
+    -   **P2: Google Workspace Integration**: Implement email sending via .
+    -   **P3: Push notifications expansion**.
+
+**Completed work in this session**
+-   **Admin Password Management**: Implemented backend endpoints (, , ) and the corresponding frontend UI in the admin user profile page.
+-   **Admin Capability Expansion**:
+    -   Implemented UI and backend for **Store Credit Adjustment**, **Order Intervention** (pickup time/payment method), **Account Notes (CRM)**, and **Account Merging**.
+-   **User Retention Features**:
+    -   Implemented a **Next Order Coupon** system, automatically issued upon order completion.
+    -   Added a **Cloudz Progress Reminder** to the user account page.
+-   **Bug Fixes & Restorations**:
+    -   **Username Creation**: Restored the UI for users to create a unique handle () on their account page.
+    -   **Referral System**: Fixed case-sensitivity bugs in the backend logic for referral code lookups.
+    -   **Admin Panel Race Condition**: Resolved an issue where admin pages made API calls before authentication was ready, by adding the  to  dependency arrays.
+    -   **Data Security**: Removed the  hash field from the user profile API response.
+    -   **Data Consistency**: Ensured that updating a user's  also updates their .
+    -   **Build/Cache Stability**: Resolved multiple frontend issues caused by Metro bundler's stale cache by restarting services and clearing caches.
+
+**Earlier issues found/mentioned but not fixed**
+-   None. All issues identified in this session were addressed.
+
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Mismatches between the local repository and the deployed environment.
--   **Recurrence count**: Multiple times throughout the session.
--   **Status**: RESOLVED. The agent performed a thorough audit and fixed all identified discrepancies (Venmo, Product Page Header, Drawer Navigation). The codebase is now in parity with the target staging environment.
+-   **Issue recurrence in previous fork**: Frontend not reflecting backend changes.
+-   **Recurrence count**: High. This happened multiple times during the session, requiring the agent to debug Metro bundler cache issues and force-restart the frontend service.
+-   **Status**: RESOLVED (for now). The agent has become proficient at identifying and resolving these cache-related issues.
 
 **Code Architecture**
 
@@ -85,58 +107,66 @@ The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB 
 -   **Frontend**: React Native, Expo (for Web), Expo Router, TypeScript
 -   **Backend**: FastAPI, Python
 -   **Database**: MongoDB
--   **State Management**: Zustand (newly introduced for global drawer state).
--   **Deployment**: Single-container model where FastAPI serves both the API and the static frontend build artifacts. The  directory is generated on deployment.
+-   **State Management**: Zustand
+-   **Debugging**: Heavy focus on debugging React  race conditions and frontend build cache invalidation (Metro).
 
 **key DB schema**
--   No changes were made to the database schema.
+-   **users collection**:
+    -    (new)
+    -    (new)
+    -    (new)
+    -    (new)
+    -    (now has a creation UI)
+-   **orders collection**:
+    -    (new)
 
 **changes in tech stack**
--   ****: Added to the frontend for global state management.
+-   None.
 
 **All files of reference**
--   : (New) Zustand store to manage the open/closed state of the navigation drawer globally.
--   : (New) The UI component for the side drawer, which is now rendered in the root layout to be accessible from any page.
--   : (Updated) The header icon's  handler was changed to call  instead of navigating to a different page.
--   : (Updated) The new  component is mounted here to make it available throughout the app.
--   : (Updated) Removed the old, locally-scoped drawer implementation.
--   : (Updated) Removed 'Venmo' from the list of available payment methods.
--   : (Updated) Re-instated the  to ensure the cart badge is visible.
--   : (Updated) Moved  to  to fix production builds.
+-   : The monolithic backend file, updated with all new API logic.
+-   : The main admin user detail screen, now significantly more complex.
+-   : The main user account screen, with new handle creation and loyalty UI.
+-   : The user checkout screen, updated to support coupons.
+-   : The admin user list screen.
+-   : The admin order list screen.
 
 **Areas that need refactoring**:
--    is still a large monolith.
--   Admin screens could be broken down into smaller components.
+-    is now extremely large and should be the top priority for refactoring into a proper route/service structure.
+-    has grown to over 600 lines and is difficult to maintain. The tab content and modals should be extracted into separate components.
 
 **key api endpoints**
--   : Verified to be working and unauthenticated. This is critical for the external uptime service needed to complete SSL provisioning.
+-   
+-   
+-   
+-   
+-   
+-    (extended)
+-   
 
 **Critical Info for New Agent**
--   The immediate task is to bind the custom domains  and  and ensure SSL is provisioned.
--   An external uptime service must be configured to ping  every minute to keep the environment from sleeping, which is a prerequisite for the SSL certificate authority (ACME) to validate the domain.
--   The project now uses **Zustand** for global state, specifically for the navigation drawer. The relevant files are  and .
--   The user strictly forbids the use of automated testing agents (). All verification must be done manually with screenshots or .
--   The codebase has been brought into parity with a known-good staging deployment. Do not re-introduce the features that were just removed (e.g., Venmo at checkout).
+-   Your immediate task is to present the recently completed work to the user for verification. A large number of features and fixes have been implemented and must be validated before proceeding.
+-   The user has strictly forbidden the use of automated testing agents. All verification must be done manually with screenshots or .
+-   Be aware of potential frontend build/cache issues. If the UI doesn't update after a code change, the first step is to restart the frontend service (frontend: ERROR (no such process)
+frontend: ERROR (no such process)) and clear the Metro cache if necessary.
+-   The  and  files are now very large and are prime candidates for refactoring.
 
 **documents and test reports created in this job**
 -    (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Stop deployment. The CD icon in the header is broken; it should open the side drawer, not navigate to the Cloudz page. (Status: **Completed**)
-2.  **Agent**: Fixed the CD icon by implementing a global Zustand store for the drawer and mounting it in the root layout. (Status: **Completed**)
-3.  **User**: Deployment failed due to a missing  module. (Status: **Completed**)
-4.  **Agent**: Fixed the build by moving the Babel plugin from  to  in . (Status: **Completed**)
-5.  **User**: We need to finalize production stability. Verify health endpoints, confirm API paths, and explain how to keep the preview environment awake for domain binding. (Status: **Completed**)
-6.  **Agent**: Confirmed  works, recommended using an external uptime service like UptimeRobot, confirmed API paths are correct, and rebuilt the production bundle. (Status: **Completed**)
-7.  **User**: Bind  and  to the deployment and trigger SSL provisioning. (Status: **Pending**)
-8.  There are no other pending user messages.
+1.  **User**: Perform an audit of admin capabilities and implement all missing features (Cloudz/Credit adjustment, Order intervention, Account Notes, Account Merge, Next Order Coupon, Cloudz Reminder). (Status: **Completed**)
+2.  **Agent**: Completed the implementation of all requested admin and retention features. (Status: **Completed**)
+3.  **User**: Reports that Reset Password is broken, username creation is missing, the referral system is failing, and admin tabs need verification. (Status: **In Progress**)
+4.  **Agent**: Investigated all reported issues. (Status: **Completed**)
+5.  **Agent**: Identified root causes: a previous syntax error, missing UI in , case-sensitivity bugs in backend referral logic, and a password hash leak in an API response. (Status: **Completed**)
+6.  **Agent**: Implemented fixes for all identified backend and frontend issues in parallel. (Status: **Completed**)
+7.  **Agent**: Verified all backend fixes using  and data integrity checks. (Status: **Completed**)
+8.  **Agent**: Verified frontend fixes by taking screenshots, resolving a Metro cache issue along the way. The final screenshot confirms the new Create a Handle UI is visible on the account page. (Status: **Completed, pending user verification**)
 
 **Project Health Check:**
--   **Broken**:
-    -   Custom domain binding () is not yet complete. SSL has not been provisioned.
--   **Mocked**:
-    -   The email utility () is not integrated.
-    -   The user-facing checkout flow does not yet allow spending .
+-   **Broken**: None known. All recently implemented features and bug fixes are pending user verification.
+-   **Mocked**: The email utility () is not integrated or used.
 
 **3rd Party Integrations**
 -   **Expo**: Core framework for the React Native frontend.
@@ -147,11 +177,11 @@ The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB 
 -   **Testing agent used after significant changes**: NO (explicitly forbidden by user).
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
--   **Known regressions**: Several regressions from a previous stable build were identified and fixed during this session (Venmo payment, product page header, drawer navigation).
+-   **Known regressions**: Multiple regressions were identified and fixed during this session, including the password reset flow, referral logic, and admin page loading.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 
 **What agent forgot to execute**
--   The agent has followed all step-by-step user instructions meticulously. The final task of binding the domain was only just assigned and has not been executed yet.</analysis>
+-   The P0 task from the previous session (Bind custom domain) was superseded by two large user requests for features and bug fixes. This task is still pending and has been added to the issue list as P1.</analysis>

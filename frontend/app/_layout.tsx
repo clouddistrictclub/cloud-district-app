@@ -6,6 +6,7 @@ import { useCartStore } from '../store/cartStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import GlobalDrawer from '../components/GlobalDrawer';
+import { ToastProvider } from '../components/Toast';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -37,12 +38,14 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false
-        }}
-      />
-      <GlobalDrawer />
+      <ToastProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false
+          }}
+        />
+        <GlobalDrawer />
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

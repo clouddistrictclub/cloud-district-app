@@ -1,5 +1,5 @@
 # Cloud District Club - Product Requirements Document
-_Last updated: 2026-03-09_
+_Last updated: 2026-03-10_
 
 ## Original Problem Statement
 Mobile app for local pickup of disposable vape products, 21+ age gate.
@@ -95,6 +95,7 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Frontend: Cloudz Progress Reminder in account.tsx (shows when within 20% of next tier)
   - Frontend: Coupon section in checkout.tsx — display, toggle, and apply at order placement
   - DB Consistency: preview uses local MongoDB (localhost:27017/test_database); production uses separate instance
+- **ToastProvider Fix** (2026-03-10): Added `ToastProvider` to root `_layout.tsx` — previously missing, causing all `toast.show()` calls to be silent no-ops; admin actions (password reset, credit adjustments, etc.) now show success/error toasts
 
 ## Future (P2+)
 - Backend monolith refactor
