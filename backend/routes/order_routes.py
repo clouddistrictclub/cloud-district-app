@@ -169,6 +169,12 @@ async def cancel_order(order_id: str, user=Depends(get_current_user)):
             {"_id": ObjectId(item["productId"])},
             {"$inc": {"stock": item["quantity"]}}
         )
+    # Restore store credit if any was applied
+    if order.get("storeCreditApplied", 0) > 0:
+        await db.users.update_one(
+            {"_id": ObjectId(order["userId"])},
+            {"$inc": {"creditBalance": order["storeCreditApplied"]}}
+        )
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": "Cancelled"}})
     return {"message": "Order cancelled"}
 

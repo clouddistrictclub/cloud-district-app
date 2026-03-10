@@ -17,6 +17,7 @@ interface LeaderboardEntry {
   tier: string | null;
   tierColor: string;
   isCurrentUser: boolean;
+  movement: number | null;
 }
 
 type Tab = 'points' | 'referrals';
@@ -85,7 +86,24 @@ export default function Leaderboard() {
             </View>
           )}
         </View>
-        <Text style={styles.scoreText} data-testid="leaderboard-score">{score}</Text>
+        <Text style={styles.scoreText}>{score}</Text>
+        {item.movement !== null && item.movement !== undefined && (
+          <View style={styles.movementBadge}>
+            {item.movement > 0 ? (
+              <>
+                <Ionicons name="caret-up" size={12} color="#22c55e" />
+                <Text style={[styles.movementText, { color: '#22c55e' }]}>{item.movement}</Text>
+              </>
+            ) : item.movement < 0 ? (
+              <>
+                <Ionicons name="caret-down" size={12} color="#ef4444" />
+                <Text style={[styles.movementText, { color: '#ef4444' }]}>{Math.abs(item.movement)}</Text>
+              </>
+            ) : (
+              <Text style={[styles.movementText, { color: '#555' }]}>—</Text>
+            )}
+          </View>
+        )}
       </View>
     );
   };
@@ -257,6 +275,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  movementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+    minWidth: 28,
+    justifyContent: 'flex-end',
+  },
+  movementText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   empty: {
     flex: 1,

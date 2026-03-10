@@ -97,9 +97,21 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - DB Consistency: preview uses local MongoDB (localhost:27017/test_database); production uses separate instance
 - **ToastProvider Fix** (2026-03-10): Added `ToastProvider` to root `_layout.tsx` — previously missing, causing all `toast.show()` calls to be silent no-ops; admin actions (password reset, credit adjustments, etc.) now show success/error toasts
 
+## Completed (2026-03-10 Session 2)
+- **Leaderboard Rank Movement** (2026-03-10):
+  - `leaderboard_snapshot_loop` runs on startup, writes one snapshot to `leaderboard_snapshots` per day (idempotent)
+  - `GET /api/leaderboard` returns `movement: number | null` per entry (positive=up, negative=down, 0=same, null=no prior snapshot)
+  - `leaderboard.tsx` interface extended with `movement` field; `renderItem()` renders ↑ green / ↓ red / — neutral indicators
+  - End-to-end verified: Justin K. +1, Brianna C. -1, Andrew M. 0, others null (no prior snapshot)
+- **Store Credit at Checkout** (2026-03-10):
+  - `OrderCreate` schema: `storeCreditApplied: float = 0.0`; `Order` schema: same field persisted
+  - Backend deducts `storeCreditApplied` from `user.creditBalance` atomically on order creation
+  - Order cancellation now restores `storeCreditApplied` to user's `creditBalance`
+  - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
+  - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
+
 ## Future (P2+)
-- Backend monolith refactor
-- Admin screen modularization
-- Google Workspace email integration
+- Admin screen modularization (user-profile.tsx is 600+ lines)
+- Google Workspace email integration (email_service.py is currently MOCKED)
 - Push notifications expansion
 - Social sharing (X, Facebook, Instagram) for Ways to Earn
