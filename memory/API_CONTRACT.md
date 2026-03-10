@@ -1,3 +1,15 @@
+```
+Cloud District Club API
+Version: v1.0
+Status: Frozen API Contract
+Date: 2026-03-10
+
+Rules:
+* This document represents the authoritative backend API contract.
+* No breaking changes are permitted without incrementing the API version.
+* All future clients (mobile, web, admin) must follow this specification exactly.
+```
+
 # Cloud District Club — API Contract
 **Version:** 1.0  
 **Frozen from:** `/app/openapi.json` + source validation (iteration_32, 107/112 tests passing)  
