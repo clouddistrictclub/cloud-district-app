@@ -26,6 +26,8 @@ async def register(user_data: UserRegister):
         ref_input = user_data.referralCode.strip()
         referrer = await db.users.find_one({"referralCode": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
         if not referrer:
+            referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
+        if not referrer:
             raise HTTPException(status_code=400, detail="Invalid referral code")
         referred_by = str(referrer["_id"])
 
