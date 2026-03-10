@@ -84,6 +84,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "couponDiscount": coupon_discount,
         "createdAt": created_at,
         "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
+        "referralRewardIssued": False,
     }
 
     result = await db.orders.insert_one(order_dict)
