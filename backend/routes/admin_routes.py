@@ -4,7 +4,8 @@ from auth import get_admin_user, build_user_response, get_password_hash
 from models.schemas import (
     UserResponse, AdminUserUpdate, CreditAdjust, AdminReferrerUpdate,
     CloudzAdjust, AdminSetPassword, AdminUserNotes, MergeRequest,
-    Order, OrderStatusUpdate, OrderEdit, ReviewModerationUpdate
+    Order, OrderStatusUpdate, OrderEdit, ReviewModerationUpdate,
+    UserUsernameUpdate
 )
 from services.loyalty_service import log_cloudz_transaction, maybe_award_streak_bonus
 from services.order_service import send_push_notification, chat_manager
@@ -182,6 +183,27 @@ async def admin_force_logout(user_id: str, admin=Depends(get_admin_user)):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True}
+
+
+@router.patch("/admin/users/{user_id}/username", response_model=UserResponse)
+async def admin_set_username(user_id: str, data: UserUsernameUpdate, admin=Depends(get_admin_user)):
+    username = data.username.strip().lower()
+    if not _re.match(r'^[a-z0-9_]{3,20}$', username):
+        raise HTTPException(status_code=400, detail="Username must be 3–20 characters: lowercase letters, numbers, underscores only")
+    existing = await db.users.find_one({
+        "username": username,
+        "_id": {"$ne": ObjectId(user_id)},
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"username": username}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    return build_user_response(user)
 
 
 @router.patch("/admin/users/{user_id}/notes")
