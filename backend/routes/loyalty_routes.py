@@ -43,10 +43,6 @@ async def redeem_tier(req: TierRedeemRequest, user=Depends(get_current_user)):
     if existing:
         raise HTTPException(status_code=400, detail="You already have an active reward for this tier. Use it at checkout first.")
 
-    await db.users.update_one(
-        {"_id": user["_id"]},
-        {"$inc": {"loyaltyPoints": -tier["pointsRequired"]}}
-    )
     await log_cloudz_transaction(
         str(user["_id"]), "tier_redemption", -tier["pointsRequired"],
         f"Redeemed {tier['name']} (${tier['reward']:.2f} off)",

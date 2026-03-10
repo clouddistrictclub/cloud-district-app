@@ -153,10 +153,8 @@ async def admin_get_cloudz_ledger(user_id: str, admin=Depends(get_admin_user)):
 
 @router.post("/admin/users/{user_id}/cloudz-adjust")
 async def admin_adjust_cloudz(user_id: str, data: CloudzAdjust, admin=Depends(get_admin_user)):
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$inc": {"loyaltyPoints": data.amount}})
-    await log_cloudz_transaction(user_id, "admin_adjustment", data.amount, data.description, data.description)
-    updated = await db.users.find_one({"_id": ObjectId(user_id)}, {"loyaltyPoints": 1})
-    return {"message": "Balance updated", "newBalance": updated.get("loyaltyPoints", 0) if updated else 0}
+    new_balance = await log_cloudz_transaction(user_id, "admin_adjustment", data.amount, data.description, data.description)
+    return {"message": "Balance updated", "newBalance": new_balance}
 
 
 @router.post("/admin/users/{user_id}/set-password")
@@ -230,10 +228,11 @@ async def merge_users(data: MergeRequest, admin=Depends(get_admin_user)):
     source_credit = source.get("creditBalance", 0.0)
     source_points = source.get("loyaltyPoints", 0)
     if source_credit > 0 or source_points > 0:
-        await db.users.update_one(
-            {"_id": ObjectId(data.targetUserId)},
-            {"$inc": {"creditBalance": source_credit, "loyaltyPoints": source_points}}
-        )
+        if source_credit > 0:
+            await db.users.update_one(
+                {"_id": ObjectId(data.targetUserId)},
+                {"$inc": {"creditBalance": source_credit}}
+            )
         if source_points > 0:
             await log_cloudz_transaction(
                 data.targetUserId, "admin_adjustment", source_points,
@@ -319,10 +318,6 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         return {"message": "Order status updated"}
 
     if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
-        await db.users.update_one(
-            {"_id": ObjectId(order["userId"])},
-            {"$inc": {"loyaltyPoints": order["loyaltyPointsEarned"]}}
-        )
         await log_cloudz_transaction(
             order["userId"], "purchase_reward", order["loyaltyPointsEarned"],
             f"Order #{order_id[:8]}",
@@ -352,12 +347,18 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                 if referrer_check and reward > 0:
                     await db.users.update_one(
                         {"_id": ObjectId(referrer_id)},
-                        {"$inc": {"loyaltyPoints": reward}}
+                        {"$inc": {"referralRewardsEarned": reward}}
+                    )
+                    ref_result = await db.users.find_one_and_update(
+                        {"_id": ObjectId(referrer_id)},
+                        {"$inc": {"loyaltyPoints": reward}},
+                        return_document=True,
                     )
                     await db.cloudz_ledger.insert_one({
                         "userId": referrer_id,
                         "type": "referral_reward",
                         "amount": reward,
+                        "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
                         "description": f"Referral reward from order #{order_id}",
                         "orderId": order_id,
                         "createdAt": datetime.utcnow(),
@@ -420,16 +421,23 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin=Depe
         old_user = await db.users.find_one({"_id": ObjectId(user_id)})
         if old_user:
             old_points = old_user.get("loyaltyPoints", 0)
-    result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_dict})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    if old_points is not None:
-        delta = update_dict["loyaltyPoints"] - old_points
+    # Remove loyaltyPoints from $set — log_cloudz_transaction handles the $inc
+    points_target = update_dict.pop("loyaltyPoints", None)
+    if update_dict:
+        result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_dict})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+    if points_target is not None and old_points is not None:
+        delta = points_target - old_points
         if delta != 0:
             await log_cloudz_transaction(
                 user_id, "admin_adjustment", delta,
-                f"Admin set balance to {update_dict['loyaltyPoints']}"
+                f"Admin set balance to {points_target}"
             )
+    elif points_target is not None:
+        # edge: user not found for old_points fetch — verify user exists
+        if not await db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 1}):
+            raise HTTPException(status_code=404, detail="User not found")
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     return build_user_response(user)
 

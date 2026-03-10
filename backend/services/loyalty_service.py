@@ -11,15 +11,19 @@ logger = logging.getLogger(__name__)
 async def log_cloudz_transaction(
     user_id: str, tx_type: str, amount: int,
     reference: str = "", description: str = "", order_id: str = ""
-):
-    """Log every Cloudz balance change to the ledger collection."""
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    balance_after = user.get("loyaltyPoints", 0) if user else 0
+) -> int:
+    """Atomically update Cloudz balance and write ledger entry. Returns new balance."""
+    result = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id)},
+        {"$inc": {"loyaltyPoints": amount}},
+        return_document=True,
+    )
+    new_balance = result["loyaltyPoints"] if result else 0
     entry = {
         "userId": user_id,
         "type": tx_type,
         "amount": amount,
-        "balanceAfter": balance_after,
+        "balanceAfter": new_balance,
         "reference": reference,
         "description": description or reference,
         "createdAt": datetime.utcnow(),
@@ -27,6 +31,7 @@ async def log_cloudz_transaction(
     if order_id:
         entry["orderId"] = order_id
     await db.cloudz_ledger.insert_one(entry)
+    return new_balance
 
 
 def resolve_tier(points: int):
@@ -84,12 +89,12 @@ async def maybe_award_streak_bonus(user_id: str, order_id: str):
     bonus = get_streak_bonus(streak)
     if bonus <= 0:
         return 0
-    await db.users.update_one(
+    result = await db.users.find_one_and_update(
         {"_id": ObjectId(user_id)},
         {"$inc": {"loyaltyPoints": bonus}},
+        return_document=True,
     )
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    balance_after = user.get("loyaltyPoints", 0) if user else 0
+    balance_after = result["loyaltyPoints"] if result else 0
     await db.cloudz_ledger.insert_one({
         "userId": user_id,
         "type": "streak_bonus",

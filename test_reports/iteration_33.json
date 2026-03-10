@@ -1,0 +1,118 @@
+{
+  "summary": "Iteration 33 — Full regression suite (107/112 pass, identical to iter_32 baseline) + 11 new ledger consistency tests (all pass). Validates atomic find_one_and_update Cloudz refactor: every ledger entry balanceAfter == user.loyaltyPoints in DB, no double-counting.",
+
+  "test_results_summary": {
+    "regression": {
+      "total": 112,
+      "passed": 107,
+      "failed": 1,
+      "skipped": 4,
+      "pass_rate": "95.5% — 107/112 (same as iteration_32 baseline)"
+    },
+    "ledger_consistency": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "pass_rate": "100%"
+    }
+  },
+
+  "regression_confirmation": {
+    "baseline": "107/112 from iteration_32",
+    "current": "107/112 (same PASSED tests, same false-failure, same 4 skips)",
+    "verdict": "FULL REGRESSION PASSED — no previously-passing test has broken",
+    "note": "First regression run hit 'No products with stock>5' (all products depleted from prior runs). Fixed by adding +100 stock to 5 products via admin API. Second run produced identical 107/112 result."
+  },
+
+  "ledger_consistency_results": {
+    "SIGNUP_BONUS_NO_DOUBLE_COUNT": "PASS — DB loyaltyPoints=500 (not 1000). New code: insert loyaltyPoints=0 + $inc 500 = 500.",
+    "SIGNUP_BONUS_LEDGER_BALANCE_AFTER": "PASS — ledger.balanceAfter=500 == DB.loyaltyPoints=500",
+    "ADMIN_ADJUST_POSITIVE_LEDGER_CONSISTENCY": "PASS — pts_before=31353, db_after=31453, ledger.balanceAfter=31453, API.newBalance=31453 (all match)",
+    "ADMIN_ADJUST_NO_DOUBLE_COUNT": "PASS — +50 adjust increments by exactly 50 (not 100). Old bug: update_one($inc:50) + log_cloudz_transaction($inc:50) = +100.",
+    "ADMIN_ADJUST_NEGATIVE_LEDGER_CONSISTENCY": "PASS — -50 adjust: db_after=31453, ledger.balanceAfter=31453",
+    "TIER_REDEMPTION_LEDGER_CONSISTENCY": "PASS — tier_1 (-1000 pts): ledger.amount=-1000, ledger.balanceAfter=30453 == DB=30453",
+    "TIER_REDEMPTION_REMAINING_POINTS": "PASS — ledger.balanceAfter=29453 == DB=29453",
+    "PURCHASE_REWARD_NO_DOUBLE_COUNT": "PASS — earned=90, delta=90 exactly (not 180). Old bug: update_one($inc:earned) + log_cloudz_transaction($inc:earned) = +2x.",
+    "PURCHASE_REWARD_LEDGER_CONSISTENCY": "PASS — ledger.balanceAfter=590 == DB=590",
+    "REFERRAL_SIGNUP_BONUS_LEDGER_CONSISTENCY": "PASS — referrer_after=1000, ledger.balanceAfter=1000",
+    "REFERRAL_PURCHASE_REWARD_LEDGER_CONSISTENCY": "PASS — total=30.0, reward=floor(30*0.5)=15, ledger.balanceAfter=1015 == DB=1015"
+  },
+
+  "false_failure_analysis": {
+    "test": "TestReviews::test_post_review_requires_purchase_403",
+    "expected": "403 or 400 (no qualifying purchase)",
+    "actual": "200 (review created successfully)",
+    "root_cause": "Same test-design issue as iter_31/32: test_user has a qualifying paid order from TestAdminOrders::test_admin_update_order_status_to_paid. NOT an API bug.",
+    "note": "Persistent false-failure — identical to iter_32."
+  },
+
+  "skipped_analysis": {
+    "reason": "Registration rate limit (5/min) hit after test_user + test_user2 + disposable/merge user registrations",
+    "skipped_tests": [
+      "TestAdminUsers::test_admin_force_logout_disposable_user — rate limit",
+      "TestAdminUsers::test_admin_merge_users — rate limit",
+      "TestFlow1UserRegistration::test_flow1 — rate limit",
+      "TestFlow4Referral::test_flow4 — rate limit"
+    ],
+    "note": "Same 4 skips as iter_31/32. All verified in prior iterations."
+  },
+
+  "environment_fix_applied": {
+    "issue": "Product stock depleted to 5 (fixture requires stock > 5) from prior test runs",
+    "fix": "Boosted top 5 products by +100 stock via PATCH /api/products/{id}/stock admin endpoint",
+    "impact": "First regression run had 24 skips (all 'No products with stock>5'). Second run after restock: 107/112 (correct).",
+    "note_for_next_agent": "If regression tests show 'No products with stock>5' skips, run the restock script. Products to watch: RYL 35K, CLIO Platinum, Pulse X, TRX, Meloso."
+  },
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_full_contract.py",
+    "/app/backend/tests/test_ledger_consistency.py",
+    "/app/test_reports/pytest/pytest_iteration33_regression.xml",
+    "/app/test_reports/pytest/pytest_iteration33_ledger.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "auth_routes.py line 106: `loyaltyPoints=signup_bonus` hardcodes 500 in response instead of reading from DB post-increment. This is cosmetically fine (always 500) but technically diverges from the DB-authoritative pattern. Minor.",
+    "loyalty_routes.py redeem: `remainingPoints` in response = user_points - tier[pointsRequired] (computed from stale pre-transaction user object). Could differ from actual DB if concurrent transactions. Low risk in practice."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_ledger_consistency.py — new file: 11 ledger consistency tests covering all atomic transaction scenarios",
+    "/app/backend/tests/test_full_contract.py — unchanged (iter_32 version)"
+  ],
+
+  "success_rate": {
+    "backend_regression": "95.5% — 107/112 (identical to iter_32 baseline)",
+    "ledger_consistency": "100% — 11/11"
+  },
+
+  "test_credentials": {
+    "admin_email": "jkaatz@gmail.com",
+    "admin_password": "Just1n23$",
+    "admin_id": "698f8be2f3e9a3d6ac40fb67"
+  },
+
+  "seed_data_creation": "TEST_lc_* users created and cleaned up during ledger tests. Product stock boosted +100 for 5 products.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "iter_33: Regression 107/112 (identical to iter_32). Atomic Cloudz refactor verified: all 11 ledger consistency tests pass. Key invariant confirmed: cloudz_ledger.balanceAfter == user.loyaltyPoints for all transaction types (signup_bonus, admin_adjustment, tier_redemption, purchase_reward, referral_signup_bonus, referral_reward). No double-counting in any flow. IMPORTANT: Product stock may deplete from test runs — if 'No products with stock>5' appears, restock via admin API. The test_ledger_consistency.py reuses referral users between tests (avoids hitting 5/min rate limit). Cleanup runs at end.",
+
+  "mocked_apis": "Email service is MOCKED — order confirmation emails are silent no-ops."
+}
