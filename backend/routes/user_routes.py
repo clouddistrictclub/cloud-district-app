@@ -37,7 +37,7 @@ async def update_username(data: UserUsernameUpdate, user=Depends(get_current_use
         raise HTTPException(status_code=400, detail="Username already taken")
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"username": username, "referralCode": username.lower()}}
+        {"$set": {"username": username}}
     )
     updated = await db.users.find_one({"_id": user["_id"]})
     return build_user_response(updated)

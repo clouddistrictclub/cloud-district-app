@@ -10,7 +10,7 @@ import re as _re
 
 def generate_referral_code():
     chars = string.ascii_uppercase + string.digits
-    return ''.join(sec_module.choice(chars) for _ in range(7))
+    return ''.join(sec_module.choice(chars) for _ in range(8))
 
 
 RESERVED_USERNAMES = {"admin", "support", "api", "clouddistrict", "orders", "root", "help"}

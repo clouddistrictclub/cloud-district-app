@@ -393,8 +393,6 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin=Depe
     update_dict = {k: v for k, v in user_data.dict().items() if v is not None}
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
-    if "username" in update_dict:
-        update_dict["referralCode"] = update_dict["username"].lower()
     old_points = None
     if "loyaltyPoints" in update_dict:
         old_user = await db.users.find_one({"_id": ObjectId(user_id)})
