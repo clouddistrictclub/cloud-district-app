@@ -70,6 +70,29 @@ async def register(request: Request, user_data: UserRegister):
     )
     await log_cloudz_transaction(user_id, "signup_bonus", signup_bonus, "Welcome to Cloud District Club!")
 
+    # Instant referral signup bonus (non-duplicate)
+    if referred_by:
+        already_issued = await db.cloudz_ledger.find_one({
+            "userId": referred_by,
+            "type": "referral_signup_bonus",
+            "referredUserId": user_id,
+        })
+        if not already_issued:
+            await db.users.update_one(
+                {"_id": ObjectId(referred_by)},
+                {"$inc": {"loyaltyPoints": 500, "referralCount": 1}}
+            )
+            referrer_doc = await db.users.find_one({"_id": ObjectId(referred_by)}, {"loyaltyPoints": 1})
+            await db.cloudz_ledger.insert_one({
+                "userId": referred_by,
+                "type": "referral_signup_bonus",
+                "amount": 500,
+                "balanceAfter": referrer_doc.get("loyaltyPoints", 0) if referrer_doc else 0,
+                "description": f"Referral signup bonus — {user_data.firstName} joined",
+                "referredUserId": user_id,
+                "createdAt": datetime.utcnow(),
+            })
+
     access_token = create_access_token(data={"sub": user_id})
 
     user_response = UserResponse(
