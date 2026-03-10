@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user
 from models.schemas import Order, OrderCreate
 from services.loyalty_service import log_cloudz_transaction
 from services.email_service import is_email_configured, send_email, build_order_confirmation_html
 from services.order_service import chat_manager
+from limiter import limiter, get_user_id_or_ip
 from datetime import datetime, timedelta
 from bson import ObjectId
 from typing import List
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/orders", response_model=Order)
-async def create_order(order_data: OrderCreate, user=Depends(get_current_user)):
+@limiter.limit("5/minute", key_func=get_user_id_or_ip)
+async def create_order(request: Request, order_data: OrderCreate, user=Depends(get_current_user)):
     # Verify products exist (non-atomic, fast pre-check for 404s only)
     for item in order_data.items:
         product = await db.products.find_one({"_id": ObjectId(item.productId)}, {"name": 1})

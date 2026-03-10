@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request
 from database import db, UPLOADS_DIR
 from auth import get_current_user, get_admin_user
 from models.schemas import (
@@ -7,6 +7,7 @@ from models.schemas import (
     ReviewCreate, ReviewResponse
 )
 from services.order_service import _save_base64_image
+from limiter import limiter, get_user_id_or_ip
 from datetime import datetime
 from pathlib import Path
 from bson import ObjectId
@@ -225,7 +226,8 @@ async def check_can_review(product_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/reviews", response_model=ReviewResponse)
-async def create_review(review_data: ReviewCreate, user=Depends(get_current_user)):
+@limiter.limit("5/hour", key_func=get_user_id_or_ip)
+async def create_review(request: Request, review_data: ReviewCreate, user=Depends(get_current_user)):
     user_id = str(user["_id"])
     if not (1 <= review_data.rating <= 5):
         raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")

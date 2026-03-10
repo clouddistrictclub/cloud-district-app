@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user, verify_password, get_password_hash, create_access_token, build_user_response
 from models.schemas import UserRegister, UserLogin, Token, UserResponse, generate_referral_code
 from services.loyalty_service import log_cloudz_transaction
+from limiter import limiter
 from datetime import datetime
 from bson import ObjectId
 import re as _re
@@ -11,7 +12,8 @@ router = APIRouter()
 
 
 @router.post("/auth/register", response_model=Token)
-async def register(user_data: UserRegister):
+@limiter.limit("5/minute")
+async def register(request: Request, user_data: UserRegister):
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -89,7 +91,8 @@ async def register(user_data: UserRegister):
 
 
 @router.post("/auth/login", response_model=Token)
-async def login(user_data: UserLogin):
+@limiter.limit("10/minute")
+async def login(request: Request, user_data: UserLogin):
     user = await db.users.find_one({"email": user_data.email})
     if not user or not verify_password(user_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
