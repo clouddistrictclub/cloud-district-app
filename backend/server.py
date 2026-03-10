@@ -679,6 +679,18 @@ async def get_product(product_id: str):
         raise HTTPException(status_code=404, detail="Product not found")
     return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k != "_id"})
 
+def _save_base64_image(b64: str) -> str:
+    """Decode a data-URI base64 image, write to disk, return the /api/uploads/... URL."""
+    header, encoded = b64.split(",", 1)
+    mime = header.split(";")[0].split(":")[1]
+    ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+    ext = ext_map.get(mime, ".jpg")
+    raw = base64.b64decode(encoded)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    (UPLOADS_DIR / filename).write_bytes(raw)
+    return f"/api/uploads/products/{filename}"
+
+
 @api_router.post("/products", response_model=Product)
 async def create_product(product: ProductCreate, admin = Depends(get_admin_user)):
     # Get brand name
@@ -687,6 +699,8 @@ async def create_product(product: ProductCreate, admin = Depends(get_admin_user)
         raise HTTPException(status_code=404, detail="Brand not found")
     
     product_dict = product.dict()
+    if product_dict.get("image", "").startswith("data:image/"):
+        product_dict["image"] = _save_base64_image(product_dict["image"])
     product_dict["brandName"] = brand["name"]
     product_dict["createdAt"] = datetime.utcnow()
     
@@ -701,6 +715,9 @@ async def update_product(product_id: str, product_data: ProductUpdate, admin = D
     
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
+    
+    if update_dict.get("image", "").startswith("data:image/"):
+        update_dict["image"] = _save_base64_image(update_dict["image"])
     
     # If brandId is being updated, get the new brand name
     if "brandId" in update_dict:
