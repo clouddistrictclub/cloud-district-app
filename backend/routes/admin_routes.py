@@ -600,6 +600,21 @@ async def get_admin_analytics(
         total_customers = repeat_customers = 0
         repeat_rate = avg_clv = 0.0
 
+    rpr_agg = await db.orders.aggregate([
+        {"$match": {"status": {"$ne": "Cancelled"}}},
+        {"$group": {"_id": "$userId", "orderCount": {"$sum": 1}}},
+        {"$group": {
+            "_id": None,
+            "totalUnique": {"$sum": 1},
+            "repeatUnique": {"$sum": {"$cond": [{"$gte": ["$orderCount", 2]}, 1, 0]}},
+        }},
+    ]).to_list(1)
+    if rpr_agg:
+        rpr = rpr_agg[0]
+        repeat_purchase_rate = round(rpr["repeatUnique"] / rpr["totalUnique"] * 100, 1) if rpr["totalUnique"] else 0.0
+    else:
+        repeat_purchase_rate = 0.0
+
     seven_days_ago = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
     trend_raw = await db.orders.aggregate([
         {"$match": {"createdAt": {"$gte": seven_days_ago}}},
@@ -633,4 +648,5 @@ async def get_admin_analytics(
         "totalCustomers": total_customers,
         "repeatCustomers": repeat_customers,
         "revenueTrendLast7Days": revenue_trend,
+        "repeatPurchaseRate": repeat_purchase_rate,
     }
