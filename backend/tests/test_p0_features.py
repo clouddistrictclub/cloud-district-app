@@ -9,7 +9,7 @@ import json
 import asyncio
 import websockets
 
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://vape-club-dev.preview.emergentagent.com')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://district-club.preview.emergentagent.com')
 
 # Test credentials
 ADMIN_EMAIL = "jkaatz@gmail.com"

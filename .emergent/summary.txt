@@ -20,168 +20,186 @@ The user wants to build a mobile-first web app called Cloud District Club for th
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. In this session, the agent implemented two large sets of user requests. First, it added comprehensive admin password management (reset, disable, force logout). Second, it conducted a full audit of admin capabilities and built all missing features, including store credit/Cloudz adjustment UI, advanced order editing, private account notes, account merging, a next order coupon system, and a Cloudz progress reminder.
-
-Subsequently, the user reported several bugs. The agent investigated and fixed them all: restored the Reset Password functionality, added a UI for users to create a unique handle (username), fixed case-sensitivity bugs in the referral system, and prevented the API from leaking password hashes. The codebase now contains all these new features and fixes, which are ready for user validation.
+The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. In this session, the agent performed a major backend refactoring, splitting the monolithic  into a modular structure with routes, services, and models. Numerous new features and bug fixes were implemented, including:
+-   **Backend Features**: Atomic inventory updates, automatic expiration for unpaid orders, rate limiting on key endpoints, image storage migration from DB to disk, instant referral signup bonuses, admin ability to change usernames, and leaderboard rank movement tracking.
+-   **Frontend Bug Fixes**: Fixed a non-functional Update Password button by correctly mounting the . Resolved a UI bug on the sign-up page where the date of birth input was unusable on mobile.
+-   **Validation & Security**: Added Pydantic-based request validation and made referral codes immutable.
+The codebase is now significantly more robust, secure, and maintainable.
 
 **Last working item**:
--   **Last item agent was working on**: Implementing a list of bug fixes and feature restorations reported by the user. The final step was adding a UI to  for users to create their unique handle (), which also functions as their referral code.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: Manual testing by user. The user has explicitly forbidden the use of automated testing agents. If issues are found, the agent should use  for backend verification and screenshots for frontend verification.
+-   **Last item agent was working on**: Implementing a leaderboard rank movement tracking system. This involved creating a new background task to take daily snapshots of the leaderboard and modifying the  endpoint to compare today's ranks with yesterday's to show movement (, , ).
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. The agent needs to verify the background task runs correctly and that the API endpoint returns the  field as expected. This may require manually triggering the task or manipulating system time to create snapshots for yesterday and today.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: (P0) User verification for new admin tools and bug fixes.
--   Issue 2: (P1) Bind custom domains and verify SSL.
+-   Issue 1: (P0) Test and verify the new leaderboard rank movement feature.
+-   Issue 2: (P1) User verification for all new features and bug fixes implemented in this session.
 
 **Issues Detail**:
--   **Issue 1**: User needs to verify that the recently implemented features and bug fixes are working as expected.
-    -   **Attempted fixes**: N/A. The work is complete and pending review.
-    -   **Next debug checklist**: The user will test the following flows:
-        1.  **Admin Password Reset**: From the admin user profile, reset a user's password and confirm they can log in with the new one.
-        2.  **Username Creation**: As a regular user, navigate to the Account page and create a unique handle.
-        3.  **Referral System**: Confirm that using the new handle as a referral code during signup works correctly.
-        4.  **Admin Tabs**: In the admin user profile, check that all tabs (Orders, Reviews, Referral, Ledger, Notes, Credit) load data correctly.
-        5.  **Admin Actions**: Test the Disable Account and Force Logout features.
-        6.  **Admin Tools**: Test Cloudz/Credit adjustment, Account Notes, and Account Merge.
-        7.  **Retention Features**: Complete an order and verify a coupon is issued. Check the Cloudz progress reminder on the account page.
-    -   **Why fix this issue and what will be achieved with the fix?**: This will validate a large batch of critical admin and user-facing functionality, ensuring the application is stable and correct.
+-   **Issue 1**: Test and verify the new leaderboard rank movement feature.
+    -   **Attempted fixes**: The code has been implemented across  (background task),  (task startup), and  (API logic).
+    -   **Next debug checklist**:
+        1.  Manually run the  function to create a snapshot for yesterday.
+        2.  Change some user  in the database to ensure ranks will change.
+        3.  Manually run the  function again to create a snapshot for today.
+        4.  Call the  endpoint using .
+        5.  Verify that the response for each user includes a  field with a calculated integer value (positive, negative, or zero).
+    -   **Why fix this issue and what will be achieved with the fix?**: This will complete the final feature implemented in the session and ensure it works as designed before handing off to the user.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2**: User verification for all new features and bug fixes.
+    -   **Attempted fixes**: N/A. The user has explicitly stated they want to test the features now that the bugs are fixed.
+    -   **Next debug checklist**: The agent should present a summary of the completed work and ask the user to test the application. Key areas for the user to check:
+        1.  Sign-up page: Is the Date of Birth field working correctly on mobile?
+        2.  Account page: Does the Update Password button now provide feedback (success/error toasts)?
+        3.  Create a new product with an image and verify it's saved correctly.
+        4.  Place an order and let it sit for over 30 minutes to see if it expires.
+        5.  Register with a referral code and check if both the new user and referrer receive their 500 Cloudz bonus instantly.
+    -   **Why fix this issue and what will be achieved with the fix?**: Validates all the work done in this long session, ensuring the application is stable and meets user expectations before proceeding to new tasks.
     -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
-
--   **Issue 2**: Bind  and  to the deployment.
-    -   **Attempted fixes**: None. This task was prioritized down after the user requested new features and bug fixes.
-    -   **Next debug checklist**:
-        1.  Use platform tooling to add  and  as custom domains.
-        2.  Trigger SSL provisioning.
-        3.  Ensure an external uptime service is pinging  to keep the environment awake for the ACME challenge.
-        4.  Verify by running .
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the final step to make the application live on its production domain.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None.
+-   Task 1: Complete implementation of leaderboard rank movement tracking.
+    -   **Where to resume**: The code is written. The task needs to be tested end-to-end as described in Issue 1 above.
+    -   **What will be achieved with this?**: Users on the leaderboard will be able to see how their rank has changed since the previous day.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
     -   **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
 -   **Future Tasks**:
-    -   **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
     -   **P2: Admin screen modularization**: Break down large admin components like .
-    -   **P2: Google Workspace Integration**: Implement email sending via .
+    -   **P2: Google Workspace Integration**: Fully implement email sending via .
     -   **P3: Push notifications expansion**.
 
 **Completed work in this session**
--   **Admin Password Management**: Implemented backend endpoints (, , ) and the corresponding frontend UI in the admin user profile page.
--   **Admin Capability Expansion**:
-    -   Implemented UI and backend for **Store Credit Adjustment**, **Order Intervention** (pickup time/payment method), **Account Notes (CRM)**, and **Account Merging**.
--   **User Retention Features**:
-    -   Implemented a **Next Order Coupon** system, automatically issued upon order completion.
-    -   Added a **Cloudz Progress Reminder** to the user account page.
--   **Bug Fixes & Restorations**:
-    -   **Username Creation**: Restored the UI for users to create a unique handle () on their account page.
-    -   **Referral System**: Fixed case-sensitivity bugs in the backend logic for referral code lookups.
-    -   **Admin Panel Race Condition**: Resolved an issue where admin pages made API calls before authentication was ready, by adding the  to  dependency arrays.
-    -   **Data Security**: Removed the  hash field from the user profile API response.
-    -   **Data Consistency**: Ensured that updating a user's  also updates their .
-    -   **Build/Cache Stability**: Resolved multiple frontend issues caused by Metro bundler's stale cache by restarting services and clearing caches.
+-   **Backend Refactoring**: Major refactor of monolithic  into a modular structure (, , ).
+-   **Bug Fixes**:
+    -   Fixed Update Password button by mounting  in .
+    -   Fixed mobile UI for Date of Birth input on the sign-up page in .
+    -   Fixed referral reward logic by initializing  on order creation in .
+-   **Feature Implementation**:
+    -   **Order Expiration**: Implemented automatic expiration of unpaid orders after 30 minutes with inventory restoration ().
+    -   **Atomic Inventory**: Made inventory deduction atomic to prevent overselling race conditions ().
+    -   **Image Storage**: Migrated new product images from base64 in DB to file storage on disk (, ).
+    -   **Request Validation**: Added Pydantic validation to critical API endpoints ().
+    -   **Referral System**:
+        -   Made  immutable and decoupled from .
+        -   Allowed  as a fallback for referral lookup ().
+        -   Added instant 500 Cloudz signup bonus for both referrer and new user ().
+    -   **Rate Limiting**: Added -based rate limiting to sensitive endpoints (, , route files).
+    -   **Admin Tools**: Added an admin endpoint to change a user's username ().
+    -   **Analytics**: Added Repeat Purchase Rate to the admin analytics endpoint ().
+    -   **Leaderboard**: Implemented rank movement tracking (testing pending).
+-   **Documentation**:
+    -   Generated a complete  schema for the application.
 
 **Earlier issues found/mentioned but not fixed**
--   None. All issues identified in this session were addressed.
+-   None.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Frontend not reflecting backend changes.
--   **Recurrence count**: High. This happened multiple times during the session, requiring the agent to debug Metro bundler cache issues and force-restart the frontend service.
--   **Status**: RESOLVED (for now). The agent has become proficient at identifying and resolving these cache-related issues.
+-   **Issue recurrence in previous fork**: Frontend not reflecting backend changes due to Metro bundler cache issues.
+-   **Recurrence count**: High. This happened again during the session.
+-   **Status**: RESOLVED (for now). The agent knows the standard fix is frontend: ERROR (no such process)
+frontend: ERROR (no such process). This remains a known environmental quirk.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Frontend**: React Native, Expo (for Web), Expo Router, TypeScript
--   **Backend**: FastAPI, Python
+-   **Backend**: FastAPI, Python, Motor (async MongoDB driver)
 -   **Database**: MongoDB
 -   **State Management**: Zustand
--   **Debugging**: Heavy focus on debugging React  race conditions and frontend build cache invalidation (Metro).
+-   **Backend Architecture**: Modular (Routes, Services, Models)
+-   **Security**: JWT, bcrypt, Pydantic validation, Rate Limiting ()
+-   **Background Tasks**:  for daily/periodic tasks.
 
 **key DB schema**
--   **users collection**:
+-   **orders**:
     -    (new)
-    -    (new)
-    -    (new)
-    -    (new)
-    -    (now has a creation UI)
--   **orders collection**:
-    -    (new)
+    -    (new, initialized to )
+-   **leaderboard_snapshots**: (new collection)
+    -   
+    -   
+-   **cloudz_ledger**:
+    -    (new type added)
 
 **changes in tech stack**
--   None.
+-    library added to  for rate limiting.
 
 **All files of reference**
--   : The monolithic backend file, updated with all new API logic.
--   : The main admin user detail screen, now significantly more complex.
--   : The main user account screen, with new handle creation and loyalty UI.
--   : The user checkout screen, updated to support coupons.
--   : The admin user list screen.
--   : The admin order list screen.
+-   : Main application entry point (refactored).
+-   : Directory containing all new API route modules.
+-   : Directory containing all new service logic modules.
+-   : Contains all Pydantic models and validation logic.
+-   : Contains the shared rate limiter instance.
+-   : Root layout, where the toast provider was added.
+-   : Sign-up form, where the DOB input was fixed.
+-   : Generated API schema.
 
 **Areas that need refactoring**:
--    is now extremely large and should be the top priority for refactoring into a proper route/service structure.
--    has grown to over 600 lines and is difficult to maintain. The tab content and modals should be extracted into separate components.
+-    is over 600 lines and is the top priority for frontend refactoring. The various tabs and modals should be extracted into their own components.
 
 **key api endpoints**
--   
--   
--   
--   
--   
--    (extended)
--   
+-   : (New) Allows an admin to update a user's username.
+-   Rate limits applied to:
+    -    (10/min/IP)
+    -    (5/min/IP)
+    -    (5/min/user)
+    -    (5/hour/user)
 
 **Critical Info for New Agent**
--   Your immediate task is to present the recently completed work to the user for verification. A large number of features and fixes have been implemented and must be validated before proceeding.
--   The user has strictly forbidden the use of automated testing agents. All verification must be done manually with screenshots or .
--   Be aware of potential frontend build/cache issues. If the UI doesn't update after a code change, the first step is to restart the frontend service (frontend: ERROR (no such process)
-frontend: ERROR (no such process)) and clear the Metro cache if necessary.
--   The  and  files are now very large and are prime candidates for refactoring.
+-   The backend has been completely refactored. Familiarize yourself with the new modular structure in  (, , ). The monolithic  is gone.
+-   Your first task is to test and verify the newly implemented leaderboard rank movement feature. The code is written but untested.
+-   After verifying the leaderboard, your priority is to present all completed work to the user for their own testing and validation, as they requested.
+-   The user has clarified that domain binding is **not** a requirement for this project. That task can be removed from the backlog.
+-   Be aware of the recurring Metro bundler cache issue. If frontend changes don't appear, the standard fix is frontend: ERROR (no such process)
+frontend: ERROR (no such process).
 
 **documents and test reports created in this job**
--    (updated)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Perform an audit of admin capabilities and implement all missing features (Cloudz/Credit adjustment, Order intervention, Account Notes, Account Merge, Next Order Coupon, Cloudz Reminder). (Status: **Completed**)
-2.  **Agent**: Completed the implementation of all requested admin and retention features. (Status: **Completed**)
-3.  **User**: Reports that Reset Password is broken, username creation is missing, the referral system is failing, and admin tabs need verification. (Status: **In Progress**)
-4.  **Agent**: Investigated all reported issues. (Status: **Completed**)
-5.  **Agent**: Identified root causes: a previous syntax error, missing UI in , case-sensitivity bugs in backend referral logic, and a password hash leak in an API response. (Status: **Completed**)
-6.  **Agent**: Implemented fixes for all identified backend and frontend issues in parallel. (Status: **Completed**)
-7.  **Agent**: Verified all backend fixes using  and data integrity checks. (Status: **Completed**)
-8.  **Agent**: Verified frontend fixes by taking screenshots, resolving a Metro cache issue along the way. The final screenshot confirms the new Create a Handle UI is visible on the account page. (Status: **Completed, pending user verification**)
+1.  **User**: Add automatic expiration for unpaid orders. (Status: **Completed**)
+2.  **User**: Make inventory deduction atomic to prevent overselling. (Status: **Completed**)
+3.  **User**: Store product images as files, not base64 in the database. (Status: **Completed**)
+4.  **User**: Refactor the monolithic  into a modular structure. (Status: **Completed**)
+5.  **User**: Add Pydantic validation to key API endpoints. (Status: **Completed**)
+6.  **User**: Make referral codes immutable and generated automatically. (Status: **Completed**)
+7.  **User**: Allow  as a fallback for referral code lookup. (Status: **Completed**)
+8.  **User**: Add rate limiting to sensitive endpoints. (Status: **Completed**)
+9.  **User**: Add an instant referral signup bonus. (Status: **Completed**)
+10. **User**: Add leaderboard rank movement tracking. (Status: **In Progress, testing pending**)
 
 **Project Health Check:**
--   **Broken**: None known. All recently implemented features and bug fixes are pending user verification.
--   **Mocked**: The email utility () is not integrated or used.
+-   **Broken**: The leaderboard movement feature is untested. No other known broken functionality.
+-   **Mocked**: The email service () exists but is not fully integrated or actively used for sending emails.
 
 **3rd Party Integrations**
 -   **Expo**: Core framework for the React Native frontend.
 -   **Zustand**: For global state management in React.
--   **GitHub Actions**: For CI/CD (build verification and health monitoring).
+-   **slowapi**: For rate limiting in the FastAPI backend.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO (explicitly forbidden by user).
+-   **Testing agent used after significant changes**: NO.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
--   **Known regressions**: Multiple regressions were identified and fixed during this session, including the password reset flow, referral logic, and admin page loading.
+-   **Known regressions**: None known. The agent fixed all bugs reported during the session.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 
 **What agent forgot to execute**
--   The P0 task from the previous session (Bind custom domain) was superseded by two large user requests for features and bug fixes. This task is still pending and has been added to the issue list as P1.</analysis>
+-   None. The agent successfully addressed all user requests in this session. The previous P0 task (domain binding) was correctly identified as no longer relevant based on user feedback.</analysis>
