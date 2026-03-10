@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional
 from datetime import datetime
 import string
@@ -39,17 +39,25 @@ STREAK_BONUS = {2: 50, 3: 100, 4: 200}  # week: bonus; 5+ = 500
 
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str
-    firstName: str
-    lastName: str
-    dateOfBirth: str
-    phone: Optional[str] = None
-    referralCode: Optional[str] = None
+    password: str = Field(min_length=8, max_length=128)
+    firstName: str = Field(min_length=1, max_length=50)
+    lastName: str = Field(min_length=1, max_length=50)
+    dateOfBirth: str = Field(min_length=10, max_length=10)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    referralCode: Optional[str] = Field(default=None, max_length=50)
+
+    @validator("dateOfBirth")
+    def validate_dob(cls, v):
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("dateOfBirth must be in YYYY-MM-DD format")
+        return v
 
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1)
 
 
 class UserProfileUpdate(BaseModel):
@@ -143,41 +151,41 @@ class Product(BaseModel):
 
 
 class ProductCreate(BaseModel):
-    name: str
-    brandId: str
-    category: str
-    image: str
+    name: str = Field(min_length=1, max_length=200)
+    brandId: str = Field(min_length=1)
+    category: str = Field(min_length=1, max_length=100)
+    image: str = Field(min_length=1)
     images: Optional[List[str]] = []
-    puffCount: int
-    flavor: str
-    nicotinePercent: float
-    price: float
-    stock: int
-    lowStockThreshold: int = 5
-    description: Optional[str] = None
+    puffCount: int = Field(gt=0, le=100000)
+    flavor: str = Field(min_length=1, max_length=100)
+    nicotinePercent: float = Field(ge=0, le=20)
+    price: float = Field(gt=0, le=10000)
+    stock: int = Field(ge=0)
+    lowStockThreshold: int = Field(default=5, ge=0)
+    description: Optional[str] = Field(default=None, max_length=2000)
     isActive: bool = True
     isFeatured: bool = False
-    loyaltyEarnRate: Optional[float] = None
-    displayOrder: int = 0
+    loyaltyEarnRate: Optional[float] = Field(default=None, ge=0)
+    displayOrder: int = Field(default=0, ge=0)
 
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    brandId: Optional[str] = None
-    category: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    brandId: Optional[str] = Field(default=None, min_length=1)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     image: Optional[str] = None
     images: Optional[List[str]] = None
-    puffCount: Optional[int] = None
-    flavor: Optional[str] = None
-    nicotinePercent: Optional[float] = None
-    price: Optional[float] = None
-    stock: Optional[int] = None
-    lowStockThreshold: Optional[int] = None
-    description: Optional[str] = None
+    puffCount: Optional[int] = Field(default=None, gt=0, le=100000)
+    flavor: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    nicotinePercent: Optional[float] = Field(default=None, ge=0, le=20)
+    price: Optional[float] = Field(default=None, gt=0, le=10000)
+    stock: Optional[int] = Field(default=None, ge=0)
+    lowStockThreshold: Optional[int] = Field(default=None, ge=0)
+    description: Optional[str] = Field(default=None, max_length=2000)
     isActive: Optional[bool] = None
     isFeatured: Optional[bool] = None
-    loyaltyEarnRate: Optional[float] = None
-    displayOrder: Optional[int] = None
+    loyaltyEarnRate: Optional[float] = Field(default=None, ge=0)
+    displayOrder: Optional[int] = Field(default=None, ge=0)
 
 
 class StockAdjustment(BaseModel):
@@ -188,18 +196,18 @@ class StockAdjustment(BaseModel):
 # ==================== ORDER MODELS ====================
 
 class CartItem(BaseModel):
-    productId: str
-    quantity: int
-    name: str
-    price: float
+    productId: str = Field(min_length=1)
+    quantity: int = Field(ge=1, le=100)
+    name: str = Field(min_length=1, max_length=200)
+    price: float = Field(ge=0)
 
 
 class OrderCreate(BaseModel):
-    items: List[CartItem]
-    total: float
-    pickupTime: str
-    paymentMethod: str
-    loyaltyPointsUsed: int = 0
+    items: List[CartItem] = Field(min_items=1)
+    total: float = Field(ge=0)
+    pickupTime: str = Field(min_length=1, max_length=100)
+    paymentMethod: str = Field(min_length=1, max_length=50)
+    loyaltyPointsUsed: int = Field(default=0, ge=0)
     rewardId: Optional[str] = None
     couponApplied: bool = False
 
@@ -285,10 +293,10 @@ class MergeRequest(BaseModel):
 # ==================== REVIEW MODELS ====================
 
 class ReviewCreate(BaseModel):
-    productId: str
-    orderId: str
-    rating: int
-    comment: Optional[str] = None
+    productId: str = Field(min_length=1)
+    orderId: str = Field(min_length=1)
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=1000)
 
 
 class ReviewResponse(BaseModel):
