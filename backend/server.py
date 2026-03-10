@@ -768,16 +768,11 @@ async def adjust_product_stock(product_id: str, adjustment: StockAdjustment, adm
 
 @api_router.post("/orders", response_model=Order)
 async def create_order(order_data: OrderCreate, user = Depends(get_current_user)):
-    # Check inventory for all items
+    # Verify products exist (non-atomic, fast pre-check for 404s only)
     for item in order_data.items:
-        product = await db.products.find_one({"_id": ObjectId(item.productId)})
+        product = await db.products.find_one({"_id": ObjectId(item.productId)}, {"name": 1})
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {item.productId} not found")
-        if product["stock"] < item.quantity:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Insufficient stock for {product['name']}. Available: {product['stock']}"
-            )
     
     points_earned = int(order_data.total) * 3
     reward_discount = 0.0
@@ -847,12 +842,23 @@ async def create_order(order_data: OrderCreate, user = Depends(get_current_user)
     
     order_dict["id"] = str(result.inserted_id)
 
-    # Deduct inventory immediately on order creation
+    # Atomic inventory deduction — prevents overselling under concurrent orders
+    decremented = []  # track items already decremented for rollback
     for item in order_data.items:
-        await db.products.update_one(
-            {"_id": ObjectId(item.productId)},
+        res = await db.products.update_one(
+            {"_id": ObjectId(item.productId), "stock": {"$gte": item.quantity}},
             {"$inc": {"stock": -item.quantity}}
         )
+        if res.modified_count == 0:
+            # Rollback all previously decremented items
+            for rolled in decremented:
+                await db.products.update_one(
+                    {"_id": ObjectId(rolled.productId)},
+                    {"$inc": {"stock": rolled.quantity}}
+                )
+            await db.orders.delete_one({"_id": result.inserted_id})
+            raise HTTPException(status_code=409, detail=f"Out of stock: {item.name}")
+        decremented.append(item)
 
     # Send order confirmation email (non-blocking, only if SMTP configured)
     try:
