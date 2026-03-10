@@ -13,7 +13,7 @@ from limiter import limiter
 
 from database import client, db, UPLOADS_DIR, DIST_DIR
 from auth import SECRET_KEY, ALGORITHM
-from services.order_service import migrate_base64_images, expire_pending_orders_loop, chat_manager
+from services.order_service import migrate_base64_images, expire_pending_orders_loop, leaderboard_snapshot_loop, chat_manager
 from routes.auth_routes import router as auth_router
 from routes.user_routes import router as user_router
 from routes.product_routes import router as product_router
@@ -192,6 +192,7 @@ async def serve_spa(full_path: str):
 async def startup_migrate():
     await migrate_base64_images()
     asyncio.create_task(expire_pending_orders_loop())
+    asyncio.create_task(leaderboard_snapshot_loop())
 
 
 @app.on_event("shutdown")

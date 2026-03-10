@@ -1,6 +1,6 @@
 from database import db, UPLOADS_DIR
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import uuid
 import asyncio
@@ -159,3 +159,27 @@ class ConnectionManager:
 
 
 chat_manager = ConnectionManager()
+
+
+async def leaderboard_snapshot_loop():
+    while True:
+        try:
+            now = datetime.utcnow()
+            midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            existing = await db.leaderboard_snapshots.find_one({"date": midnight})
+            if not existing:
+                users = await db.users.find(
+                    {}, {"_id": 1, "loyaltyPoints": 1}
+                ).sort("loyaltyPoints", -1).to_list(10000)
+                rankings = [
+                    {"userId": str(u["_id"]), "rank": i + 1, "loyaltyPoints": u.get("loyaltyPoints", 0)}
+                    for i, u in enumerate(users)
+                ]
+                await db.leaderboard_snapshots.insert_one({"date": midnight, "rankings": rankings})
+                logging.info(f"Leaderboard snapshot taken: {len(rankings)} users")
+        except Exception as e:
+            logging.error(f"Leaderboard snapshot error: {e}")
+
+        now = datetime.utcnow()
+        next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        await asyncio.sleep((next_midnight - now).total_seconds())
