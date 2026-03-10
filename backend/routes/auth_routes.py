@@ -16,7 +16,7 @@ router = APIRouter()
 async def register(request: Request, user_data: UserRegister):
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email already registered")
 
     dob = datetime.strptime(user_data.dateOfBirth, "%Y-%m-%d")
     age = (datetime.utcnow() - dob).days / 365.25

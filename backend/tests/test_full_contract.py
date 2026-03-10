@@ -1,13 +1,10 @@
 """
 Comprehensive OpenAPI contract test — 61 operations across all routes.
-CONTRACT DEVIATION NOTE:
-  FastAPI HTTPBearer() returns 403 "Not authenticated" when no token is provided.
-  The HTTP standard and OpenAPI contract expect 401 for missing authentication.
-  All "no_auth" tests accept 401 OR 403 and log the deviation.
-
-  POST /api/auth/register returns 400 (not 409) for duplicate email — contract says 409.
-
-DO NOT MODIFY application code — report only.
+ITERATION 32 — Verifying two contract fixes:
+  FIX 1: HTTPBearer(auto_error=False) in auth.py — missing token now returns 401 "Not authenticated".
+          All "no_auth" tests now assert strict 401.
+  FIX 2: POST /api/auth/register with duplicate email now returns 409 Conflict (was 400).
+  All 107 previously-passing tests must still pass.
 """
 
 import pytest
@@ -141,7 +138,7 @@ class TestAuthRegister:
             "lastName": "User",
             "dateOfBirth": TEST_DOB,
         })
-        assert resp.status_code in (400, 409), f"Expected 400/409 got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 409, f"Expected 409 got {resp.status_code}: {resp.text}"
         print(f"  ACTUAL {resp.status_code} for duplicate email — CONTRACT SAYS 409, CODE RETURNS 400")
 
     def test_register_invalid_dob_format(self, session):
@@ -242,7 +239,7 @@ class TestAuthMe:
     def test_me_no_token(self, session):
         """CONTRACT DEVIATION: returns 403 instead of 401 for missing token."""
         resp = session.get(f"{BASE_URL}/api/auth/me")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} for no-token (contract says 401, FastAPI HTTPBearer returns 403)")
 
     def test_me_invalid_token(self, session):
@@ -271,7 +268,7 @@ class TestProfile:
     def test_update_profile_no_token(self, session):
         """CONTRACT DEVIATION: 403 instead of 401 for missing token."""
         resp = session.patch(f"{BASE_URL}/api/profile", json={"firstName": "X"})
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
 
@@ -302,7 +299,7 @@ class TestUsername:
     def test_username_no_token(self, session):
         """CONTRACT DEVIATION: 403 instead of 401 for missing token."""
         resp = session.patch(f"{BASE_URL}/api/me/username", json={"username": "valid123"})
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_username_duplicate(self, session, user_headers, test_user2):
@@ -351,13 +348,13 @@ class TestProfileUtils:
     def test_referral_earnings_no_token(self, session):
         """CONTRACT DEVIATION: 403 instead of 401."""
         resp = session.get(f"{BASE_URL}/api/me/referral-earnings")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_cloudz_ledger_no_token(self, session):
         """CONTRACT DEVIATION: 403 instead of 401."""
         resp = session.get(f"{BASE_URL}/api/me/cloudz-ledger")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
 
@@ -410,7 +407,7 @@ class TestProducts:
             "image": "x", "puffCount": 500, "flavor": "m",
             "nicotinePercent": 5.0, "price": 10.0, "stock": 10,
         })
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_patch_product_non_admin_403(self, session, user_headers, sample_product):
@@ -583,7 +580,7 @@ class TestOrders:
     def test_list_orders_no_auth(self, session):
         """CONTRACT DEVIATION: 403 instead of 401 for missing token."""
         resp = session.get(f"{BASE_URL}/api/orders")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_get_order_own(self, session, user_headers):
@@ -633,7 +630,7 @@ class TestOrders:
             "items": [{"productId": "x", "quantity": 1, "name": "x", "price": 1.0}],
             "total": 1.0, "pickupTime": "Soon", "paymentMethod": "Zelle",
         })
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_create_order_out_of_stock(self, session, user_headers):
@@ -686,7 +683,7 @@ class TestLoyalty:
     def test_get_tiers_no_auth(self, session):
         """CONTRACT DEVIATION: 403 instead of 401."""
         resp = session.get(f"{BASE_URL}/api/loyalty/tiers")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_get_rewards(self, session, user_headers):
@@ -780,7 +777,7 @@ class TestLeaderboard:
     def test_leaderboard_no_auth(self, session):
         """CONTRACT DEVIATION: 403 instead of 401."""
         resp = session.get(f"{BASE_URL}/api/leaderboard")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
 
@@ -804,7 +801,7 @@ class TestAdminUsers:
     def test_get_all_users_no_auth(self, session):
         """CONTRACT DEVIATION: 403 instead of 401."""
         resp = session.get(f"{BASE_URL}/api/admin/users")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_get_user_profile_admin(self, session, admin_headers, test_user):
@@ -1187,7 +1184,7 @@ class TestReviews:
             "orderId": "000000000000000000000000",
             "rating": 5,
         })
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
 
@@ -1213,7 +1210,7 @@ class TestPushAndSupport:
     def test_push_no_auth(self, session):
         """CONTRACT DEVIATION: 403 instead of 401 for missing token."""
         resp = session.post(f"{BASE_URL}/api/push/register", json={"token": "ExponentPushToken[x]"})
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
     def test_create_support_ticket(self, session, user_headers):
@@ -1231,7 +1228,7 @@ class TestPushAndSupport:
         resp = session.post(f"{BASE_URL}/api/support/tickets", json={
             "subject": "x", "message": "x"
         })
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 401
         print(f"  ACTUAL {resp.status_code} (contract says 401)")
 
 
