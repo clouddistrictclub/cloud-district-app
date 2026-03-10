@@ -406,10 +406,11 @@ async def register(user_data: UserRegister):
     if age < 21:
         raise HTTPException(status_code=400, detail="Must be 21 or older")
     
-    # Handle referral code
+    # Handle referral code — case-insensitive lookup (username codes are lowercase, random codes are uppercase)
     referred_by = None
     if user_data.referralCode:
-        referrer = await db.users.find_one({"referralCode": user_data.referralCode.upper().strip()})
+        ref_input = user_data.referralCode.strip()
+        referrer = await db.users.find_one({"referralCode": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
         if not referrer:
             raise HTTPException(status_code=400, detail="Invalid referral code")
         referred_by = str(referrer["_id"])
@@ -997,7 +998,7 @@ async def admin_delete_review(review_id: str, admin = Depends(get_admin_user)):
 
 @api_router.get("/admin/users/{user_id}/profile")
 async def get_user_profile(user_id: str, admin = Depends(get_admin_user)):
-    user = await db.users.find_one({"_id": ObjectId(user_id)}, {"hashedPassword": 0})
+    user = await db.users.find_one({"_id": ObjectId(user_id)}, {"password": 0, "hashedPassword": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user_data = {k: v for k, v in user.items() if k != "_id"}
@@ -1044,10 +1045,10 @@ async def admin_set_referrer(user_id: str, data: AdminReferrerUpdate, admin = De
         await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"referredBy": None}})
         return {"message": "Referrer removed"}
 
-    identifier = data.referrerIdentifier.strip().lower()
+    identifier = data.referrerIdentifier.strip()
 
-    # Resolve referrer: try referralCode, username, email, then ObjectId
-    referrer = await db.users.find_one({"referralCode": identifier})
+    # Resolve referrer: try referralCode (case-insensitive), username, email, then ObjectId
+    referrer = await db.users.find_one({"referralCode": {"$regex": f"^{_re.escape(identifier)}$", "$options": "i"}})
     if not referrer:
         referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(identifier)}$", "$options": "i"}})
     if not referrer:
@@ -1560,6 +1561,10 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, admin = De
     
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
+    
+    # When username changes, sync referralCode to username.lower()
+    if "username" in update_dict:
+        update_dict["referralCode"] = update_dict["username"].lower()
     
     # Track loyalty point changes for ledger
     old_points = None

@@ -55,6 +55,9 @@ export default function Account() {
   const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -94,6 +97,24 @@ export default function Account() {
       await Clipboard.setStringAsync(user.referralCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleCreateUsername = async () => {
+    const trimmed = usernameInput.trim().toLowerCase();
+    if (!trimmed) { setUsernameError('Please enter a handle'); return; }
+    if (trimmed.length < 3 || trimmed.length > 20) { setUsernameError('Must be 3–20 characters'); return; }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError('Lowercase letters, numbers, and _ only'); return; }
+    setUsernameError('');
+    setSavingUsername(true);
+    try {
+      await axios.patch(`${API_URL}/api/me/username`, { username: trimmed }, authHeaders);
+      await refreshUser();
+      setUsernameInput('');
+    } catch (e: any) {
+      setUsernameError(e.response?.data?.detail || 'Failed to set handle');
+    } finally {
+      setSavingUsername(false);
     }
   };
 
@@ -327,6 +348,58 @@ export default function Account() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
+        </View>
+
+        {/* Your Handle / Username */}
+        <View style={styles.section}>
+          {user?.username ? (
+            <View style={styles.handleCard} data-testid="handle-card">
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={styles.handleLabel}>YOUR HANDLE</Text>
+                  <Text style={styles.handleValue} data-testid="handle-display">@{user.username.toLowerCase()}</Text>
+                </View>
+                <View style={styles.handleBadge}>
+                  <Ionicons name="at" size={14} color="#6366f1" />
+                  <Text style={styles.handleBadgeText}>Also your referral code</Text>
+                </View>
+              </View>
+              <Text style={styles.handleNote}>Handles are permanent. Contact support to change.</Text>
+            </View>
+          ) : (
+            <View style={styles.handleCard} data-testid="create-handle-card">
+              <Text style={styles.handleLabel}>CREATE YOUR HANDLE</Text>
+              <Text style={[styles.handleNote, { marginBottom: 12 }]}>
+                Your unique @handle doubles as your referral code. Once set, it cannot be changed.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.handleInputRow}>
+                    <Text style={styles.handleAt}>@</Text>
+                    <TextInput
+                      style={styles.handleInput}
+                      value={usernameInput}
+                      onChangeText={(t) => { setUsernameInput(t.toLowerCase()); setUsernameError(''); }}
+                      placeholder="yourhandle"
+                      placeholderTextColor="#555"
+                      autoCapitalize="none"
+                      maxLength={20}
+                      data-testid="username-input"
+                    />
+                  </View>
+                  {usernameError ? <Text style={styles.handleError}>{usernameError}</Text> : null}
+                </View>
+                <TouchableOpacity
+                  style={[styles.handleSaveBtn, savingUsername && { opacity: 0.5 }]}
+                  onPress={handleCreateUsername}
+                  disabled={savingUsername}
+                  data-testid="create-handle-btn"
+                >
+                  <Text style={styles.handleSaveBtnText}>{savingUsername ? '...' : 'Claim'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Refer & Earn */}
@@ -747,6 +820,89 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#444',
     marginTop: 4,
+  },
+  handleCard: {
+    backgroundColor: '#111',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#6366f133',
+  },
+  handleLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6366f1',
+    letterSpacing: 1,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  handleValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  handleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#6366f115',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#6366f133',
+  },
+  handleBadgeText: {
+    fontSize: 11,
+    color: '#818cf8',
+    fontWeight: '600',
+  },
+  handleNote: {
+    fontSize: 11,
+    color: '#555',
+    marginTop: 4,
+  },
+  handleInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0c0c0c',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+    paddingHorizontal: 10,
+    height: 42,
+  },
+  handleAt: {
+    fontSize: 16,
+    color: '#6366f1',
+    fontWeight: '700',
+    marginRight: 2,
+  },
+  handleInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  handleError: {
+    fontSize: 11,
+    color: '#ef4444',
+    marginTop: 4,
+  },
+  handleSaveBtn: {
+    backgroundColor: '#6366f1',
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  handleSaveBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fff',
   },
   referralCard: {
     backgroundColor: theme.colors.card,
