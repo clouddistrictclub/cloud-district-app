@@ -5,13 +5,12 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 
-from database import client, db, UPLOADS_DIR, DIST_DIR
+from database import client, db, UPLOADS_DIR
 from auth import SECRET_KEY, ALGORITHM
 from services.order_service import migrate_base64_images, expire_pending_orders_loop, leaderboard_snapshot_loop, chat_manager
 from routes.auth_routes import router as auth_router
@@ -66,13 +65,13 @@ app.include_router(admin_router,   prefix=api_prefix)
 
 app.mount("/api/uploads/products", StaticFiles(directory=str(UPLOADS_DIR)), name="product-uploads")
 
-if (DIST_DIR / "_expo").exists():
-    app.mount("/_expo", StaticFiles(directory=str(DIST_DIR / "_expo")), name="spa-expo-assets")
-if (DIST_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="spa-static-assets")
-
 
 # ==================== HEALTH CHECKS ====================
+
+@app.get("/")
+def root():
+    return {"status": "Cloud District API running"}
+
 
 @app.get("/api/health")
 def api_health():
@@ -157,33 +156,6 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
             await chat_manager.broadcast(chat_id, msg_doc)
     except WebSocketDisconnect:
         chat_manager.disconnect(chat_id, websocket)
-
-
-# ==================== SPA FALLBACK ====================
-
-@app.get("/", include_in_schema=False)
-async def serve_index():
-    index_path = DIST_DIR / "index.html"
-    if not index_path.is_file():
-        return JSONResponse(
-            {"error": "Frontend not built", "dist_dir": str(DIST_DIR), "exists": DIST_DIR.exists()},
-            status_code=503
-        )
-    return FileResponse(str(index_path))
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str):
-    file_path = DIST_DIR / full_path
-    if file_path.is_file():
-        return FileResponse(str(file_path))
-    index_path = DIST_DIR / "index.html"
-    if not index_path.is_file():
-        return JSONResponse(
-            {"error": "Frontend not built", "dist_dir": str(DIST_DIR), "path": full_path},
-            status_code=503
-        )
-    return FileResponse(str(index_path))
 
 
 # ==================== STARTUP / SHUTDOWN ====================
