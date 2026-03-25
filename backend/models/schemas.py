@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr, validator
-from typing import List, Optional
+from pydantic import BaseModel, Field, EmailStr, validator, ConfigDict
+from typing import Any, List, Optional, Union
 from datetime import datetime
 import string
 import secrets as sec_module
@@ -125,6 +125,8 @@ class BrandUpdate(BaseModel):
 # ==================== PRODUCT MODELS ====================
 
 class Product(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
     id: Optional[str] = None
     name: str
     brandId: str
@@ -133,21 +135,28 @@ class Product(BaseModel):
     category: str
     image: str
     images: Optional[List[str]] = []
-    puffCount: int
+    puffCount: Optional[int] = None
     flavor: str
-    nicotinePercent: float = 5.0
+    nicotinePercent: Optional[float] = 5.0
     nicotineStrength: Optional[str] = None
     deviceType: Optional[str] = None
     slug: Optional[str] = None
     price: float
-    stock: int
-    lowStockThreshold: int = 5
+    stock: Optional[int] = 0
+    lowStockThreshold: Optional[int] = 5
     description: Optional[str] = None
     isActive: bool = True
     isFeatured: bool = False
     loyaltyEarnRate: Optional[float] = None
     cloudzReward: Optional[int] = None
-    displayOrder: int = 0
+    displayOrder: Optional[int] = 0
+    productType: Optional[str] = None
+    sku: Optional[str] = None
+    shipmentStatus: Optional[str] = None
+    etaDays: Optional[int] = None
+    incomingPackCount: Optional[int] = None
+    createdAt: Optional[Any] = None
+    updatedAt: Optional[Any] = None
 
 
 class ProductCreate(BaseModel):
