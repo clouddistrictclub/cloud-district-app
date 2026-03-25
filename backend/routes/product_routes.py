@@ -110,7 +110,7 @@ async def get_products(
     if brand_id:
         query["brandId"] = brand_id
     products = await db.products.find(query).to_list(1000)
-    return [Product(id=str(p["_id"]), **{k: v for k, v in p.items() if k != "_id"}) for p in products]
+    return [Product(id=str(p["_id"]), **{k: v for k, v in p.items() if k not in ("_id", "id")}) for p in products]
 
 
 @router.get("/products/{product_id}", response_model=Product)
@@ -118,7 +118,7 @@ async def get_product(product_id: str):
     product = await db.products.find_one({"_id": ObjectId(product_id)})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k != "_id"})
+    return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k not in ("_id", "id")})
 
 
 @router.post("/products", response_model=Product)
@@ -152,7 +152,7 @@ async def update_product(product_id: str, product_data: ProductUpdate, admin=Dep
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     product = await db.products.find_one({"_id": ObjectId(product_id)})
-    return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k != "_id"})
+    return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k not in ("_id", "id")})
 
 
 @router.delete("/products/{product_id}")
