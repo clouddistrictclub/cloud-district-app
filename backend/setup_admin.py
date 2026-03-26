@@ -2,12 +2,25 @@
 """
 Helper script to create admin user and seed sample products
 Run this after registering your first user in the app
+
+SAFETY GUARD: This script will NOT run unless the environment variable
+SEED_ENABLED=true is explicitly set. This prevents accidental execution
+against the production database.
+
+Usage (development only):
+    SEED_ENABLED=true python setup_admin.py
 """
 import os
 import sys
 from pymongo import MongoClient
 from datetime import datetime
 import asyncio
+
+if os.environ.get("SEED_ENABLED", "").lower() != "true":
+    print("ERROR: Seeding is disabled in production.")
+    print("To run this script, set: SEED_ENABLED=true")
+    print("This guard exists to prevent accidental database overwrites.")
+    sys.exit(1)
 
 # MongoDB connection
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')

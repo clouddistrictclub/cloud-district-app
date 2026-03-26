@@ -1,8 +1,23 @@
 #!/usr/bin/env python3
-"""Seed script for Cloud District Club production API."""
+"""Seed script for Cloud District Club production API.
+
+SAFETY GUARD: This script will NOT run unless the environment variable
+SEED_ENABLED=true is explicitly set. This prevents accidental execution
+against the production database.
+
+Usage (development only):
+    SEED_ENABLED=true python seed_production.py
+"""
+import os
 import requests
 import json
 import sys
+
+if os.environ.get("SEED_ENABLED", "").lower() != "true":
+    print("ERROR: Seeding is disabled in production.")
+    print("To run this script, set: SEED_ENABLED=true")
+    print("This guard exists to prevent accidental database overwrites.")
+    sys.exit(1)
 
 API = "https://api.clouddistrict.club"
 
