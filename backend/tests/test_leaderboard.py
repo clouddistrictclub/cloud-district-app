@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://age-gated-shop.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://api.clouddistrict.club').rstrip('/')
 
 # Admin credentials
 ADMIN_EMAIL = "admin@clouddistrictclub.com"
