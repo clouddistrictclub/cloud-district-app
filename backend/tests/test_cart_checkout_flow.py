@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://district-club.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://api.clouddistrict.club')
 
 # Test credentials
 TEST_EMAIL = "jkaatz@gmail.com"
