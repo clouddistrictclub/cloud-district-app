@@ -746,6 +746,17 @@ async def adjust_product_stock(product_id: str, adjustment: StockAdjustment, adm
     }
 
 
+# ==================== ADMIN EXPORT ====================
+
+@api_router.get("/admin/export/products")
+async def export_products(admin = Depends(get_admin_user)):
+    """Return all product documents as a raw JSON array for backup purposes."""
+    docs = await db.products.find({}).to_list(None)
+    for doc in docs:
+        doc["_id"] = str(doc["_id"])
+    return docs
+
+
 # ==================== ORDER ENDPOINTS ====================
 
 @api_router.post("/orders", response_model=Order)
