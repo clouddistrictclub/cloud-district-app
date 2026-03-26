@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File, WebSocket, WebSocketDisconnect, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -25,7 +25,7 @@ import math
 ROOT_DIR = Path(__file__).resolve().parent
 UPLOADS_DIR = ROOT_DIR / 'uploads' / 'products'
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-DIST_DIR = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
@@ -1929,11 +1929,6 @@ app.include_router(api_router)
 # Serve uploaded images
 app.mount("/api/uploads/products", StaticFiles(directory=str(UPLOADS_DIR)), name="product-uploads")
 
-# Serve Expo web build static assets (for production single-container deployment)
-if (DIST_DIR / "_expo").exists():
-    app.mount("/_expo", StaticFiles(directory=str(DIST_DIR / "_expo")), name="spa-expo-assets")
-if (DIST_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="spa-static-assets")
 
 # WebSocket must be on app directly, not on router
 @app.websocket("/api/ws/chat/{chat_id}")
@@ -2017,29 +2012,9 @@ async def health_check():
     return {"status": "ok"}
 
 @app.get("/", include_in_schema=False)
-async def serve_index():
-    """Serve the Expo web build at root."""
-    index_path = DIST_DIR / "index.html"
-    if not index_path.is_file():
-        return JSONResponse(
-            {"error": "Frontend not built", "dist_dir": str(DIST_DIR), "exists": DIST_DIR.exists()},
-            status_code=503
-        )
-    return FileResponse(str(index_path))
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str):
-    """SPA catch-all: serve static files from dist, fall back to index.html."""
-    file_path = DIST_DIR / full_path
-    if file_path.is_file():
-        return FileResponse(str(file_path))
-    index_path = DIST_DIR / "index.html"
-    if not index_path.is_file():
-        return JSONResponse(
-            {"error": "Frontend not built", "dist_dir": str(DIST_DIR), "path": full_path},
-            status_code=503
-        )
-    return FileResponse(str(index_path))
+async def api_root():
+    """API root — confirms the service is running."""
+    return {"status": "Cloud District API running"}
 
 
 app.add_middleware(

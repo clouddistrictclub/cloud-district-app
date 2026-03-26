@@ -77,9 +77,15 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 ## Credentials
 - Admin: jkaatz@gmail.com / Just1n23$
 
+## Architecture Change (2026)
+- Frontend moved to **Vercel** (clouddistrict.club)
+- Backend is now **API-only** on Railway (api.clouddistrict.club)
+- `server.py`: All static file serving removed (DIST_DIR, StaticFiles mounts for frontend, serve_index, serve_spa catch-all)
+- `GET /` → `{"status": "Cloud District API running"}`
+- `EXPO_PUBLIC_BACKEND_URL` updated to `https://api.clouddistrict.club`
+
 ## Pending
-- Emergent frontend deployment (user clicks Deploy)
-- Custom domain DNS for clouddistrict.club
+- P1: Store Credit at Checkout (allow users to apply creditBalance at order placement)
 
 ## Parity Fixes Applied (2026-03-08)
 - `checkout.tsx`: Removed Venmo from paymentMethods (now: Cash on Pickup, Zelle, Cash App, Chime)
