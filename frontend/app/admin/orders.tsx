@@ -52,6 +52,8 @@ export default function AdminDashboard() {
   const [editItems, setEditItems] = useState<OrderItem[]>([]);
   const [editTotal, setEditTotal] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editPickupTime, setEditPickupTime] = useState('');
+  const [editPaymentMethod, setEditPaymentMethod] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -97,6 +99,8 @@ export default function AdminDashboard() {
     setEditItems(order.items.map(i => ({ ...i })));
     setEditTotal(order.total.toFixed(2));
     setEditNotes(order.adminNotes || '');
+    setEditPickupTime(order.pickupTime || '');
+    setEditPaymentMethod(order.paymentMethod || '');
     setShowAddProduct(false);
   };
 
@@ -130,6 +134,8 @@ export default function AdminDashboard() {
         items: editItems,
         total: parseFloat(editTotal),
         adminNotes: editNotes,
+        pickupTime: editPickupTime || undefined,
+        paymentMethod: editPaymentMethod || undefined,
       });
       await loadOrders();
       setEditModalOrder(null);
@@ -372,6 +378,33 @@ export default function AdminDashboard() {
                   placeholderTextColor="#555"
                   data-testid="edit-order-total"
                 />
+
+                <Text style={styles.editSectionLabel}>Pickup Time</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editPickupTime}
+                  onChangeText={setEditPickupTime}
+                  placeholder="e.g. Today - 2:00 PM - 4:00 PM"
+                  placeholderTextColor="#555"
+                  data-testid="edit-order-pickup-time"
+                />
+
+                <Text style={styles.editSectionLabel}>Payment Method</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                  {['Cash on Pickup', 'Zelle', 'Cash App', 'Chime'].map(pm => (
+                    <TouchableOpacity
+                      key={pm}
+                      onPress={() => setEditPaymentMethod(pm)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16,
+                        backgroundColor: editPaymentMethod === pm ? '#6366f1' : '#1a1a1a',
+                        borderWidth: 1, borderColor: editPaymentMethod === pm ? '#6366f1' : '#333',
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: editPaymentMethod === pm ? '#fff' : '#999', fontWeight: '600' }}>{pm}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
                 <Text style={styles.editSectionLabel}>Admin Notes</Text>
                 <TextInput

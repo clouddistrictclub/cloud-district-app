@@ -5,167 +5,201 @@ The user wants to build a mobile-first web app called Cloud District Club for th
 *   **Age Verification:** Mandatory 21+ age gate.
 *   **Design:** Dark, premium, fast, simple UI.
 *   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
-*   **Product Catalog:** Category organization with detailed product views. The catalog has been significantly expanded.
+*   **Product Catalog:** Category organization with detailed product views.
 *   **Checkout Flow:** Local pickup only, manual payment methods (Zelle, Venmo, CashApp).
 *   **Order Status System:** Track order progress.
 *   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus.
-*   **Referral Program:** Code-based system.
+*   **Referral Program:** Code-based system, using a unique user handle.
 *   **User Accounts:** Order history, loyalty status, profile management.
-*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management and store credit.
+*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management (password reset, disable, force logout), store credit and Cloudz adjustment, account notes, and account merging.
 *   **Live Chat:** Real-time WebSocket chat.
 *   **Persistent Header & Drawer Navigation.**
-*   **Store Credit System:** Admin can add/deduct credit.
-*   **Incoming Inventory Tracking:** System to track inventory shipments.
+*   **Store Credit System:** Admin can add/deduct credit; users can apply it at checkout.
+*   **Retention Features:** Automatic next-order coupons and reward progress reminders.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. This session was focused on major stabilization, UI bug fixing, and code recovery.
-
-Key issues resolved include:
-1.  **UI Bugs:** Fixed iPhone SafeArea/Dynamic Island overlap and multiple crashes on the Cloudz loyalty pages.
-2.  **Code Recovery:** Several critical frontend routes and components (,  modal, , etc.) that were lost from the source tree were recovered by analyzing old git commits and compiled JS bundles. The UI now matches a previously working deployed version.
-3.  **Data Synchronization:** A major issue where the preview environment used a different database than production was fixed by unifying the  environment variable. All environments now point to the same backend.
-4.  **Deployment & Build Workflow:** The build process was made robust. The  directory is no longer tracked by git and is now generated during deployment. Build versioning is now automated.
-5.  **CI/CD:** Two new GitHub Actions were created: one to monitor the production backend health every 5 minutes and another to verify the frontend builds successfully on every push to .
+The application is a full-stack Expo (React Native for Web) and FastAPI/MongoDB app. In this session, the agent performed a major backend refactoring, splitting the monolithic  into a modular structure with routes, services, and models. Numerous new features and bug fixes were implemented, including:
+-   **Backend Features**: Atomic inventory updates, automatic expiration for unpaid orders, rate limiting on key endpoints, image storage migration from DB to disk, instant referral signup bonuses, admin ability to change usernames, and leaderboard rank movement tracking.
+-   **Frontend Bug Fixes**: Fixed a non-functional Update Password button by correctly mounting the . Resolved a UI bug on the sign-up page where the date of birth input was unusable on mobile.
+-   **Validation & Security**: Added Pydantic-based request validation and made referral codes immutable.
+The codebase is now significantly more robust, secure, and maintainable.
 
 **Last working item**:
--   **Last item agent was working**: Creating a GitHub Action workflow file () to verify that the frontend builds correctly on every push to the  branch. This was the final step in a series of infrastructure stabilization tasks.
--   **Status**: FINISHED
--   **Agent Testing Done**: Y (The agent created the workflow file and verified its contents and logic.)
--   **Which testing method agent to use?**: N/A (The task is complete. Testing of the workflow occurs automatically on GitHub after the code is pushed.)
--   **User Testing Done**: N (The user needs to push the changes to GitHub to see the workflow run for the first time.)
+-   **Last item agent was working on**: Implementing a leaderboard rank movement tracking system. This involved creating a new background task to take daily snapshots of the leaderboard and modifying the  endpoint to compare today's ranks with yesterday's to show movement (, , ).
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. The agent needs to verify the background task runs correctly and that the API endpoint returns the  field as expected. This may require manually triggering the task or manipulating system time to create snapshots for yesterday and today.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None. All issues raised and worked on during this session have been resolved.
+-   Issue 1: (P0) Test and verify the new leaderboard rank movement feature.
+-   Issue 2: (P1) User verification for all new features and bug fixes implemented in this session.
+
+**Issues Detail**:
+-   **Issue 1**: Test and verify the new leaderboard rank movement feature.
+    -   **Attempted fixes**: The code has been implemented across  (background task),  (task startup), and  (API logic).
+    -   **Next debug checklist**:
+        1.  Manually run the  function to create a snapshot for yesterday.
+        2.  Change some user  in the database to ensure ranks will change.
+        3.  Manually run the  function again to create a snapshot for today.
+        4.  Call the  endpoint using .
+        5.  Verify that the response for each user includes a  field with a calculated integer value (positive, negative, or zero).
+    -   **Why fix this issue and what will be achieved with the fix?**: This will complete the final feature implemented in the session and ensure it works as designed before handing off to the user.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2**: User verification for all new features and bug fixes.
+    -   **Attempted fixes**: N/A. The user has explicitly stated they want to test the features now that the bugs are fixed.
+    -   **Next debug checklist**: The agent should present a summary of the completed work and ask the user to test the application. Key areas for the user to check:
+        1.  Sign-up page: Is the Date of Birth field working correctly on mobile?
+        2.  Account page: Does the Update Password button now provide feedback (success/error toasts)?
+        3.  Create a new product with an image and verify it's saved correctly.
+        4.  Place an order and let it sit for over 30 minutes to see if it expires.
+        5.  Register with a referral code and check if both the new user and referrer receive their 500 Cloudz bonus instantly.
+    -   **Why fix this issue and what will be achieved with the fix?**: Validates all the work done in this long session, ensuring the application is stable and meets user expectations before proceeding to new tasks.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None. All stabilization and recovery tasks from this session are complete.
+-   Task 1: Complete implementation of leaderboard rank movement tracking.
+    -   **Where to resume**: The code is written. The task needs to be tested end-to-end as described in Issue 1 above.
+    -   **What will be achieved with this?**: Users on the leaderboard will be able to see how their rank has changed since the previous day.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
     -   **P1: Implement Store Credit at Checkout**: Allow users to apply their store credit balance during the checkout process.
 -   **Future Tasks**:
-    -   **P2: Backend monolith refactor**: Restructure  into a more modular architecture (routes, models, services).
-    -   **P2: Admin screen modularization**: Break down large admin components.
-    -   **P2: Google Workspace Integration**: Implement email sending via .
+    -   **P2: Admin screen modularization**: Break down large admin components like .
+    -   **P2: Google Workspace Integration**: Fully implement email sending via .
     -   **P3: Push notifications expansion**.
 
 **Completed work in this session**
--   **UI Bug Fixes & Restoration**:
-    -   Fixed iPhone SafeArea overlap in .
-    -   Fixed crashes in , , and  by adding defensive  and  guards.
-    -   Restored Low Stock and Earn Cloudz badges to .
--   **Code & Feature Recovery**:
-    -   Recovered lost source files for , , , and  from git history.
-    -   Recovered the full 780-line  component, which includes the critical Edit order modal functionality.
-    -   Restored the admin navigation to the correct 8-tab layout in .
--   **Infrastructure & Deployment Stabilization**:
-    -   **Data Sync**: Fixed data inconsistency by updating  to point  to the single production backend.
-    -   **Health Check**: Added a  endpoint to  to fix Railway deployment health checks.
-    -   **Build Process**:
-        -   Removed  from git tracking and added it to .
-        -   Created  to automate the - Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly... process and generate a dynamic build version.
-        -   Updated  to display the automated build version.
-    -   **Git Workflow**:
-        -   Created git tag  to mark a stable release.
-        -   Created  to document the new production-safe workflow.
-    -   **CI/CD (GitHub Actions)**:
-        -   Created  to monitor backend health every 5 minutes.
-        -   Created  to verify the frontend builds on push to .
+-   **Backend Refactoring**: Major refactor of monolithic  into a modular structure (, , ).
+-   **Bug Fixes**:
+    -   Fixed Update Password button by mounting  in .
+    -   Fixed mobile UI for Date of Birth input on the sign-up page in .
+    -   Fixed referral reward logic by initializing  on order creation in .
+-   **Feature Implementation**:
+    -   **Order Expiration**: Implemented automatic expiration of unpaid orders after 30 minutes with inventory restoration ().
+    -   **Atomic Inventory**: Made inventory deduction atomic to prevent overselling race conditions ().
+    -   **Image Storage**: Migrated new product images from base64 in DB to file storage on disk (, ).
+    -   **Request Validation**: Added Pydantic validation to critical API endpoints ().
+    -   **Referral System**:
+        -   Made  immutable and decoupled from .
+        -   Allowed  as a fallback for referral lookup ().
+        -   Added instant 500 Cloudz signup bonus for both referrer and new user ().
+    -   **Rate Limiting**: Added -based rate limiting to sensitive endpoints (, , route files).
+    -   **Admin Tools**: Added an admin endpoint to change a user's username ().
+    -   **Analytics**: Added Repeat Purchase Rate to the admin analytics endpoint ().
+    -   **Leaderboard**: Implemented rank movement tracking (testing pending).
+-   **Documentation**:
+    -   Generated a complete  schema for the application.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Deployment issues were a major recurring problem.
--   **Recurrence count**: Multiple times.
--   **Status**: RESOLVED. The entire build and deployment pipeline has been refactored to be more robust.  is no longer committed, and CI checks are in place to prevent broken builds from being deployed.
+-   **Issue recurrence in previous fork**: Frontend not reflecting backend changes due to Metro bundler cache issues.
+-   **Recurrence count**: High. This happened again during the session.
+-   **Status**: RESOLVED (for now). The agent knows the standard fix is frontend: ERROR (no such process)
+frontend: ERROR (no such process). This remains a known environmental quirk.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Frontend**: React Native, Expo (for Web), Expo Router, TypeScript
--   **Backend**: FastAPI, Python
+-   **Backend**: FastAPI, Python, Motor (async MongoDB driver)
 -   **Database**: MongoDB
--   **CI/CD**: GitHub Actions for build verification and health monitoring.
--   **Deployment**: A new, robust workflow is defined in . The frontend  directory is now built on the deployment server via , not committed to the repository.
+-   **State Management**: Zustand
+-   **Backend Architecture**: Modular (Routes, Services, Models)
+-   **Security**: JWT, bcrypt, Pydantic validation, Rate Limiting ()
+-   **Background Tasks**:  for daily/periodic tasks.
 
 **key DB schema**
--   No changes were made to the database schema.
+-   **orders**:
+    -    (new)
+    -    (new, initialized to )
+-   **leaderboard_snapshots**: (new collection)
+    -   
+    -   
+-   **cloudz_ledger**:
+    -    (new type added)
 
 **changes in tech stack**
--   None.
+-    library added to  for rate limiting.
 
 **All files of reference**
--   : Modified to add the  endpoint.
--   : Modified to unify the backend API URL across environments.
--   , , : Restored and modified to bring the admin panel back to its fully functional state.
--   : New script that automates the production build and versioning.
--   , : New GitHub Actions for CI/CD.
--   : New documentation file explaining the production workflow.
--    (root) and : Modified to correctly ignore build artifacts () and caches ().
+-   : Main application entry point (refactored).
+-   : Directory containing all new API route modules.
+-   : Directory containing all new service logic modules.
+-   : Contains all Pydantic models and validation logic.
+-   : Contains the shared rate limiter instance.
+-   : Root layout, where the toast provider was added.
+-   : Sign-up form, where the DOB input was fixed.
+-   : Generated API schema.
 
 **Areas that need refactoring**:
--    remains a large monolith.
--   Admin screens could be broken down into smaller components.
+-    is over 600 lines and is the top priority for frontend refactoring. The various tabs and modals should be extracted into their own components.
 
 **key api endpoints**
--   : **New** root-level health check endpoint for deployment services like Railway.
--   : API endpoint used by the restored Edit order modal.
+-   : (New) Allows an admin to update a user's username.
+-   Rate limits applied to:
+    -    (10/min/IP)
+    -    (5/min/IP)
+    -    (5/min/user)
+    -    (5/hour/user)
 
 **Critical Info for New Agent**
--   **DO NOT COMMIT **: The  directory is now generated on the deployment server by the  script. It is git-ignored and should never be committed. The entire deployment workflow is documented in .
--   **Unified Backend**: All environments now use a single production backend API, defined by  in . This ensures data consistency.
--   **CI/CD is Active**: The repository now has GitHub Actions that run on push to  (build check) and on a schedule (health check). Be aware of these workflows.
--   **Manual Testing Only**: The user has consistently forbidden the use of automated testing agents (). All verification must be done manually.
--   **Git Tagging**: A new workflow of tagging stable releases has been established, starting with .
+-   The backend has been completely refactored. Familiarize yourself with the new modular structure in  (, , ). The monolithic  is gone.
+-   Your first task is to test and verify the newly implemented leaderboard rank movement feature. The code is written but untested.
+-   After verifying the leaderboard, your priority is to present all completed work to the user for their own testing and validation, as they requested.
+-   The user has clarified that domain binding is **not** a requirement for this project. That task can be removed from the backlog.
+-   Be aware of the recurring Metro bundler cache issue. If frontend changes don't appear, the standard fix is frontend: ERROR (no such process)
+frontend: ERROR (no such process).
 
 **documents and test reports created in this job**
--    (updated)
--    (new)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Requested to restore the UI to match a previously working deployment and synchronize all environments to a single backend to fix data inconsistencies. (Status: **Completed**)
-2.  **User**: Requested to stabilize the project by creating a git tag, fixing the fragile  build process, automating the build version footer, and documenting the new workflow. (Status: **Completed**)
-3.  **Agent**: Completed the stabilization tasks, including creating the tag, untracking , creating a build script, and creating . (Status: **Completed**)
-4.  **User**: Requested a simple deployment health monitor using a script and a 5-minute GitHub Action. (Status: **Completed**)
-5.  **Agent**: Created  and  and explained how they work. (Status: **Completed**)
-6.  **User**: Requested a build verification check via a GitHub Action that runs - Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly...
-- Making sure project is set up correctly... on push to main. (Status: **Completed**)
-7.  **Agent**: Created  and explained its functionality. (Status: **Completed**)
-8.  There are no pending user messages.
+1.  **User**: Add automatic expiration for unpaid orders. (Status: **Completed**)
+2.  **User**: Make inventory deduction atomic to prevent overselling. (Status: **Completed**)
+3.  **User**: Store product images as files, not base64 in the database. (Status: **Completed**)
+4.  **User**: Refactor the monolithic  into a modular structure. (Status: **Completed**)
+5.  **User**: Add Pydantic validation to key API endpoints. (Status: **Completed**)
+6.  **User**: Make referral codes immutable and generated automatically. (Status: **Completed**)
+7.  **User**: Allow  as a fallback for referral code lookup. (Status: **Completed**)
+8.  **User**: Add rate limiting to sensitive endpoints. (Status: **Completed**)
+9.  **User**: Add an instant referral signup bonus. (Status: **Completed**)
+10. **User**: Add leaderboard rank movement tracking. (Status: **In Progress, testing pending**)
 
 **Project Health Check:**
--   **Broken**: None. The critical UI bugs, data desync issues, and fragile deployment process have all been fixed.
--   **Mocked**:
-    -   The email utility () is not integrated.
-    -   The user-facing checkout flow does not yet allow spending .
+-   **Broken**: The leaderboard movement feature is untested. No other known broken functionality.
+-   **Mocked**: The email service () exists but is not fully integrated or actively used for sending emails.
 
 **3rd Party Integrations**
 -   **Expo**: Core framework for the React Native frontend.
--   **react-native-gesture-handler & react-native-reanimated**: UI animations and gestures.
--   **react-native-safe-area-context**: For handling device notches/islands.
--   **GitHub Actions**: For CI/CD (build verification and health monitoring).
+-   **Zustand**: For global state management in React.
+-   **slowapi**: For rate limiting in the FastAPI backend.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO (explicitly forbidden by user).
+-   **Testing agent used after significant changes**: NO.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**:
-    -   
-    -   
-    -   
--   **Known regressions**: Multiple regressions (lost routes, missing UI elements) were identified and fully resolved during this session.
+-   **Test files created**: None.
+-   **Known regressions**: None known. The agent fixed all bugs reported during the session.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 
 **What agent forgot to execute**
--   The agent successfully completed all user requests in a complex, multi-step recovery and stabilization effort. Nothing was forgotten.</analysis>
+-   None. The agent successfully addressed all user requests in this session. The previous P0 task (domain binding) was correctly identified as no longer relevant based on user feedback.</analysis>

@@ -15,11 +15,17 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  const [year, setYear] = useState('');
+  const [dob, setDob] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleDobChange = (text: string) => {
+    const nums = text.replace(/\D/g, '');
+    let formatted = nums;
+    if (nums.length > 2) formatted = `${nums.slice(0, 2)}/${nums.slice(2)}`;
+    if (nums.length > 4) formatted = `${nums.slice(0, 2)}/${nums.slice(2, 4)}/${nums.slice(4, 8)}`;
+    setDob(formatted);
+  };
 
   useEffect(() => {
     if (ref && !isAuthenticated) {
@@ -28,13 +34,20 @@ export default function Register() {
   }, [ref, isAuthenticated]);
 
   const handleRegister = async () => {
-    if (!email || !password || !firstName || !lastName || !month || !day || !year) {
+    if (!email || !password || !firstName || !lastName || !dob) {
       const msg = 'Please fill in all required fields';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       return;
     }
 
-    const dateOfBirth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const parts = dob.split('/');
+    if (parts.length !== 3 || parts[2].length !== 4) {
+      const msg = 'Please enter a valid date of birth (MM/DD/YYYY)';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      return;
+    }
+    const [mm, dd, yyyy] = parts;
+    const dateOfBirth = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
     setLoading(true);
     try {
@@ -100,40 +113,16 @@ export default function Register() {
             />
 
             <Text style={styles.label}>Date of Birth (Must be 21+)</Text>
-            <View style={styles.dateContainer}>
-              <TextInput
-                style={styles.dateInput}
-                placeholder="MM"
-                placeholderTextColor="#666"
-                value={month}
-                onChangeText={setMonth}
-                keyboardType="numeric"
-                maxLength={2}
-                data-testid="register-dob-month"
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInput}
-                placeholder="DD"
-                placeholderTextColor="#666"
-                value={day}
-                onChangeText={setDay}
-                keyboardType="numeric"
-                maxLength={2}
-                data-testid="register-dob-day"
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInputYear}
-                placeholder="YYYY"
-                placeholderTextColor="#666"
-                value={year}
-                onChangeText={setYear}
-                keyboardType="numeric"
-                maxLength={4}
-                data-testid="register-dob-year"
-              />
-            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="MM/DD/YYYY"
+              placeholderTextColor="#666"
+              value={dob}
+              onChangeText={handleDobChange}
+              keyboardType="numeric"
+              maxLength={10}
+              data-testid="register-dob"
+            />
 
             <Text style={styles.label}>Referral Code <Text style={styles.optional}>(optional)</Text></Text>
             <TextInput
@@ -218,37 +207,6 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#fff',
     fontSize: 16,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateInput: {
-    flex: 1,
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 1,
-    borderColor: theme.colors.inputBorder,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  dateInputYear: {
-    flex: 1.5,
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 1,
-    borderColor: theme.colors.inputBorder,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  dateSeparator: {
-    color: '#666',
-    fontSize: 20,
-    marginHorizontal: 8,
   },
   button: {
     backgroundColor: theme.colors.primary,

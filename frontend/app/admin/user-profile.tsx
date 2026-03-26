@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getLedgerLabel, getLedgerDescription } from '../../constants/ledger';
 import { useToast } from '../../components/Toast';
+import { useAuthStore } from '../../store/authStore';
 import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -20,9 +21,10 @@ const statusColors: Record<string, string> = {
 export default function AdminUserProfile() {
   const router = useRouter();
   const { userId } = useLocalSearchParams();
+  const token = useAuthStore(state => state.token);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'orders' | 'reviews' | 'referral' | 'ledger'>('orders');
+  const [tab, setTab] = useState<'orders' | 'reviews' | 'referral' | 'ledger' | 'notes' | 'credit'>('orders');
   const [ledger, setLedger] = useState<any[]>([]);
   const [ledgerLoaded, setLedgerLoaded] = useState(false);
   const [referrerInput, setReferrerInput] = useState('');
@@ -30,16 +32,29 @@ export default function AdminUserProfile() {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustDesc, setAdjustDesc] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditDesc, setCreditDesc] = useState('');
+  const [adjustingCredit, setAdjustingCredit] = useState(false);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [merging, setMerging] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    if (userId) loadProfile();
-  }, [userId]);
+    if (userId && token) loadProfile();
+  }, [userId, token]);
 
   const loadProfile = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/admin/users/${userId}/profile`);
       setProfile(res.data);
+      setAdminNotes(res.data?.user?.adminNotes || '');
     } catch (e) {
       console.error('Failed to load user profile', e);
     } finally {
@@ -82,6 +97,104 @@ export default function AdminUserProfile() {
     } catch (e: any) {
       toast.show(e.response?.data?.detail || 'Failed to adjust', 'error');
     } finally { setAdjusting(false); }
+  };
+
+  const handleSetPassword = async () => {
+    if (newPassword.length < 8) { toast.show('Password must be at least 8 characters', 'error'); return; }
+    if (newPassword !== confirmPassword) { toast.show('Passwords do not match', 'error'); return; }
+    setSettingPassword(true);
+    try {
+      await axios.post(`${API_URL}/api/admin/users/${userId}/set-password`, { newPassword });
+      toast.show('Password updated successfully');
+      setShowPasswordModal(false);
+      setNewPassword(''); setConfirmPassword('');
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to set password', 'error');
+    } finally { setSettingPassword(false); }
+  };
+
+  const handleToggleDisable = async () => {
+    const isCurrentlyDisabled = profile?.user?.isDisabled || false;
+    const action = isCurrentlyDisabled ? 'enable' : 'disable';
+    Alert.alert(
+      `${isCurrentlyDisabled ? 'Enable' : 'Disable'} Account`,
+      `Are you sure you want to ${action} this account?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isCurrentlyDisabled ? 'Enable' : 'Disable',
+          style: isCurrentlyDisabled ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              await axios.patch(`${API_URL}/api/admin/users/${userId}`, { isDisabled: !isCurrentlyDisabled });
+              setProfile((prev: any) => prev ? { ...prev, user: { ...prev.user, isDisabled: !isCurrentlyDisabled } } : prev);
+              toast.show(`Account ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully`);
+            } catch (e: any) {
+              toast.show(e.response?.data?.detail || 'Failed to update account status', 'error');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCreditAdjust = async () => {
+    const amt = parseFloat(creditAmount);
+    if (!creditDesc.trim() || isNaN(amt)) { toast.show('Enter amount and description', 'error'); return; }
+    setAdjustingCredit(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/admin/users/${userId}/credit`, { amount: amt, description: creditDesc });
+      toast.show(`Credit updated: $${res.data.newBalance?.toFixed(2)}`);
+      setCreditAmount(''); setCreditDesc('');
+      setProfile((prev: any) => prev ? { ...prev, user: { ...prev.user, creditBalance: res.data.newBalance } } : prev);
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to adjust credit', 'error');
+    } finally { setAdjustingCredit(false); }
+  };
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await axios.patch(`${API_URL}/api/admin/users/${userId}/notes`, { notes: adminNotes });
+      toast.show('Notes saved');
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Failed to save notes', 'error');
+    } finally { setSavingNotes(false); }
+  };
+
+  const handleMerge = async () => {
+    if (!mergeTargetId.trim()) { toast.show('Enter target user ID', 'error'); return; }
+    setMerging(true);
+    try {
+      await axios.post(`${API_URL}/api/admin/users/merge`, { sourceUserId: userId, targetUserId: mergeTargetId.trim() });
+      toast.show('Accounts merged successfully');
+      setShowMergeModal(false); setMergeTargetId('');
+      router.back();
+    } catch (e: any) {
+      toast.show(e.response?.data?.detail || 'Merge failed', 'error');
+    } finally { setMerging(false); }
+  };
+
+  const handleForceLogout = async () => {
+    Alert.alert(
+      'Force Logout',
+      'This will immediately invalidate all active sessions for this user.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Force Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.post(`${API_URL}/api/admin/users/${userId}/force-logout`);
+              toast.show('User sessions invalidated');
+            } catch (e: any) {
+              toast.show(e.response?.data?.detail || 'Failed to force logout', 'error');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderStars = (rating: number) => (
@@ -157,16 +270,66 @@ export default function AdminUserProfile() {
             </View>
           </View>
 
+          {/* Admin Actions */}
+          <View style={adminProfileStyles.actionsCard}>
+            <Text style={adminProfileStyles.cardTitle}>Admin Actions</Text>
+            <View style={adminProfileStyles.actionsRow}>
+              <TouchableOpacity
+                style={adminProfileStyles.actionPill}
+                onPress={() => setShowPasswordModal(true)}
+                data-testid="reset-password-btn"
+              >
+                <Ionicons name="key-outline" size={14} color="#fff" />
+                <Text style={adminProfileStyles.actionPillText}>Reset Password</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[adminProfileStyles.actionPill, profile?.user?.isDisabled ? adminProfileStyles.enablePill : adminProfileStyles.disablePill]}
+                onPress={handleToggleDisable}
+                data-testid="toggle-disable-btn"
+              >
+                <Ionicons name={profile?.user?.isDisabled ? "checkmark-circle-outline" : "ban-outline"} size={14} color={profile?.user?.isDisabled ? '#10b981' : '#ef4444'} />
+                <Text style={[adminProfileStyles.actionPillText, { color: profile?.user?.isDisabled ? '#10b981' : '#ef4444' }]}>
+                  {profile?.user?.isDisabled ? 'Enable Account' : 'Disable Account'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[adminProfileStyles.actionPill, adminProfileStyles.logoutPill]}
+                onPress={handleForceLogout}
+                data-testid="force-logout-btn"
+              >
+                <Ionicons name="log-out-outline" size={14} color="#fbbf24" />
+                <Text style={[adminProfileStyles.actionPillText, { color: '#fbbf24' }]}>Force Logout</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[adminProfileStyles.actionPill, { borderColor: '#f9731633' }]}
+                onPress={() => setShowMergeModal(true)}
+                data-testid="merge-account-btn"
+              >
+                <Ionicons name="git-merge-outline" size={14} color="#f97316" />
+                <Text style={[adminProfileStyles.actionPillText, { color: '#f97316' }]}>Merge Into</Text>
+              </TouchableOpacity>
+            </View>
+            {profile?.user?.isDisabled && (
+              <View style={adminProfileStyles.disabledBanner}>
+                <Ionicons name="warning-outline" size={14} color="#ef4444" />
+                <Text style={adminProfileStyles.disabledBannerText}>This account is disabled</Text>
+              </View>
+            )}
+          </View>
+
           {/* Tabs */}
           <View style={styles.tabRow}>
-            {(['orders', 'reviews', 'referral', 'ledger'] as const).map((t) => (
+            {(['orders', 'reviews', 'referral', 'ledger', 'notes', 'credit'] as const).map((t) => (
               <TouchableOpacity
                 key={t}
                 style={[styles.tab, tab === t && styles.tabActive]}
                 onPress={() => { setTab(t); if (t === 'ledger' && !ledgerLoaded) loadLedger(); }}
               >
                 <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-                  {t === 'orders' ? 'Orders' : t === 'reviews' ? 'Reviews' : t === 'referral' ? 'Referral' : 'Ledger'}
+                  {t === 'orders' ? 'Orders' : t === 'reviews' ? 'Reviews' : t === 'referral' ? 'Referral' : t === 'ledger' ? 'Ledger' : t === 'notes' ? 'Notes' : 'Credit'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -245,6 +408,58 @@ export default function AdminUserProfile() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : tab === 'notes' ? (
+            <View style={adminProfileStyles.infoCard}>
+              <Text style={adminProfileStyles.cardTitle}>Account Notes</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Private admin-only notes. Not visible to user.</Text>
+              <TextInput
+                style={[adminProfileStyles.inputField, { minHeight: 120, textAlignVertical: 'top' }]}
+                value={adminNotes}
+                onChangeText={setAdminNotes}
+                placeholder="Add notes about this account..."
+                placeholderTextColor="#555"
+                multiline
+                data-testid="admin-notes-input"
+              />
+              <TouchableOpacity
+                style={[adminProfileStyles.actionBtn, savingNotes && { opacity: 0.5 }]}
+                onPress={handleSaveNotes}
+                disabled={savingNotes}
+                data-testid="save-notes-btn"
+              >
+                <Text style={adminProfileStyles.actionBtnText}>{savingNotes ? 'Saving...' : 'Save Notes'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : tab === 'credit' ? (
+            <View style={adminProfileStyles.infoCard}>
+              <Text style={adminProfileStyles.cardTitle}>Store Credit</Text>
+              <Text style={adminProfileStyles.currentBalance}>Current Balance: ${(profile?.user?.creditBalance || 0).toFixed(2)}</Text>
+              <TextInput
+                style={adminProfileStyles.inputField}
+                value={creditAmount}
+                onChangeText={setCreditAmount}
+                placeholder="Amount (e.g. 10.00 or -5.00)"
+                placeholderTextColor="#555"
+                keyboardType="numbers-and-punctuation"
+                data-testid="credit-adjust-amount"
+              />
+              <TextInput
+                style={adminProfileStyles.inputField}
+                value={creditDesc}
+                onChangeText={setCreditDesc}
+                placeholder="Reason (e.g. Compensation for issue)"
+                placeholderTextColor="#555"
+                data-testid="credit-adjust-desc"
+              />
+              <TouchableOpacity
+                style={[adminProfileStyles.actionBtn, adjustingCredit && { opacity: 0.5 }]}
+                onPress={handleCreditAdjust}
+                disabled={adjustingCredit}
+                data-testid="credit-adjust-btn"
+              >
+                <Text style={adminProfileStyles.actionBtnText}>{adjustingCredit ? 'Saving...' : 'Apply Credit Adjustment'}</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View>
               <View style={adminProfileStyles.infoCard}>
@@ -297,6 +512,94 @@ export default function AdminUserProfile() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </View>
+
+      {/* Merge Account Modal */}
+      <Modal visible={showMergeModal} animationType="slide" transparent>
+        <View style={adminProfileStyles.modalOverlay}>
+          <View style={adminProfileStyles.modalBox}>
+            <View style={adminProfileStyles.modalTopRow}>
+              <Text style={adminProfileStyles.modalTitle}>Merge Account</Text>
+              <TouchableOpacity onPress={() => { setShowMergeModal(false); setMergeTargetId(''); }}>
+                <Ionicons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ backgroundColor: '#ef444415', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600', lineHeight: 18 }}>
+                Warning: This will move all orders, Cloudz, and credit from this account into the target account, then disable this account. This cannot be undone.
+              </Text>
+            </View>
+            <Text style={adminProfileStyles.inputLabel}>Source Account</Text>
+            <Text style={{ fontSize: 12, color: '#666', marginBottom: 12, padding: 10, backgroundColor: '#111', borderRadius: 8 }}>{String(userId)}</Text>
+
+            <Text style={adminProfileStyles.inputLabel}>Target Account ID</Text>
+            <TextInput
+              style={adminProfileStyles.inputField}
+              value={mergeTargetId}
+              onChangeText={setMergeTargetId}
+              placeholder="Paste target user ID"
+              placeholderTextColor="#555"
+              autoCapitalize="none"
+              data-testid="merge-target-id-input"
+            />
+            <TouchableOpacity
+              style={[adminProfileStyles.actionBtn, { backgroundColor: '#ef4444' }, merging && { opacity: 0.5 }]}
+              onPress={handleMerge}
+              disabled={merging}
+              data-testid="confirm-merge-btn"
+            >
+              <Text style={adminProfileStyles.actionBtnText}>{merging ? 'Merging...' : 'Confirm Merge'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal visible={showPasswordModal} animationType="slide" transparent>
+        <View style={adminProfileStyles.modalOverlay}>
+          <View style={adminProfileStyles.modalBox}>
+            <View style={adminProfileStyles.modalTopRow}>
+              <Text style={adminProfileStyles.modalTitle}>Reset Password</Text>
+              <TouchableOpacity onPress={() => { setShowPasswordModal(false); setNewPassword(''); setConfirmPassword(''); }}>
+                <Ionicons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={adminProfileStyles.modalSubtitle}>Set a new password for this user.</Text>
+
+            <Text style={adminProfileStyles.inputLabel}>New Password</Text>
+            <TextInput
+              style={adminProfileStyles.inputField}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="Min. 8 characters"
+              placeholderTextColor="#555"
+              secureTextEntry
+              autoCapitalize="none"
+              data-testid="new-password-input"
+            />
+
+            <Text style={adminProfileStyles.inputLabel}>Confirm Password</Text>
+            <TextInput
+              style={adminProfileStyles.inputField}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Repeat new password"
+              placeholderTextColor="#555"
+              secureTextEntry
+              autoCapitalize="none"
+              data-testid="confirm-password-input"
+            />
+
+            <TouchableOpacity
+              style={[adminProfileStyles.actionBtn, settingPassword && { opacity: 0.5 }]}
+              onPress={handleSetPassword}
+              disabled={settingPassword}
+              data-testid="submit-password-btn"
+            >
+              <Text style={adminProfileStyles.actionBtnText}>{settingPassword ? 'Saving...' : 'Update Password'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -362,4 +665,19 @@ const adminProfileStyles = StyleSheet.create({
   ledgerAmount: { fontSize: 16, fontWeight: '800', minWidth: 50, textAlign: 'right' },
   ledgerPos: { color: '#10b981' },
   ledgerNeg: { color: '#ef4444' },
+  actionsCard: { backgroundColor: '#1a1a1a', borderRadius: 14, padding: 14, marginBottom: 14 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actionPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#2a2a2a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#333' },
+  disablePill: { borderColor: '#ef444433' },
+  enablePill: { borderColor: '#10b98133' },
+  logoutPill: { borderColor: '#fbbf2433' },
+  actionPillText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  disabledBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ef444415', borderRadius: 8, padding: 8, marginTop: 10 },
+  disabledBannerText: { fontSize: 12, color: '#ef4444', fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: '#1a1a1a', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  modalSubtitle: { fontSize: 13, color: '#666', marginBottom: 20 },
+  inputLabel: { fontSize: 12, fontWeight: '600', color: '#aaa', marginBottom: 6, marginTop: 4 },
 });

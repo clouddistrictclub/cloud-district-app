@@ -1,0 +1,109 @@
+{
+  "summary": "Tested leaderboard movement tracking and store credit at checkout. Backend: 17/17 tests pass. Frontend: Store credit toggle works visually but leaderboard movement indicators are MISSING from the UI (the frontend interface and renderItem function don't display movement field at all). data-testid attributes are not accessible via CSS selectors (React Native Web issue).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/orders/{id}/cancel",
+        "issue": "Cancelling an order does NOT restore store credit (creditBalance) to the user. Only stock is restored. If user applies $X store credit then cancels, they lose that credit permanently. May be intentional but worth flagging."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "leaderboard.tsx - LeaderboardEntry interface",
+        "issue": "CRITICAL: The 'movement' field is NOT in the LeaderboardEntry TypeScript interface and is NOT rendered anywhere in the UI. Backend returns movement=+1/-1/0/null but frontend never displays any movement arrows or indicators. The entire movement tracking feature is invisible to users.",
+        "priority": "CRITICAL",
+        "fix": "Add 'movement: number | null' to LeaderboardEntry interface. Add rendering logic in renderItem() to show arrows (↑ green for positive, ↓ red for negative, — neutral for 0).",
+        "backend_data_verified": "Justin K. movement=+1, Brianna C. movement=-1, Andrew M. movement=0 - all correct from API"
+      },
+      {
+        "component": "All interactive components (checkout.tsx, leaderboard.tsx, etc.)",
+        "issue": "data-testid attributes on TouchableOpacity are NOT rendered in the DOM (0 data-testid elements found via [data-testid] selector across entire app). React Native Web does NOT forward data-testid from TouchableOpacity/View to the underlying DOM element. All test automation using [data-testid='store-credit-toggle'] etc. will fail.",
+        "priority": "MEDIUM",
+        "fix": "Change data-testid to testID on React Native TouchableOpacity and View components. testID is the React Native prop that gets forwarded to data-testid in the web DOM."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "leaderboard_movement_backend": {
+      "status": "PASS",
+      "details": "GET /api/leaderboard returns 'movement' field for each user. Justin K. movement=+1 (rank 2→1), Brianna C. movement=-1 (rank 1→2), Andrew M. movement=0 (same rank). byReferrals also has movement field. Snapshot loop running correctly."
+    },
+    "leaderboard_movement_frontend": {
+      "status": "FAIL",
+      "details": "Movement arrows/indicators are COMPLETELY ABSENT from the leaderboard UI. The LeaderboardEntry TypeScript interface in leaderboard.tsx does not include 'movement' field. renderItem() function has no code to display movement."
+    },
+    "leaderboard_snapshot_exists": {
+      "status": "PASS",
+      "details": "Yesterday's snapshot (2026-03-09) exists with swapped rankings. Today's snapshot (2026-03-10) also exists. Movement values confirmed as non-null for top users."
+    },
+    "store_credit_toggle_visible": {
+      "status": "PASS",
+      "details": "Apply Store Credit toggle visible in checkout page with '$12.00 available' text. Admin user creditBalance > 0."
+    },
+    "store_credit_order_summary": {
+      "status": "PASS",
+      "details": "When toggled, Order Summary shows 'Store Credit -$12.00' row, Total updates from $25.00 to $13.00, Place Order button updates to 'Place Order - $13.00'."
+    },
+    "store_credit_deduction": {
+      "status": "PASS",
+      "details": "Backend test verified: placing order with storeCreditApplied=$1.00 deducts $1.00 from creditBalance. credit_before - credit_to_apply = credit_after verified."
+    },
+    "store_credit_capped_at_balance": {
+      "status": "PASS",
+      "details": "Backend test verified: requesting more credit than available is capped at available balance. Frontend correctly caps at min(availableCredit, preTotalBeforeCredit)."
+    },
+    "store_credit_in_order_document": {
+      "status": "PASS",
+      "details": "storeCreditApplied field exists in Order schema and is correctly stored. GET /api/orders/{id} returns storeCreditApplied."
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_leaderboard_movement_store_credit.py",
+    "/app/test_reports/pytest/pytest_leaderboard_movement_store_credit.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Add 'movement' field to LeaderboardEntry interface in leaderboard.tsx and implement movement arrow display in renderItem(). Backend returns correct data (+1/-1/0/null) but frontend completely ignores it.",
+    "MEDIUM: Fix data-testid attribute propagation - change data-testid to testID on React Native TouchableOpacity/View components across the app. Currently 0 data-testid elements in the DOM, making CSS-based test automation impossible.",
+    "MINOR/REVIEW: POST /api/orders/{id}/cancel does not restore creditBalance when store credit was applied to the cancelled order. Verify if this is intentional or a bug."
+  ],
+  "critical_code_review_comments": [
+    "leaderboard.tsx line 12-20: LeaderboardEntry interface missing 'movement: number | null' field",
+    "leaderboard.tsx line 58-91: renderItem() has no movement indicator rendering (no arrow icons, no color coding)",
+    "All .tsx components: data-testid on TouchableOpacity/View doesn't reach DOM - should use testID prop",
+    "order_routes.py cancel_order(): No creditBalance restoration when storeCreditApplied > 0 and order is cancelled - potential credit loss on cancellation"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_leaderboard_movement_store_credit.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests pass)",
+    "frontend": "60% (store credit UI works, leaderboard movement UI completely missing)"
+  },
+  "test_credentials": {
+    "admin_email": "jkaatz@gmail.com",
+    "admin_password": "Just1n23$",
+    "admin_cloudz": 34253,
+    "admin_credit_balance_at_test_time": 12.00,
+    "note": "Credit balance was $20 at session start, backend tests deducted some during testing"
+  },
+  "seed_data_creation": "No seed data created. Backend tests placed Zelle orders (Pending Payment status) and cancelled them to restore stock.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend tests all pass. Frontend leaderboard movement display is entirely missing - the main agent needs to add movement field to the interface and rendering. Store credit UI works correctly (toggle visible, order summary updates, totals correct). The data-testid attribute issue is systemic - no data-testid CSS selectors work anywhere in the app because React Native Web doesn't forward data-testid from TouchableOpacity. Use text-based selectors for Playwright automation (e.g., 'text=Apply Store Credit'). Admin creditBalance at test time was $12.00.",
+  "rca_of_issues": {
+    "leaderboard_movement_missing_from_ui": {
+      "root_cause": "The LeaderboardEntry TypeScript interface in frontend/app/leaderboard.tsx was not updated when the backend added the 'movement' field to the leaderboard response. The renderItem() function has no code to display movement direction indicators.",
+      "reproduction": "Navigate to /leaderboard while logged in. No movement arrows are visible. API returns movement=1 for rank 1 user but UI shows nothing.",
+      "mitigation": "Add movement: number | null to LeaderboardEntry interface. Add conditional rendering in renderItem() to show ↑ (green) for positive, ↓ (red) for negative, or nothing for null/0."
+    },
+    "data_testid_not_in_dom": {
+      "root_cause": "React Native Web doesn't forward data-* attributes from custom components like TouchableOpacity/View to the underlying DOM elements. The web standard is testID -> data-testid but data-testid prop is not a React Native prop.",
+      "mitigation": "Use testID prop instead of data-testid on all React Native interactive components. Example: testID='store-credit-toggle' instead of data-testid='store-credit-toggle'."
+    }
+  }
+}

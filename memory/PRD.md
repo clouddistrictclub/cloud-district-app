@@ -1,5 +1,5 @@
 # Cloud District Club - Product Requirements Document
-_Last updated: 2026-03-08_
+_Last updated: 2026-03-10_
 
 ## Original Problem Statement
 Mobile app for local pickup of disposable vape products, 21+ age gate.
@@ -71,8 +71,31 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
 - **Cloudz earn rate 3x** (backend verified: $20 → 60 pts)
 - **Persistent AppHeader across all tabs**
 - Production deployment prep (Emergent + Railway fallback)
-- **SafeArea Fix** (Mar 2026): AppHeader now uses `useSafeAreaInsets()` hook — fixes iPhone Dynamic Island/status bar overlap on iOS native. Web still uses `env(safe-area-inset-top)`.
-- **Cloudz History Crash Fix** (Mar 2026): Fixed `undefined.toLocaleString()` crash on cloudz-history.tsx — added `?? 0` guard for `item.amount` and `item.balanceAfter`. Added `Array.isArray()` guard on API response in both cloudz.tsx and cloudz-history.tsx. Also added missing `referral_reward` type to TYPE_LABELS/TYPE_ICONS.
+- **SafeArea Fix** (Mar 2026): AppHeader now uses `useSafeAreaInsets()` hook
+- **Cloudz History Crash Fix** (Mar 2026): Fixed `undefined.toLocaleString()` crash
+- **Parity Fixes** (2026-03-08): Removed Venmo, restored AppHeader on product page
+- **Admin Password Management** (2026-03-09):
+  - `POST /api/admin/users/{user_id}/set-password` — hash + update password (min 8 chars, admin-only)
+  - `POST /api/admin/users/{user_id}/force-logout` — stores `forceLogoutAt` timestamp to invalidate sessions
+  - `isDisabled` check in `/auth/login` — disabled accounts get 403
+  - `isDisabled` + `forceLogoutAt` check in `get_current_user` — auto-blocks disabled/force-logged-out users
+  - Admin user profile page: ADMIN ACTIONS section with Reset Password / Disable Account / Force Logout
+  - Reset Password modal with validation (min 8 chars, confirm match)
+  - Users list: "Profile" button navigates to user detail page
+  - Auth race condition fix: `users.tsx` and `user-profile.tsx` now wait for token before calling admin APIs
+- **Admin Capability Audit & Expansion** (2026-03-09):
+  - AUDITED: Cloudz Adjustment ✅ COMPLETE; Store Credit API ✅ (UI was missing); Order Status ✅; Order Edit (items/notes) ✅; Pickup Time + Payment Method edit ❌ added; Admin Notes on User ❌ added; Account Merge ❌ added; Next Order Coupon ❌ added; Cloudz Progress Reminder ❌ added
+  - NEW endpoints: `PATCH /api/admin/users/{id}/notes`, `POST /api/admin/users/merge`, `GET /api/me/coupon`
+  - `OrderEdit` model updated with optional `pickupTime` and `paymentMethod` fields
+  - `OrderCreate` model updated with `couponApplied: bool` for coupon redemption at checkout
+  - Auto-issues `nextOrderCoupon` ($5, 7-day expiry) when order status → Completed
+  - Frontend: Notes tab + Credit tab added to admin user-profile
+  - Frontend: Merge Into action with warning modal added to admin user-profile
+  - Frontend: Pickup time + payment method selectors added to admin order edit modal
+  - Frontend: Cloudz Progress Reminder in account.tsx (shows when within 20% of next tier)
+  - Frontend: Coupon section in checkout.tsx — display, toggle, and apply at order placement
+  - DB Consistency: preview uses local MongoDB (localhost:27017/test_database); production uses separate instance
+- **ToastProvider Fix** (2026-03-10): Added `ToastProvider` to root `_layout.tsx` — previously missing, causing all `toast.show()` calls to be silent no-ops; admin actions (password reset, credit adjustments, etc.) now show success/error toasts
 
 ## Credentials
 - Admin: jkaatz@gmail.com / Just1n23$
@@ -95,8 +118,7 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Both fixes verified with screenshots, DOM checks, and staging bundle comparison
 
 ## Future (P2+)
-- Backend monolith refactor
-- Admin screen modularization
-- Google Workspace email integration
+- Admin screen modularization (user-profile.tsx is 600+ lines)
+- Google Workspace email integration (email_service.py is currently MOCKED)
 - Push notifications expansion
 - Social sharing (X, Facebook, Instagram) for Ways to Earn
