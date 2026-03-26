@@ -757,6 +757,70 @@ async def export_products(admin = Depends(get_admin_user)):
     return docs
 
 
+@api_router.post("/admin/import/products")
+async def import_products(
+    request: Request,
+    wipe: bool = False,
+    admin = Depends(get_admin_user),
+):
+    """Restore product catalog from a backup JSON array.
+
+    - wipe=true  → delete all existing products, then insert
+    - wipe=false → upsert each document by _id (default, safe)
+    """
+    try:
+        products = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Body must be valid JSON")
+
+    if not isinstance(products, list):
+        raise HTTPException(status_code=400, detail="Input must be a JSON array")
+
+    if wipe:
+        await db.products.delete_many({})
+
+    inserted = updated = skipped = 0
+    for raw in products:
+        if not isinstance(raw, dict):
+            skipped += 1
+            continue
+
+        doc = dict(raw)  # copy so we don't mutate caller data
+
+        # Resolve _id
+        raw_id = doc.pop("_id", None)
+        if raw_id:
+            try:
+                oid = ObjectId(str(raw_id))
+            except Exception:
+                oid = ObjectId()  # bad _id → generate new
+        else:
+            oid = ObjectId()
+
+        if wipe:
+            doc["_id"] = oid
+            await db.products.insert_one(doc)
+            inserted += 1
+        else:
+            result = await db.products.replace_one(
+                {"_id": oid},
+                {**doc, "_id": oid},
+                upsert=True,
+            )
+            if result.upserted_id:
+                inserted += 1
+            else:
+                updated += 1
+
+    return {
+        "imported": inserted + updated,
+        "inserted": inserted,
+        "updated": updated,
+        "skipped": skipped,
+        "wipe": wipe,
+    }
+
+
 # ==================== ORDER ENDPOINTS ====================
 
 @api_router.post("/orders", response_model=Order)
