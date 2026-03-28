@@ -88,13 +88,13 @@ export default function Account() {
     }, [loadAccountData])
   );
 
-  const referralLink = user?.referralCode
-    ? `https://clouddistrict.club/register?ref=${user.referralCode}`
+  const referralLink = user?.username
+    ? `https://clouddistrict.club/register?ref=${user.username.toLowerCase()}`
     : '';
 
   const handleCopyCode = async () => {
-    if (user?.referralCode) {
-      await Clipboard.setStringAsync(user.referralCode);
+    if (user?.username) {
+      await Clipboard.setStringAsync(user.username.toLowerCase());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -361,7 +361,7 @@ export default function Account() {
                 </View>
                 <View style={styles.handleBadge}>
                   <Ionicons name="at" size={14} color="#6366f1" />
-                  <Text style={styles.handleBadgeText}>Also your referral code</Text>
+                  <Text style={styles.handleBadgeText}>Your referral ID</Text>
                 </View>
               </View>
               <Text style={styles.handleNote}>Handles are permanent. Contact support to change.</Text>
@@ -403,7 +403,7 @@ export default function Account() {
         </View>
 
         {/* Refer & Earn */}
-        {user?.referralCode && (
+        {user?.username && (
           <View style={styles.section}>
             <View style={styles.referralCard} data-testid="referral-section">
               <View style={styles.referralHeader}>
@@ -416,9 +416,9 @@ export default function Account() {
               </Text>
 
               <View style={styles.referralCodeRow}>
-                <Text style={styles.referralCodeLabel}>Your Code</Text>
+                <Text style={styles.referralCodeLabel}>Your Referral ID</Text>
                 <View style={styles.referralCodeBox}>
-                  <Text style={styles.referralCodeText} data-testid="referral-code-display">{user.referralCode}</Text>
+                  <Text style={styles.referralCodeText} data-testid="referral-code-display">@{user.username.toLowerCase()}</Text>
                   <TouchableOpacity
                     onPress={handleCopyCode}
                     style={styles.copyButton}
