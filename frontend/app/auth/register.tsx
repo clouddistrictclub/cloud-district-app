@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -11,23 +11,16 @@ export default function Register() {
   const { ref } = useLocalSearchParams<{ ref?: string }>();
   const register = useAuthStore(state => state.register);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [dob, setDob] = useState('');
   const [username, setUsername] = useState('');
-  const [referralCode, setReferralCode] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [ageVerified, setAgeVerified] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleDobChange = (text: string) => {
-    const nums = text.replace(/\D/g, '');
-    let formatted = nums;
-    if (nums.length > 2) formatted = `${nums.slice(0, 2)}/${nums.slice(2)}`;
-    if (nums.length > 4) formatted = `${nums.slice(0, 2)}/${nums.slice(2, 4)}/${nums.slice(4, 8)}`;
-    setDob(formatted);
-  };
 
   useEffect(() => {
     if (ref && !isAuthenticated) {
@@ -36,41 +29,41 @@ export default function Register() {
   }, [ref, isAuthenticated]);
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword || !firstName || !lastName || !dob || !username) {
-      const msg = 'Please fill in all required fields';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+    if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      const msg = 'Passwords do not match';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (!ageVerified) {
+      Alert.alert('Error', 'You must confirm you are 21 or older to register');
       return;
     }
 
     const normalizedUsername = username.toLowerCase().replace(/\s/g, '').trim();
     if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
-      const msg = 'Username must be 3–20 characters: letters, numbers, underscores only';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Invalid Username', msg);
+      Alert.alert('Invalid Username', 'Username must be 3–20 characters: letters, numbers, underscores only');
       return;
     }
-
-    const parts = dob.split('/');
-    if (parts.length !== 3 || parts[2].length !== 4) {
-      const msg = 'Please enter a valid date of birth (MM/DD/YYYY)';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
-      return;
-    }
-    const [mm, dd, yyyy] = parts;
-    const dateOfBirth = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName, dateOfBirth, username.toLowerCase().trim(), referralCode.trim() || undefined);
+      await register(
+        email,
+        password,
+        firstName,
+        lastName,
+        '1990-01-01',
+        normalizedUsername,
+        referralCode.trim() || undefined
+      );
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || error?.message || 'Something went wrong';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Registration Failed', msg);
+      Alert.alert('Error', error?.response?.data?.detail || error?.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -84,6 +77,7 @@ export default function Register() {
           <Text style={styles.subtitle}>Join Cloud District Club</Text>
 
           <View style={styles.form}>
+
             <Text style={styles.label}>First Name</Text>
             <TextInput
               style={styles.input}
@@ -103,6 +97,22 @@ export default function Register() {
               onChangeText={setLastName}
               data-testid="register-last-name"
             />
+
+            <Text style={styles.label}>
+              Username <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. johndoe123"
+              placeholderTextColor="#666"
+              value={username}
+              onChangeText={(t) => setUsername(t.toLowerCase().replace(/\s/g, ''))}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+              data-testid="register-username"
+            />
+            <Text style={styles.helperText}>This becomes your permanent referral ID</Text>
 
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -127,49 +137,46 @@ export default function Register() {
               data-testid="register-password"
             />
 
-            <Text style={styles.label}>Date of Birth (Must be 21+)</Text>
+            <Text style={styles.label}>Confirm Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="MM/DD/YYYY"
+              placeholder="Confirm your password"
               placeholderTextColor="#666"
-              value={dob}
-              onChangeText={handleDobChange}
-              keyboardType="numeric"
-              maxLength={10}
-              data-testid="register-dob"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              data-testid="register-confirm-password"
             />
 
-            <Text style={styles.label}>Username <Text style={styles.required}>*</Text></Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. johndoe123"
-              placeholderTextColor="#666"
-              value={username}
-              onChangeText={(t) => setUsername(t.toLowerCase().replace(/\s/g, ''))}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={20}
-              data-testid="register-username"
-            />
-            <Text style={styles.helperText}>
-              This will be your unique referral ID. Share it to earn Cloudz when others join.
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setAgeVerified(!ageVerified)}
+              activeOpacity={0.7}
+              data-testid="register-age-verify"
+            >
+              <View style={[styles.checkbox, ageVerified && styles.checkboxChecked]}>
+                {ageVerified && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>I confirm I am 21 years of age or older</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>
+              Referral Username <Text style={styles.optional}>(optional)</Text>
             </Text>
-
-            <Text style={styles.label}>Referred by <Text style={styles.optional}>(optional)</Text></Text>
             <TextInput
               style={styles.input}
               placeholder="Enter a friend's username"
               placeholderTextColor="#666"
               value={referralCode}
-              onChangeText={(text) => setReferralCode(text.toLowerCase().replace(/\s/g, ''))}
+              onChangeText={(t) => setReferralCode(t.toLowerCase().replace(/\s/g, ''))}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={20}
               data-testid="register-referral-code"
             />
 
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]} 
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRegister}
               disabled={loading}
               data-testid="register-submit-btn"
@@ -185,6 +192,7 @@ export default function Register() {
                 </TouchableOpacity>
               </Link>
             </View>
+
           </View>
         </View>
       </KeyboardAwareScrollView>
@@ -227,18 +235,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: -8,
   },
-  optional: {
-    color: theme.colors.textMuted,
-    fontWeight: '400',
-  },
   required: {
     color: '#ef4444',
     fontWeight: '600',
   },
+  optional: {
+    color: theme.colors.textMuted,
+    fontWeight: '400',
+  },
   helperText: {
     color: theme.colors.textMuted,
     fontSize: 12,
-    marginBottom: 12,
     marginTop: -4,
     lineHeight: 17,
   },
@@ -250,6 +257,38 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#fff',
     fontSize: 16,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: theme.colors.inputBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 16,
+  },
+  checkboxLabel: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
+    lineHeight: 20,
   },
   button: {
     backgroundColor: theme.colors.primary,
