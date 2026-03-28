@@ -16,6 +16,7 @@ export default function Register() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dob, setDob] = useState('');
+  const [username, setUsername] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,14 +30,21 @@ export default function Register() {
 
   useEffect(() => {
     if (ref && !isAuthenticated) {
-      setReferralCode(ref.toUpperCase());
+      setReferralCode(ref.toLowerCase());
     }
   }, [ref, isAuthenticated]);
 
   const handleRegister = async () => {
-    if (!email || !password || !firstName || !lastName || !dob) {
+    if (!email || !password || !firstName || !lastName || !dob || !username) {
       const msg = 'Please fill in all required fields';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      return;
+    }
+
+    const normalizedUsername = username.toLowerCase().replace(/\s/g, '').trim();
+    if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
+      const msg = 'Username must be 3–20 characters: letters, numbers, underscores only';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Invalid Username', msg);
       return;
     }
 
@@ -51,7 +59,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName, dateOfBirth, referralCode.trim() || undefined);
+      await register(email, password, firstName, lastName, dateOfBirth, username.toLowerCase().trim(), referralCode.trim() || undefined);
       router.replace('/(tabs)/home');
     } catch (error: any) {
       const msg = error.response?.data?.detail || 'An error occurred';
@@ -124,15 +132,32 @@ export default function Register() {
               data-testid="register-dob"
             />
 
-            <Text style={styles.label}>Referral Code <Text style={styles.optional}>(optional)</Text></Text>
+            <Text style={styles.label}>Username <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter a friend's referral code"
+              placeholder="e.g. johndoe123"
+              placeholderTextColor="#666"
+              value={username}
+              onChangeText={(t) => setUsername(t.toLowerCase().replace(/\s/g, ''))}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+              data-testid="register-username"
+            />
+            <Text style={styles.helperText}>
+              This will be your unique referral ID. Share it to earn Cloudz when others join.
+            </Text>
+
+            <Text style={styles.label}>Referred by <Text style={styles.optional}>(optional)</Text></Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter a friend's username"
               placeholderTextColor="#666"
               value={referralCode}
-              onChangeText={(text) => setReferralCode(text.toUpperCase())}
-              autoCapitalize="characters"
-              maxLength={8}
+              onChangeText={(text) => setReferralCode(text.toLowerCase().replace(/\s/g, ''))}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
               data-testid="register-referral-code"
             />
 
@@ -198,6 +223,17 @@ const styles = StyleSheet.create({
   optional: {
     color: theme.colors.textMuted,
     fontWeight: '400',
+  },
+  required: {
+    color: '#ef4444',
+    fontWeight: '600',
+  },
+  helperText: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    marginBottom: 12,
+    marginTop: -4,
+    lineHeight: 17,
   },
   input: {
     backgroundColor: theme.colors.inputBackground,

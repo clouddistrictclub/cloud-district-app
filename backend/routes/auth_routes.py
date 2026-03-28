@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user, verify_password, get_password_hash, create_access_token, build_user_response
-from models.schemas import UserRegister, UserLogin, Token, UserResponse, generate_referral_code
+from models.schemas import UserRegister, UserLogin, Token, UserResponse
 from services.loyalty_service import log_cloudz_transaction
 from limiter import limiter
 from datetime import datetime
@@ -18,6 +18,11 @@ async def register(request: Request, user_data: UserRegister):
     if existing_user:
         raise HTTPException(status_code=409, detail="Email already registered")
 
+    # username is already normalized (lowercase, trimmed) by the validator
+    username = user_data.username
+    if await db.users.find_one({"username": username}):
+        raise HTTPException(status_code=409, detail="Username already taken")
+
     dob = datetime.strptime(user_data.dateOfBirth, "%Y-%m-%d")
     age = (datetime.utcnow() - dob).days / 365.25
     if age < 21:
@@ -25,17 +30,11 @@ async def register(request: Request, user_data: UserRegister):
 
     referred_by = None
     if user_data.referralCode:
-        ref_input = user_data.referralCode.strip()
-        referrer = await db.users.find_one({"referralCode": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
+        ref_input = user_data.referralCode.strip().lower()
+        referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
         if not referrer:
-            referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
-        if not referrer:
-            raise HTTPException(status_code=400, detail="Invalid referral code")
-        referred_by = str(referrer["_id"])
-
-    ref_code = generate_referral_code()
-    while await db.users.find_one({"referralCode": ref_code}):
-        ref_code = generate_referral_code()
+            raise HTTPException(status_code=400, detail="Invalid referral code — enter a valid username")
+        referred_by = referrer.get("username") or str(referrer["_id"])
 
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
@@ -48,7 +47,8 @@ async def register(request: Request, user_data: UserRegister):
         "isAdmin": False,
         "loyaltyPoints": 0,
         "profilePhoto": None,
-        "referralCode": ref_code,
+        "username": username,
+        "referralCode": username,
         "referredBy": referred_by,
         "referralCount": 0,
         "referralRewardsEarned": 0,
@@ -59,7 +59,7 @@ async def register(request: Request, user_data: UserRegister):
     result = await db.users.insert_one(user_dict)
     user_id = str(result.inserted_id)
 
-    if referred_by == user_id:
+    if referred_by and referred_by == username:
         await db.users.update_one({"_id": result.inserted_id}, {"$set": {"referredBy": None}})
         referred_by = None
 
@@ -68,30 +68,37 @@ async def register(request: Request, user_data: UserRegister):
 
     # Instant referral signup bonus (non-duplicate)
     if referred_by:
-        already_issued = await db.cloudz_ledger.find_one({
-            "userId": referred_by,
-            "type": "referral_signup_bonus",
-            "referredUserId": user_id,
-        })
-        if not already_issued:
-            await db.users.update_one(
-                {"_id": ObjectId(referred_by)},
-                {"$inc": {"referralCount": 1}}
-            )
-            ref_result = await db.users.find_one_and_update(
-                {"_id": ObjectId(referred_by)},
-                {"$inc": {"loyaltyPoints": 500}},
-                return_document=True,
-            )
-            await db.cloudz_ledger.insert_one({
-                "userId": referred_by,
+        referrer_doc = await db.users.find_one(
+            {"$or": [{"username": referred_by}, {"_id": ObjectId(referred_by)} if len(referred_by) == 24 else {"username": referred_by}]},
+            {"_id": 1, "username": 1, "loyaltyPoints": 1}
+        )
+        if referrer_doc:
+            referrer_obj_id = referrer_doc["_id"]
+            referrer_id_str = str(referrer_obj_id)
+            already_issued = await db.cloudz_ledger.find_one({
+                "userId": referrer_id_str,
                 "type": "referral_signup_bonus",
-                "amount": 500,
-                "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
-                "description": f"Referral signup bonus — {user_data.firstName} joined",
                 "referredUserId": user_id,
-                "createdAt": datetime.utcnow(),
             })
+            if not already_issued:
+                await db.users.update_one(
+                    {"_id": referrer_obj_id},
+                    {"$inc": {"referralCount": 1}}
+                )
+                ref_result = await db.users.find_one_and_update(
+                    {"_id": referrer_obj_id},
+                    {"$inc": {"loyaltyPoints": 500}},
+                    return_document=True,
+                )
+                await db.cloudz_ledger.insert_one({
+                    "userId": referrer_id_str,
+                    "type": "referral_signup_bonus",
+                    "amount": 500,
+                    "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
+                    "description": f"Referral signup bonus — {user_data.firstName} joined",
+                    "referredUserId": user_id,
+                    "createdAt": datetime.utcnow(),
+                })
 
     access_token = create_access_token(data={"sub": user_id})
 
@@ -105,7 +112,8 @@ async def register(request: Request, user_data: UserRegister):
         isAdmin=False,
         loyaltyPoints=signup_bonus,
         profilePhoto=None,
-        referralCode=ref_code,
+        username=username,
+        referralCode=username,
         referralCount=0,
         referralRewardsEarned=0
     )
