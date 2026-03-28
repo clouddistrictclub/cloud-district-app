@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
+import { formatLedgerType, getLedgerIcon, getLedgerColor } from '../constants/ledger';
 import axios from 'axios';
 import { theme } from '../theme';
 
@@ -47,21 +48,6 @@ const EARN_ACTIONS = [
   { id: 'instagram', icon: 'logo-instagram', label: 'Follow on Instagram', desc: 'Coming soon', enabled: false },
 ];
 
-const TYPE_LABELS: Record<string, string> = {
-  purchase_reward: 'Purchase Reward',
-  referral_bonus: 'Referral Bonus',
-  tier_redemption: 'Tier Redemption',
-  admin_adjustment: 'Admin Adjustment',
-  signup_bonus: 'Signup Bonus',
-};
-
-const TYPE_ICONS: Record<string, string> = {
-  purchase_reward: 'cart',
-  referral_bonus: 'people',
-  tier_redemption: 'diamond',
-  admin_adjustment: 'shield',
-  signup_bonus: 'person-add',
-};
 
 export default function Cloudz() {
   const router = useRouter();
@@ -314,15 +300,16 @@ export default function Cloudz() {
             </View>
           ) : (
             ledger.slice(0, 5).map((entry, idx) => {
+              const icon = getLedgerIcon(entry.type);
+              const label = formatLedgerType(entry.type);
+              const color = getLedgerColor(entry.type, entry.amount);
               const isPositive = entry.amount > 0;
-              const icon = TYPE_ICONS[entry.type] || 'ellipse';
-              const label = TYPE_LABELS[entry.type] || entry.type;
               const date = new Date(entry.createdAt);
 
               return (
                 <View key={idx} style={s.activityRow} data-testid={`activity-entry-${idx}`}>
-                  <View style={[s.activityIcon, { backgroundColor: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }]}>
-                    <Ionicons name={icon as any} size={16} color={isPositive ? '#22c55e' : '#ef4444'} />
+                  <View style={[s.activityIcon, { backgroundColor: `${color}18` }]}>
+                    <Ionicons name={icon as any} size={16} color={color} />
                   </View>
                   <View style={s.activityContent}>
                     <Text style={s.activityLabel}>{label}</Text>
@@ -332,7 +319,7 @@ export default function Cloudz() {
                     </Text>
                   </View>
                   <View style={s.activityRight}>
-                    <Text style={[s.activityAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]}>
+                    <Text style={[s.activityAmount, { color }]}>
                       {isPositive ? '+' : ''}{(entry.amount ?? 0).toLocaleString()}
                     </Text>
                     <Text style={s.activityBal}>bal {(entry.balanceAfter ?? 0).toLocaleString()}</Text>

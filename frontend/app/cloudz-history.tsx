@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Animated } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { formatLedgerType, getLedgerIcon, getLedgerColor } from '../constants/ledger';
 import { theme } from '../theme';
 import axios from 'axios';
 
@@ -16,24 +17,64 @@ interface LedgerEntry {
   amount: number;
   balanceAfter: number;
   reference: string;
+  description?: string;
   createdAt: string;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  purchase_reward: 'Purchase Reward',
-  referral_bonus: 'Referral Bonus',
-  referral_reward: 'Referral Reward',
-  tier_redemption: 'Tier Redemption',
-  admin_adjustment: 'Admin Adjustment',
-};
+function LedgerRow({ item, index }: { item: LedgerEntry; index: number }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(12)).current;
 
-const TYPE_ICONS: Record<string, string> = {
-  purchase_reward: 'cart',
-  referral_bonus: 'people',
-  referral_reward: 'people',
-  tier_redemption: 'diamond',
-  admin_adjustment: 'shield',
-};
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        delay: index * 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const color = getLedgerColor(item.type, item.amount);
+  const icon = getLedgerIcon(item.type);
+  const label = formatLedgerType(item.type);
+  const isPositive = item.amount > 0;
+  const date = new Date(item.createdAt);
+  const subtext = item.description || item.reference || '';
+
+  return (
+    <Animated.View
+      style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+      data-testid={`ledger-entry-${item.type}`}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon as any} size={20} color={color} />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardLabel}>{label}</Text>
+        {subtext ? (
+          <Text style={styles.cardSubtext} numberOfLines={1}>{subtext}</Text>
+        ) : null}
+        <Text style={styles.cardDate}>
+          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        </Text>
+      </View>
+      <View style={styles.cardRight}>
+        <Text style={[styles.cardAmount, { color }]} data-testid="ledger-amount">
+          {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
+        </Text>
+        <Text style={styles.cardBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function CloudzHistory() {
   const router = useRouter();
@@ -56,33 +97,9 @@ export default function CloudzHistory() {
     })();
   }, [token]);
 
-  const renderItem = ({ item }: { item: LedgerEntry }) => {
-    const isPositive = item.amount > 0;
-    const icon = TYPE_ICONS[item.type] || 'ellipse';
-    const label = TYPE_LABELS[item.type] || item.type;
-    const date = new Date(item.createdAt);
-
-    return (
-      <View style={styles.row} data-testid={`ledger-entry-${item.type}`}>
-        <View style={[styles.iconCircle, { backgroundColor: isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)' }]}>
-          <Ionicons name={icon as any} size={18} color={isPositive ? '#22c55e' : '#ef4444'} />
-        </View>
-        <View style={styles.rowContent}>
-          <Text style={styles.rowLabel}>{label}</Text>
-          <Text style={styles.rowRef} numberOfLines={1}>{item.reference}</Text>
-          <Text style={styles.rowDate}>
-            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </Text>
-        </View>
-        <View style={styles.rowRight}>
-          <Text style={[styles.rowAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]} data-testid="ledger-amount">
-            {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
-          </Text>
-          <Text style={styles.rowBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
-        </View>
-      </View>
-    );
-  };
+  const renderItem = ({ item, index }: { item: LedgerEntry; index: number }) => (
+    <LedgerRow item={item} index={index} />
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -133,54 +150,60 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   list: {
-    padding: 16,
-    paddingTop: 0,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 24,
   },
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 8,
+    marginBottom: 10,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowContent: {
+  cardContent: {
     flex: 1,
   },
-  rowLabel: {
+  cardLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
-  rowRef: {
+  cardSubtext: {
     fontSize: 12,
-    color: theme.colors.textMuted,
+    color: '#777',
     marginTop: 2,
   },
-  rowDate: {
+  cardDate: {
     fontSize: 11,
     color: '#555',
-    marginTop: 2,
+    marginTop: 3,
   },
-  rowRight: {
+  cardRight: {
     alignItems: 'flex-end',
   },
-  rowAmount: {
-    fontSize: 16,
+  cardAmount: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  rowBalance: {
+  cardBalance: {
     fontSize: 11,
     color: '#555',
-    marginTop: 2,
+    marginTop: 3,
   },
   empty: {
     flex: 1,

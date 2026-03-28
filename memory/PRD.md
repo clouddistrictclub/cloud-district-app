@@ -120,6 +120,15 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Atomic MongoDB operations throughout
   - Existing order referral system (50% of order total to referrer on Paid) untouched
   - Ledger entries: `signup_bonus`, `referral_new_user_bonus`, `referral_signup_bonus` all correctly logged
+- **Cloudz Ledger UI Fintech Upgrade**:
+  - Centralized `constants/ledger.ts` — single source of truth for ALL ledger type labels, icons, and colors; `formatLedgerType()`, `getLedgerIcon()`, `getLedgerColor()` helpers
+  - Full label mapping: signup_bonus, referral_signup_bonus, referral_new_user_bonus, referral_bonus, referral_reward, purchase_reward, tier_redemption, admin_adjustment, streak_bonus, credit_adjustment — with fallback (underscore→space, capitalize)
+  - Color system: green (rewards/bonuses), red (tier redemptions), orange/amber (admin/credit adjustments)
+  - Fintech card design: rounded 16px cards, dark #1A1A1A bg, shadow/elevation, colored icon circles, large bold amounts (18px), balance + timestamp
+  - Fade-in animation on each row (staggered 30-40ms delay)
+  - Updated 3 screens: `cloudz-history.tsx` (user), `admin/cloudz-ledger.tsx` (admin), `cloudz.tsx` (inline activity)
+  - Admin ledger: horizontal scrollable filter chips for all ledger types
+  - Zero backend changes — frontend-only presentation upgrade
 
 ## Completed (2026-03-28 Session 5)
 - **Age Gate Replaced**: Rewrote `age-gate.tsx` — simple 1-button modal with hero image, warning box, "I am 21+ Enter" CTA, "Exit" button, and disclaimer. Persists via `cloudDistrictAgeVerified` + legacy `ageVerified` in AsyncStorage/localStorage. DOB picker fully removed.

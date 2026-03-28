@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Platform } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Animated } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
+import { formatLedgerType, getLedgerIcon, getLedgerColor, ADMIN_LEDGER_FILTERS } from '../../constants/ledger';
 import { theme } from '../../theme';
 import axios from 'axios';
 
@@ -15,17 +16,65 @@ interface LedgerEntry {
   amount: number;
   balanceAfter: number;
   reference: string;
+  description?: string;
   createdAt: string;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  purchase_reward: 'Purchase Reward',
-  referral_bonus: 'Referral Bonus',
-  tier_redemption: 'Tier Redemption',
-  admin_adjustment: 'Admin Adjustment',
-};
+function AdminLedgerRow({ item, index }: { item: LedgerEntry; index: number }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(12)).current;
 
-const TYPE_FILTERS = ['all', 'purchase_reward', 'referral_bonus', 'tier_redemption', 'admin_adjustment'];
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        delay: index * 30,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 280,
+        delay: index * 30,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const color = getLedgerColor(item.type, item.amount);
+  const icon = getLedgerIcon(item.type);
+  const label = formatLedgerType(item.type);
+  const isPositive = item.amount > 0;
+  const date = new Date(item.createdAt);
+  const subtext = item.description || item.reference || '';
+
+  return (
+    <Animated.View
+      style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+      data-testid={`admin-ledger-entry-${item.type}`}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon as any} size={18} color={color} />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardEmail} numberOfLines={1}>{item.userEmail}</Text>
+        <Text style={[styles.cardLabel, { color }]}>{label}</Text>
+        {subtext ? (
+          <Text style={styles.cardSubtext} numberOfLines={1}>{subtext}</Text>
+        ) : null}
+      </View>
+      <View style={styles.cardRight}>
+        <Text style={[styles.cardAmount, { color }]} data-testid="admin-ledger-amount">
+          {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
+        </Text>
+        <Text style={styles.cardBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
+        <Text style={styles.cardDate}>
+          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function AdminCloudzLedger() {
   const { token } = useAuthStore();
@@ -73,49 +122,34 @@ export default function AdminCloudzLedger() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const renderItem = ({ item }: { item: LedgerEntry }) => {
-    const isPositive = item.amount > 0;
-    const date = new Date(item.createdAt);
-    return (
-      <View style={styles.row} data-testid={`admin-ledger-entry-${item.type}`}>
-        <View style={styles.rowLeft}>
-          <Text style={styles.rowEmail} numberOfLines={1}>{item.userEmail}</Text>
-          <Text style={styles.rowType}>{TYPE_LABELS[item.type] || item.type}</Text>
-          <Text style={styles.rowRef} numberOfLines={1}>{item.reference}</Text>
-        </View>
-        <View style={styles.rowRight}>
-          <Text style={[styles.rowAmount, { color: isPositive ? '#22c55e' : '#ef4444' }]} data-testid="admin-ledger-amount">
-            {isPositive ? '+' : ''}{(item.amount ?? 0).toLocaleString()}
-          </Text>
-          <Text style={styles.rowBalance}>Bal: {(item.balanceAfter ?? 0).toLocaleString()}</Text>
-          <Text style={styles.rowDate}>
-            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  const renderItem = ({ item, index }: { item: LedgerEntry; index: number }) => (
+    <AdminLedgerRow item={item} index={index} />
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.title} data-testid="admin-ledger-title">Cloudz Ledger</Text>
       <Text style={styles.subtitle}>{total.toLocaleString()} total transactions</Text>
 
-      {/* Type filter chips */}
-      <View style={styles.filterRow}>
-        {TYPE_FILTERS.map((t) => (
+      {/* Type filter chips — scrollable row */}
+      <FlatList
+        horizontal
+        data={[...ADMIN_LEDGER_FILTERS]}
+        keyExtractor={(t) => t}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+        renderItem={({ item: t }) => (
           <TouchableOpacity
-            key={t}
             style={[styles.chip, typeFilter === t && styles.chipActive]}
             onPress={() => { setTypeFilter(t); setPage(0); }}
             data-testid={`filter-chip-${t}`}
           >
             <Text style={[styles.chipText, typeFilter === t && styles.chipTextActive]}>
-              {t === 'all' ? 'All' : (TYPE_LABELS[t] || t)}
+              {t === 'all' ? 'All' : formatLedgerType(t)}
             </Text>
           </TouchableOpacity>
-        ))}
-      </View>
+        )}
+      />
 
       {/* User ID filter */}
       <View style={styles.userFilterRow}>
@@ -201,19 +235,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: 12,
     gap: 6,
     marginBottom: 8,
+    paddingVertical: 2,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: theme.colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#1A1A1A',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#2A2A2A',
   },
   chipActive: {
     backgroundColor: theme.colors.primary,
@@ -226,6 +259,7 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: '#fff',
+    fontWeight: '600',
   },
   userFilterRow: {
     flexDirection: 'row',
@@ -236,67 +270,80 @@ const styles = StyleSheet.create({
   },
   userFilterInput: {
     flex: 1,
-    backgroundColor: theme.colors.card,
+    backgroundColor: '#1A1A1A',
     borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 10,
+    borderColor: '#2A2A2A',
+    borderRadius: 12,
     padding: 10,
     color: '#fff',
     fontSize: 13,
   },
   filterBtn: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 10,
   },
   clearBtn: {
     backgroundColor: '#333',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 10,
   },
   list: {
     paddingHorizontal: 12,
+    paddingBottom: 8,
   },
-  row: {
+  card: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    padding: 12,
-    marginBottom: 6,
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
     gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  rowLeft: {
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardContent: {
     flex: 1,
   },
-  rowEmail: {
+  cardEmail: {
     fontSize: 13,
     fontWeight: '600',
     color: '#fff',
   },
-  rowType: {
+  cardLabel: {
     fontSize: 11,
-    color: theme.colors.primary,
     fontWeight: '500',
     marginTop: 2,
   },
-  rowRef: {
+  cardSubtext: {
     fontSize: 11,
     color: '#555',
     marginTop: 2,
   },
-  rowRight: {
+  cardRight: {
     alignItems: 'flex-end',
   },
-  rowAmount: {
-    fontSize: 15,
+  cardAmount: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  rowBalance: {
+  cardBalance: {
     fontSize: 11,
     color: '#555',
     marginTop: 2,
   },
-  rowDate: {
+  cardDate: {
     fontSize: 10,
     color: '#444',
     marginTop: 2,
@@ -309,8 +356,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   pageBtn: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 8,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
     padding: 8,
   },
   pageBtnDisabled: {
