@@ -97,18 +97,25 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - DB Consistency: preview uses local MongoDB (localhost:27017/test_database); production uses separate instance
 - **ToastProvider Fix** (2026-03-10): Added `ToastProvider` to root `_layout.tsx` — previously missing, causing all `toast.show()` calls to be silent no-ops; admin actions (password reset, credit adjustments, etc.) now show success/error toasts
 
-## Completed (2026-03-10 Session 2)
-- **Leaderboard Rank Movement** (2026-03-10):
-  - `leaderboard_snapshot_loop` runs on startup, writes one snapshot to `leaderboard_snapshots` per day (idempotent)
-  - `GET /api/leaderboard` returns `movement: number | null` per entry (positive=up, negative=down, 0=same, null=no prior snapshot)
-  - `leaderboard.tsx` interface extended with `movement` field; `renderItem()` renders ↑ green / ↓ red / — neutral indicators
-  - End-to-end verified: Justin K. +1, Brianna C. -1, Andrew M. 0, others null (no prior snapshot)
-- **Store Credit at Checkout** (2026-03-10):
-  - `OrderCreate` schema: `storeCreditApplied: float = 0.0`; `Order` schema: same field persisted
-  - Backend deducts `storeCreditApplied` from `user.creditBalance` atomically on order creation
-  - Order cancellation now restores `storeCreditApplied` to user's `creditBalance`
-  - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
-  - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
+## Credentials
+- Admin: jkaatz@gmail.com / Just1n23$
+
+## Architecture Change (2026)
+- Frontend moved to **Vercel** (clouddistrict.club)
+- Backend is now **API-only** on Railway (api.clouddistrict.club)
+- `server.py`: All static file serving removed (DIST_DIR, StaticFiles mounts for frontend, serve_index, serve_spa catch-all)
+- `GET /` → `{"status": "Cloud District API running"}`
+- `EXPO_PUBLIC_BACKEND_URL` updated to `https://api.clouddistrict.club`
+
+## Pending
+- P1: Store Credit at Checkout (allow users to apply creditBalance at order placement)
+
+## Parity Fixes Applied (2026-03-08)
+- `checkout.tsx`: Removed Venmo from paymentMethods (now: Cash on Pickup, Zelle, Cash App, Chime)
+- `product/[id].tsx`: Restored AppHeader + back row header — fixes cart badge bug on product screen
+  - Staging used AppHeader (with Cloudz balance + cart count badge) + TouchableOpacity backRow
+  - Previous code had a custom header with NO badge
+  - Both fixes verified with screenshots, DOM checks, and staging bundle comparison
 
 ## Completed (2026-03-28 Session 6)
 - **Referral Reward System Fix** (CRITICAL):
