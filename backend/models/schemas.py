@@ -46,6 +46,7 @@ class UserRegister(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=20)
     username: str = Field(min_length=3, max_length=20)
     referralCode: Optional[str] = Field(default=None, max_length=50)
+    profilePhoto: Optional[str] = Field(default=None)  # base64 data URI
 
     @validator("dateOfBirth")
     def validate_dob(cls, v):
@@ -66,7 +67,7 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    identifier: str = Field(min_length=1, max_length=200)
     password: str = Field(min_length=1)
 
 

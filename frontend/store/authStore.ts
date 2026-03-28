@@ -56,7 +56,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, username: string, referralCode?: string, phone?: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, username: string, referralCode?: string, phone?: string, profilePhoto?: string) => Promise<void>;
   logout: () => Promise<void>;
   loadToken: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+    const response = await axios.post(`${API_URL}/api/auth/login`, { identifier: email, password });
     const { access_token, user } = response.data;
     writeToken(access_token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
@@ -78,12 +78,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     get().registerPushToken();
   },
 
-  register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, username: string, referralCode?: string, phone?: string) => {
+  register: async (email: string, password: string, firstName: string, lastName: string, dateOfBirth: string, username: string, referralCode?: string, phone?: string, profilePhoto?: string) => {
     const response = await axios.post(`${API_URL}/api/auth/register`, {
       email, password, firstName, lastName, dateOfBirth,
       username: username.toLowerCase().trim(),
       referralCode: referralCode || undefined,
       phone: phone || undefined,
+      profilePhoto: profilePhoto || undefined,
     });
     const { access_token, user } = response.data;
     writeToken(access_token);

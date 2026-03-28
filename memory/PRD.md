@@ -110,6 +110,11 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
   - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
 
+## Completed (2026-03-28 Session 5)
+- **Age Gate Replaced**: Rewrote `age-gate.tsx` — simple 1-button modal with hero image, warning box, "I am 21+ Enter" CTA, "Exit" button, and disclaimer. Persists via `cloudDistrictAgeVerified` + legacy `ageVerified` in AsyncStorage/localStorage. DOB picker fully removed.
+- **Login with Username OR Email**: Backend `UserLogin` schema changed from `email: EmailStr` to `identifier: str`. Login handler detects `@` to route by email vs username. `authStore.login()` now sends `{ identifier, password }`. Login form label updated to "Email or Username". Login response now includes `username` field.
+- **Avatar Upload at Signup**: Circular avatar picker added above First Name in `register.tsx` using `expo-image-picker`. Converts to base64, sends as `profilePhoto` in register payload. Field is optional — registration works without it. Backend `UserRegister` schema + handler updated to accept and store `profilePhoto`.
+
 ## Completed (2026-03-28 Session 4)
 - **Phone Number Field**: Added between Email and Password. Auto-formats as `(608) 555-1234`, strips non-digits on submit, requires 10 digits minimum. Stored in user record.
 - **Username Availability Check**: Debounced 400ms after 3+ chars → calls new `GET /api/auth/check-username?username=xxx` endpoint. Shows green "✓ Available" or red "✗ Already taken" inline next to the label. Input border turns green/red accordingly. Blocks submit if taken.

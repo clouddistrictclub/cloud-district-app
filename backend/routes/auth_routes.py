@@ -60,7 +60,7 @@ async def register(request: Request, user_data: UserRegister):
         "phone": user_data.phone,
         "isAdmin": False,
         "loyaltyPoints": 0,
-        "profilePhoto": None,
+        "profilePhoto": user_data.profilePhoto or None,
         "username": username,
         "referralCode": username,
         "referredBy": referred_by,
@@ -125,7 +125,7 @@ async def register(request: Request, user_data: UserRegister):
         phone=user_data.phone,
         isAdmin=False,
         loyaltyPoints=signup_bonus,
-        profilePhoto=None,
+        profilePhoto=user_data.profilePhoto or None,
         username=username,
         referralCode=username,
         referralCount=0,
@@ -138,9 +138,16 @@ async def register(request: Request, user_data: UserRegister):
 @router.post("/auth/login", response_model=Token)
 @limiter.limit("10/minute")
 async def login(request: Request, user_data: UserLogin):
-    user = await db.users.find_one({"email": user_data.email})
+    identifier = user_data.identifier.strip()
+    # Detect email vs username: emails contain '@'
+    if '@' in identifier:
+        user = await db.users.find_one({"email": identifier.lower()})
+    else:
+        user = await db.users.find_one(
+            {"username": {"$regex": f"^{_re.escape(identifier.lower())}$", "$options": "i"}}
+        )
     if not user or not verify_password(user_data.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid email/username or password")
     if user.get("isDisabled", False):
         raise HTTPException(status_code=403, detail="Account has been disabled. Contact support.")
 
@@ -158,6 +165,7 @@ async def login(request: Request, user_data: UserLogin):
         loyaltyPoints=user.get("loyaltyPoints", 0),
         profilePhoto=user.get("profilePhoto"),
         referralCode=user.get("referralCode"),
+        username=user.get("username"),
         referralCount=user.get("referralCount", 0),
         referralRewardsEarned=user.get("referralRewardsEarned", 0)
     )

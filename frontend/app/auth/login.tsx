@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -9,22 +9,23 @@ import HeroBanner from '../../components/HeroBanner';
 export default function Login() {
   const router = useRouter();
   const login = useAuthStore(state => state.login);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    setErrorMsg(null);
+    if (!identifier || !password) {
+      setErrorMsg('Please fill in all fields');
       return;
     }
-
     setLoading(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Login Failed', error.response?.data?.detail || 'Invalid email or password');
+      setErrorMsg(error?.response?.data?.detail || 'Invalid email/username or password');
     } finally {
       setLoading(false);
     }
@@ -40,15 +41,16 @@ export default function Login() {
           <Text style={styles.subtitle}>Welcome Back</Text>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>Email or Username</Text>
             <TextInput
               style={styles.input}
-              placeholder="your@email.com"
+              placeholder="your@email.com or username"
               placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={identifier}
+              onChangeText={setIdentifier}
               autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
               data-testid="login-email-input"
             />
 
@@ -62,6 +64,12 @@ export default function Login() {
               secureTextEntry
               data-testid="login-password-input"
             />
+
+            {errorMsg ? (
+              <View style={styles.errorBox} data-testid="login-error-msg">
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -129,6 +137,18 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#fff',
     fontSize: 16,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 12,
+    padding: 12,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: '#2E6BFF',

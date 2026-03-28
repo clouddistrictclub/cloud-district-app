@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Image, Platform } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { theme } from '../../theme';
 import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -36,6 +38,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,6 +47,26 @@ export default function Register() {
       setReferralCode(ref.toLowerCase());
     }
   }, [ref, isAuthenticated]);
+
+  const pickAvatar = async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Camera roll permission is required to upload a photo');
+        return;
+      }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      setProfilePhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
 
   // Debounced username availability check
   useEffect(() => {
@@ -117,6 +140,7 @@ export default function Register() {
         normalizedUsername,
         referralCode.trim() || undefined,
         rawPhone,
+        profilePhoto || undefined,
       );
       router.replace('/(tabs)/home');
     } catch (error: any) {
@@ -134,6 +158,28 @@ export default function Register() {
           <Text style={styles.subtitle}>Join Cloud District Club</Text>
 
           <View style={styles.form}>
+
+            {/* AVATAR PICKER */}
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={pickAvatar}
+              activeOpacity={0.75}
+              data-testid="register-avatar-picker"
+            >
+              {profilePhoto ? (
+                <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person-outline" size={36} color="#555" />
+                </View>
+              )}
+              <View style={styles.avatarBadge}>
+                <Ionicons name="camera" size={12} color="#fff" />
+              </View>
+              <Text style={styles.avatarHint}>
+                {profilePhoto ? 'Tap to change photo' : 'Tap to upload photo (optional)'}
+              </Text>
+            </TouchableOpacity>
 
             <Text style={styles.label}>First Name</Text>
             <TextInput
@@ -451,5 +497,46 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  avatarPlaceholder: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: theme.colors.inputBackground,
+    borderWidth: 2,
+    borderColor: theme.colors.inputBorder,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 24,
+    right: '50%',
+    marginRight: -50,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
   },
 });
