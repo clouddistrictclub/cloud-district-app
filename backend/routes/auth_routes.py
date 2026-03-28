@@ -11,6 +11,20 @@ import re as _re
 router = APIRouter()
 
 
+@router.get("/auth/check-username")
+async def check_username(username: str):
+    username = username.strip().lower()
+    from models.schemas import USERNAME_RE, RESERVED_USERNAMES
+    import re as _re2
+    if not USERNAME_RE.match(username) or username in RESERVED_USERNAMES:
+        return {"available": False}
+    existing = await db.users.find_one(
+        {"username": {"$regex": f"^{_re2.escape(username)}$", "$options": "i"}},
+        {"_id": 1}
+    )
+    return {"available": existing is None}
+
+
 @router.post("/auth/register", response_model=Token)
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserRegister):

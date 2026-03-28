@@ -110,6 +110,13 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
   - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
 
+## Completed (2026-03-28 Session 4)
+- **Phone Number Field**: Added between Email and Password. Auto-formats as `(608) 555-1234`, strips non-digits on submit, requires 10 digits minimum. Stored in user record.
+- **Username Availability Check**: Debounced 400ms after 3+ chars → calls new `GET /api/auth/check-username?username=xxx` endpoint. Shows green "✓ Available" or red "✗ Already taken" inline next to the label. Input border turns green/red accordingly. Blocks submit if taken.
+- **Validation updates**: Submit blocked for missing phone, phone < 10 digits, or username taken.
+- **Backend**: New `GET /api/auth/check-username` endpoint (no auth) checks against DB + reserved words + regex format.
+- **authStore**: `register()` now accepts optional `phone` 8th param and sends it in payload.
+
 ## Completed (2026-03-28 Session 3)
 - **Registration Form Overhaul**:
   - Reordered fields: First Name → Last Name → Username → Email → Password → Confirm Password → Age Checkbox → Referral → Sign Up

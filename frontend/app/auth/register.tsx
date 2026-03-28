@@ -1,10 +1,22 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { theme } from '../../theme';
+import axios from 'axios';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken';
+
+function formatPhone(raw: string): string {
+  const nums = raw.replace(/\D/g, '').slice(0, 10);
+  if (nums.length <= 3) return nums;
+  if (nums.length <= 6) return `(${nums.slice(0, 3)}) ${nums.slice(3)}`;
+  return `(${nums.slice(0, 3)}) ${nums.slice(3, 6)}-${nums.slice(6)}`;
+}
 
 export default function Register() {
   const router = useRouter();
@@ -16,12 +28,16 @@ export default function Register() {
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [ageVerified, setAgeVerified] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (ref && !isAuthenticated) {
@@ -29,13 +45,43 @@ export default function Register() {
     }
   }, [ref, isAuthenticated]);
 
+  // Debounced username availability check
+  useEffect(() => {
+    const trimmed = username.trim();
+    if (trimmed.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setUsernameStatus('checking');
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/auth/check-username`, {
+          params: { username: trimmed },
+        });
+        setUsernameStatus(res.data.available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [username]);
+
   const showError = (msg: string) => setErrorMsg(msg);
 
   const handleRegister = async () => {
     setErrorMsg(null);
 
-    if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !username || !email || !phone || !password || !confirmPassword) {
       showError('Please fill in all required fields');
+      return;
+    }
+
+    const rawPhone = phone.replace(/\D/g, '');
+    if (rawPhone.length < 10) {
+      showError('Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -55,6 +101,11 @@ export default function Register() {
       return;
     }
 
+    if (usernameStatus === 'taken') {
+      showError('That username is already taken — please choose another');
+      return;
+    }
+
     setLoading(true);
     try {
       await register(
@@ -64,7 +115,8 @@ export default function Register() {
         lastName,
         '1990-01-01',
         normalizedUsername,
-        referralCode.trim() || undefined
+        referralCode.trim() || undefined,
+        rawPhone,
       );
       router.replace('/(tabs)/home');
     } catch (error: any) {
@@ -103,11 +155,26 @@ export default function Register() {
               data-testid="register-last-name"
             />
 
-            <Text style={styles.label}>
-              Username <Text style={styles.required}>*</Text>
-            </Text>
+            {/* USERNAME with availability indicator */}
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>
+                Username <Text style={styles.required}>*</Text>
+              </Text>
+              {usernameStatus === 'checking' && (
+                <View style={styles.statusRow}>
+                  <ActivityIndicator size="small" color="#888" />
+                  <Text style={styles.statusChecking}> Checking…</Text>
+                </View>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={styles.statusAvailable} data-testid="username-available">✓ Available</Text>
+              )}
+              {usernameStatus === 'taken' && (
+                <Text style={styles.statusTaken} data-testid="username-taken">✗ Already taken</Text>
+              )}
+            </View>
             <TextInput
-              style={styles.input}
+              style={[styles.input, usernameStatus === 'taken' && styles.inputError, usernameStatus === 'available' && styles.inputSuccess]}
               placeholder="e.g. johndoe123"
               placeholderTextColor="#666"
               value={username}
@@ -129,6 +196,18 @@ export default function Register() {
               keyboardType="email-address"
               autoCapitalize="none"
               data-testid="register-email"
+            />
+
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="(608) 555-1234"
+              placeholderTextColor="#666"
+              value={phone}
+              onChangeText={(t) => setPhone(formatPhone(t))}
+              keyboardType="phone-pad"
+              maxLength={14}
+              data-testid="register-phone"
             />
 
             <Text style={styles.label}>Password</Text>
@@ -192,7 +271,7 @@ export default function Register() {
               disabled={loading}
               data-testid="register-submit-btn"
             >
-              <Text style={styles.buttonText}>{loading ? 'Creating Account...' : 'Sign Up'}</Text>
+              <Text style={styles.buttonText}>{loading ? 'Creating Account…' : 'Sign Up'}</Text>
             </TouchableOpacity>
 
             <View style={styles.footer}>
@@ -240,6 +319,12 @@ const styles = StyleSheet.create({
   form: {
     gap: 16,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: -8,
+  },
   label: {
     fontSize: 14,
     fontWeight: '600',
@@ -253,6 +338,24 @@ const styles = StyleSheet.create({
   optional: {
     color: theme.colors.textMuted,
     fontWeight: '400',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusChecking: {
+    fontSize: 12,
+    color: '#888',
+  },
+  statusAvailable: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#22c55e',
+  },
+  statusTaken: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ef4444',
   },
   helperText: {
     color: theme.colors.textMuted,
@@ -268,6 +371,12 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#fff',
     fontSize: 16,
+  },
+  inputError: {
+    borderColor: '#ef4444',
+  },
+  inputSuccess: {
+    borderColor: '#22c55e',
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -301,6 +410,19 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 10,
+    padding: 12,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   button: {
     backgroundColor: theme.colors.primary,
     padding: 16,
@@ -329,18 +451,5 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-    borderRadius: 10,
-    padding: 12,
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
