@@ -110,7 +110,18 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
   - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
 
-## Future (P2+)
+## Completed (2026-03-28 Session 3)
+- **Registration Form Overhaul**:
+  - Reordered fields: First Name → Last Name → Username → Email → Password → Confirm Password → Age Checkbox → Referral → Sign Up
+  - Username field: auto-lowercases, removes spaces, helper text "This becomes your permanent referral ID"
+  - Confirm Password field added with match validation before submit
+  - Date of Birth input REMOVED and REPLACED with 21+ age verification checkbox ("I confirm I am 21 years of age or older")
+  - Backend still receives `dateOfBirth: "1990-01-01"` hardcoded (no backend changes needed)
+  - Fixed CRITICAL bug: `Alert.alert()` is a no-op in react-native-web 0.21.0 — replaced all 5+ calls with inline `errorMsg` state rendered as a styled red error box above Sign Up button
+  - Referral field label updated to "Referral Username (optional)"
+  - Submit blocked for: missing fields, password mismatch, age unchecked, invalid username format
+  - API errors extracted with `error?.response?.data?.detail` (no [object Object])
+  - Removed unused `Alert` and `Platform` imports
 - Admin screen modularization (user-profile.tsx is 600+ lines)
 - Google Workspace email integration (email_service.py is currently MOCKED)
 - Push notifications expansion

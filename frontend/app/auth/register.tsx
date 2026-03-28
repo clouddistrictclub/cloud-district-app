@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -21,6 +21,7 @@ export default function Register() {
   const [ageVerified, setAgeVerified] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (ref && !isAuthenticated) {
@@ -28,25 +29,29 @@ export default function Register() {
     }
   }, [ref, isAuthenticated]);
 
+  const showError = (msg: string) => setErrorMsg(msg);
+
   const handleRegister = async () => {
+    setErrorMsg(null);
+
     if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showError('Passwords do not match');
       return;
     }
 
     if (!ageVerified) {
-      Alert.alert('Error', 'You must confirm you are 21 or older to register');
+      showError('You must confirm you are 21 or older to register');
       return;
     }
 
     const normalizedUsername = username.toLowerCase().replace(/\s/g, '').trim();
     if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
-      Alert.alert('Invalid Username', 'Username must be 3–20 characters: letters, numbers, underscores only');
+      showError('Username must be 3–20 characters: letters, numbers, underscores only');
       return;
     }
 
@@ -63,7 +68,7 @@ export default function Register() {
       );
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.detail || error?.message || 'Something went wrong');
+      showError(error?.response?.data?.detail || error?.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -174,6 +179,12 @@ export default function Register() {
               maxLength={20}
               data-testid="register-referral-code"
             />
+
+            {errorMsg ? (
+              <View style={styles.errorBox} data-testid="register-error-msg">
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -318,5 +329,18 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 10,
+    padding: 12,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
