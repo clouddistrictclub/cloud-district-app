@@ -366,13 +366,13 @@ export default function Account() {
                   <Text style={styles.handleBadgeText}>Your referral ID</Text>
                 </View>
               </View>
-              <Text style={styles.handleNote}>Handles are permanent. Contact support to change.</Text>
+              <Text style={styles.handleNote}>This is your permanent referral ID and cannot be changed.</Text>
             </View>
           ) : (
             <View style={styles.handleCard} data-testid="create-handle-card">
               <Text style={styles.handleLabel}>CREATE YOUR HANDLE</Text>
               <Text style={[styles.handleNote, { marginBottom: 12 }]}>
-                Your unique @handle doubles as your referral code. Once set, it cannot be changed.
+                Your unique @handle is your permanent referral ID. Once set, it cannot be changed.
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1 }}>
