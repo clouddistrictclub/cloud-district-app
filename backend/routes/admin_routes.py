@@ -7,7 +7,7 @@ from models.schemas import (
     Order, OrderStatusUpdate, OrderEdit, ReviewModerationUpdate,
     UserUsernameUpdate
 )
-from services.loyalty_service import log_cloudz_transaction, maybe_award_streak_bonus
+from services.loyalty_service import log_cloudz_transaction, maybe_award_streak_bonus, issue_referral_signup_rewards
 from services.order_service import send_push_notification, chat_manager
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -129,13 +129,32 @@ async def admin_set_referrer(user_id: str, data: AdminReferrerUpdate, admin=Depe
     if referrer_id == user_id:
         raise HTTPException(status_code=400, detail="Cannot assign user as their own referrer")
 
+    # Check if user previously had a referrer
+    target_user = await db.users.find_one(
+        {"_id": ObjectId(user_id)}, {"referredBy": 1, "firstName": 1}
+    )
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    had_referrer = bool(target_user.get("referredBy"))
+
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"referredBy": referrer_id}})
+
+    # Issue referral rewards if this is a FIRST-TIME referrer assignment
+    rewards_issued = {"user_bonus": 0, "referrer_bonus": 0}
+    if not had_referrer:
+        rewards_issued = await issue_referral_signup_rewards(
+            new_user_id=user_id,
+            referrer_identifier=referrer_id,
+            new_user_first_name=target_user.get("firstName", "A user"),
+        )
+
     paid_orders = await db.orders.count_documents({
         "userId": user_id,
         "status": {"$in": ["Paid", "Ready for Pickup", "Completed"]},
     })
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"referredBy": referrer_id}})
     return {
         "message": "Referrer updated",
+        "rewardsIssued": rewards_issued,
         "warning": f"User has {paid_orders} paid orders — referral earnings will not be retroactive" if paid_orders > 0 else None,
     }
 
