@@ -18,6 +18,7 @@ export default function Register() {
   const [dob, setDob] = useState('');
   const [username, setUsername] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleDobChange = (text: string) => {
@@ -35,8 +36,14 @@ export default function Register() {
   }, [ref, isAuthenticated]);
 
   const handleRegister = async () => {
-    if (!email || !password || !firstName || !lastName || !dob || !username) {
+    if (!email || !password || !confirmPassword || !firstName || !lastName || !dob || !username) {
       const msg = 'Please fill in all required fields';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      const msg = 'Passwords do not match';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       return;
     }
@@ -62,7 +69,7 @@ export default function Register() {
       await register(email, password, firstName, lastName, dateOfBirth, username.toLowerCase().trim(), referralCode.trim() || undefined);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      const msg = error.response?.data?.detail || 'An error occurred';
+      const msg = error?.response?.data?.detail || error?.message || 'Something went wrong';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Registration Failed', msg);
     } finally {
       setLoading(false);
