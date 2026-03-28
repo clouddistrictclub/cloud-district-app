@@ -338,34 +338,64 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         )
 
     if status_update.status == "Paid" and not order.get("referralRewardIssued", False):
-        buyer_doc = await db.users.find_one({"_id": ObjectId(order["userId"])}, {"referredBy": 1})
-        referrer_id = buyer_doc.get("referredBy") if buyer_doc else None
-        if referrer_id:
-            reward = math.floor(float(order.get("total") or 0) * 0.5)
-            try:
-                referrer_check = await db.users.find_one({"_id": ObjectId(referrer_id)}, {"_id": 1})
-                if referrer_check and reward > 0:
-                    await db.users.update_one(
-                        {"_id": ObjectId(referrer_id)},
-                        {"$inc": {"referralRewardsEarned": reward}}
-                    )
-                    ref_result = await db.users.find_one_and_update(
-                        {"_id": ObjectId(referrer_id)},
-                        {"$inc": {"loyaltyPoints": reward}},
-                        return_document=True,
-                    )
-                    await db.cloudz_ledger.insert_one({
-                        "userId": referrer_id,
-                        "type": "referral_reward",
-                        "amount": reward,
-                        "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
-                        "description": f"Referral reward from order #{order_id}",
-                        "orderId": order_id,
-                        "createdAt": datetime.utcnow(),
-                    })
-            except Exception:
-                pass
-        await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"referralRewardIssued": True}})
+        # Atomic claim: only the request that flips the flag gets to issue the reward.
+        # Concurrent requests will receive None here and skip entirely.
+        claimed = await db.orders.find_one_and_update(
+            {"_id": ObjectId(order_id), "referralRewardIssued": False},
+            {"$set": {"referralRewardIssued": True}},
+        )
+        if claimed is None:
+            logger.info(f"[referral_reward] skipped — already issued for order {order_id}")
+        else:
+            buyer_doc = await db.users.find_one({"_id": ObjectId(order["userId"])}, {"referredBy": 1})
+            referrer_id = buyer_doc.get("referredBy") if buyer_doc else None
+            if referrer_id:
+                reward = math.floor(float(order.get("total") or 0) * 0.5)
+                try:
+                    from bson.errors import InvalidId
+                    referrer_doc = None
+                    is_object_id = len(str(referrer_id)) == 24
+                    if is_object_id:
+                        try:
+                            referrer_doc = await db.users.find_one({"_id": ObjectId(referrer_id)})
+                        except (InvalidId, Exception):
+                            pass
+                    if not referrer_doc:
+                        referrer_doc = await db.users.find_one({"username": referrer_id})
+                    if referrer_doc and reward > 0:
+                        referrer_obj_id = referrer_doc["_id"]
+                        referrer_id_str = str(referrer_obj_id)
+                        await db.users.update_one(
+                            {"_id": referrer_obj_id},
+                            {"$inc": {"referralRewardsEarned": reward}}
+                        )
+                        ref_result = await db.users.find_one_and_update(
+                            {"_id": referrer_obj_id},
+                            {"$inc": {"loyaltyPoints": reward}},
+                            return_document=True,
+                        )
+                        await db.cloudz_ledger.insert_one({
+                            "userId": referrer_id_str,
+                            "type": "referral_reward",
+                            "amount": reward,
+                            "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
+                            "description": f"Referral reward from order #{order_id}",
+                            "orderId": order_id,
+                            "createdAt": datetime.utcnow(),
+                        })
+                        logger.info(
+                            f"[referral_reward] issued {reward} Cloudz to {referrer_id_str} "
+                            f"for order {order_id}"
+                        )
+                    else:
+                        logger.info(
+                            f"[referral_reward] skipped — referrer not found or reward=0 "
+                            f"(referrer_id={referrer_id}, reward={reward})"
+                        )
+                except Exception as e:
+                    logger.error(f"[referral_reward] error for order {order_id}: {e}")
+            else:
+                logger.info(f"[referral_reward] skipped — order {order_id} has no referredBy")
 
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status_update.status}})
     await send_push_notification(

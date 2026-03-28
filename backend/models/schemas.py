@@ -44,7 +44,9 @@ class UserRegister(BaseModel):
     lastName: str = Field(min_length=1, max_length=50)
     dateOfBirth: str = Field(min_length=10, max_length=10)
     phone: Optional[str] = Field(default=None, max_length=20)
+    username: str = Field(min_length=3, max_length=20)
     referralCode: Optional[str] = Field(default=None, max_length=50)
+    profilePhoto: Optional[str] = Field(default=None)  # base64 data URI
 
     @validator("dateOfBirth")
     def validate_dob(cls, v):
@@ -54,9 +56,18 @@ class UserRegister(BaseModel):
             raise ValueError("dateOfBirth must be in YYYY-MM-DD format")
         return v
 
+    @validator("username")
+    def validate_username(cls, v):
+        v = v.strip().lower().replace(" ", "")
+        if not USERNAME_RE.match(v):
+            raise ValueError("Username must be 3–20 characters: letters, numbers, underscores only")
+        if v in RESERVED_USERNAMES:
+            raise ValueError(f"Username '{v}' is not available")
+        return v
+
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    identifier: str = Field(min_length=1, max_length=200)
     password: str = Field(min_length=1)
 
 

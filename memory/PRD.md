@@ -117,7 +117,30 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Previous code had a custom header with NO badge
   - Both fixes verified with screenshots, DOM checks, and staging bundle comparison
 
-## Future (P2+)
+## Completed (2026-03-28 Session 5)
+- **Age Gate Replaced**: Rewrote `age-gate.tsx` — simple 1-button modal with hero image, warning box, "I am 21+ Enter" CTA, "Exit" button, and disclaimer. Persists via `cloudDistrictAgeVerified` + legacy `ageVerified` in AsyncStorage/localStorage. DOB picker fully removed.
+- **Login with Username OR Email**: Backend `UserLogin` schema changed from `email: EmailStr` to `identifier: str`. Login handler detects `@` to route by email vs username. `authStore.login()` now sends `{ identifier, password }`. Login form label updated to "Email or Username". Login response now includes `username` field.
+- **Avatar Upload at Signup**: Circular avatar picker added above First Name in `register.tsx` using `expo-image-picker`. Converts to base64, sends as `profilePhoto` in register payload. Field is optional — registration works without it. Backend `UserRegister` schema + handler updated to accept and store `profilePhoto`.
+
+## Completed (2026-03-28 Session 4)
+- **Phone Number Field**: Added between Email and Password. Auto-formats as `(608) 555-1234`, strips non-digits on submit, requires 10 digits minimum. Stored in user record.
+- **Username Availability Check**: Debounced 400ms after 3+ chars → calls new `GET /api/auth/check-username?username=xxx` endpoint. Shows green "✓ Available" or red "✗ Already taken" inline next to the label. Input border turns green/red accordingly. Blocks submit if taken.
+- **Validation updates**: Submit blocked for missing phone, phone < 10 digits, or username taken.
+- **Backend**: New `GET /api/auth/check-username` endpoint (no auth) checks against DB + reserved words + regex format.
+- **authStore**: `register()` now accepts optional `phone` 8th param and sends it in payload.
+
+## Completed (2026-03-28 Session 3)
+- **Registration Form Overhaul**:
+  - Reordered fields: First Name → Last Name → Username → Email → Password → Confirm Password → Age Checkbox → Referral → Sign Up
+  - Username field: auto-lowercases, removes spaces, helper text "This becomes your permanent referral ID"
+  - Confirm Password field added with match validation before submit
+  - Date of Birth input REMOVED and REPLACED with 21+ age verification checkbox ("I confirm I am 21 years of age or older")
+  - Backend still receives `dateOfBirth: "1990-01-01"` hardcoded (no backend changes needed)
+  - Fixed CRITICAL bug: `Alert.alert()` is a no-op in react-native-web 0.21.0 — replaced all 5+ calls with inline `errorMsg` state rendered as a styled red error box above Sign Up button
+  - Referral field label updated to "Referral Username (optional)"
+  - Submit blocked for: missing fields, password mismatch, age unchecked, invalid username format
+  - API errors extracted with `error?.response?.data?.detail` (no [object Object])
+  - Removed unused `Alert` and `Platform` imports
 - Admin screen modularization (user-profile.tsx is 600+ lines)
 - Google Workspace email integration (email_service.py is currently MOCKED)
 - Push notifications expansion
