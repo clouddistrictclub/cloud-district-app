@@ -135,7 +135,9 @@ export default function Account() {
     const doLogout = async () => {
       await logout();
       clearCart();
-      router.replace('/auth/login');
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 0);
     };
 
     if (Platform.OS === 'web') {
