@@ -110,6 +110,17 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - `checkout.tsx`: shows "Apply Store Credit" toggle when `user.creditBalance > 0`; discount shown in summary; capped at min(balance, orderTotal)
   - Verified: $25 credit → apply $5 → balance becomes $20; cancel order → credit restored to $25
 
+## Completed (2026-03-28 Session 6)
+- **Referral Reward System Fix** (CRITICAL):
+  - **Bug 1 Fixed**: New user with referral now gets +1000 Cloudz (500 signup + 500 referral_new_user_bonus), was only getting 500
+  - **Bug 2 Fixed**: Referrer now gets +1500 Cloudz on referred signup, was only getting 500
+  - **Bug 3 Fixed**: Admin `PATCH /admin/users/{id}/referrer` now issues rewards (+500 to user, +1500 to referrer) when assigning a referrer to a user who had none
+  - Created `issue_referral_signup_rewards()` helper in `loyalty_service.py` — DRY, idempotent, used by both registration and admin assign flows
+  - Idempotency: `referral_new_user_bonus` keyed on userId+type (one per lifetime), `referral_signup_bonus` keyed on userId+type+referredUserId (one per referred user)
+  - Atomic MongoDB operations throughout
+  - Existing order referral system (50% of order total to referrer on Paid) untouched
+  - Ledger entries: `signup_bonus`, `referral_new_user_bonus`, `referral_signup_bonus` all correctly logged
+
 ## Completed (2026-03-28 Session 5)
 - **Age Gate Replaced**: Rewrote `age-gate.tsx` — simple 1-button modal with hero image, warning box, "I am 21+ Enter" CTA, "Exit" button, and disclaimer. Persists via `cloudDistrictAgeVerified` + legacy `ageVerified` in AsyncStorage/localStorage. DOB picker fully removed.
 - **Login with Username OR Email**: Backend `UserLogin` schema changed from `email: EmailStr` to `identifier: str`. Login handler detects `@` to route by email vs username. `authStore.login()` now sends `{ identifier, password }`. Login form label updated to "Email or Username". Login response now includes `username` field.
