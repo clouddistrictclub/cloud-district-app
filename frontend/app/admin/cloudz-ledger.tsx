@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Animated } from 'react-native';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { formatLedgerType, getLedgerIcon, getLedgerColor, ADMIN_LEDGER_FILTERS } from '../../constants/ledger';
@@ -77,6 +77,7 @@ function AdminLedgerRow({ item, index }: { item: LedgerEntry; index: number }) {
 
 export default function AdminCloudzLedger() {
   const { token } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -126,7 +127,7 @@ export default function AdminCloudzLedger() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Text style={styles.title} data-testid="admin-ledger-title">Cloudz Ledger</Text>
       <Text style={styles.subtitle}>{total.toLocaleString()} total transactions</Text>
 
@@ -211,7 +212,7 @@ export default function AdminCloudzLedger() {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

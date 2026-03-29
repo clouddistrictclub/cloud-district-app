@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Animated } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../store/authStore';
@@ -78,6 +78,7 @@ function LedgerRow({ item, index }: { item: LedgerEntry; index: number }) {
 export default function CloudzHistory() {
   const router = useRouter();
   const { token } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,7 +102,7 @@ export default function CloudzHistory() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} data-testid="back-btn">
           <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -127,7 +128,7 @@ export default function CloudzHistory() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
