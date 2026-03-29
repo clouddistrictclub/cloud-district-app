@@ -828,3 +828,21 @@ async def migrate_export_collection(collection_name: str, admin=Depends(get_admi
                 d[k] = v
         serialized.append(d)
     return {"collection": collection_name, "count": len(serialized), "documents": serialized}
+
+
+DELETABLE_COLLECTIONS = ["orders", "order_items", "payments", "transactions"]
+
+@router.delete("/admin/migrate/purge/{collection_name}")
+async def migrate_purge_collection(collection_name: str, admin=Depends(get_admin_user)):
+    """Delete ALL documents from a collection. Restricted to safe-listed collections only."""
+    if collection_name not in DELETABLE_COLLECTIONS:
+        raise HTTPException(status_code=400, detail=f"Collection '{collection_name}' cannot be purged")
+    coll = db[collection_name]
+    count_before = await coll.count_documents({})
+    result = await coll.delete_many({})
+    return {
+        "collection": collection_name,
+        "deleted": result.deleted_count,
+        "count_before": count_before,
+        "count_after": await coll.count_documents({}),
+    }
