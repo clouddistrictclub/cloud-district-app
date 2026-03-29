@@ -707,3 +707,124 @@ async def get_admin_analytics(
         "revenueTrendLast7Days": revenue_trend,
         "repeatPurchaseRate": repeat_purchase_rate,
     }
+
+
+# ==================== TEMPORARY DATA MIGRATION ENDPOINTS ====================
+
+MIGRATABLE_COLLECTIONS = [
+    "users", "orders", "cloudz_ledger", "products", "brands",
+    "reviews", "chat_messages", "chat_sessions", "loyalty_rewards",
+    "push_tokens", "support_tickets", "inventory_logs", "leaderboard_snapshots",
+]
+
+
+def _restore_bson(doc: dict) -> dict:
+    """Convert serialized strings back to BSON types for MongoDB insertion."""
+    from dateutil import parser as dtparser
+    restored = {}
+    for k, v in doc.items():
+        if k == "_id" and isinstance(v, str) and len(v) == 24:
+            try:
+                restored[k] = ObjectId(v)
+            except Exception:
+                restored[k] = v
+        elif isinstance(v, str) and k in (
+            "createdAt", "updatedAt", "lastMessageAt", "readAt", "timestamp",
+            "expiresAt", "usedAt",
+        ):
+            try:
+                restored[k] = dtparser.isoparse(v)
+            except Exception:
+                restored[k] = v
+        elif isinstance(v, dict):
+            restored[k] = _restore_bson(v)
+        elif isinstance(v, list):
+            restored[k] = [_restore_bson(i) if isinstance(i, dict) else i for i in v]
+        else:
+            restored[k] = v
+    return restored
+
+
+@router.post("/admin/migrate/import")
+async def migrate_import_collection(
+    data: dict,
+    admin=Depends(get_admin_user),
+):
+    """
+    Bulk-import documents into a collection. Skips duplicates by _id.
+    For 'users' collection, also skips duplicates by email.
+
+    Body: { "collection": "users", "documents": [ { "_id": "...", ... }, ... ] }
+    """
+    collection_name = data.get("collection")
+    documents = data.get("documents", [])
+
+    if collection_name not in MIGRATABLE_COLLECTIONS:
+        raise HTTPException(status_code=400, detail=f"Collection '{collection_name}' is not allowed")
+    if not documents:
+        return {"collection": collection_name, "inserted": 0, "skipped": 0, "errors": []}
+
+    coll = db[collection_name]
+    inserted = 0
+    skipped = 0
+    errors = []
+
+    for raw_doc in documents:
+        doc = _restore_bson(raw_doc)
+        doc_id = doc.get("_id")
+
+        try:
+            # Skip if _id already exists
+            if doc_id and await coll.find_one({"_id": doc_id}, {"_id": 1}):
+                skipped += 1
+                continue
+
+            # For users: also skip if email already exists
+            if collection_name == "users" and doc.get("email"):
+                existing_email = await coll.find_one(
+                    {"email": doc["email"]}, {"_id": 1}
+                )
+                if existing_email:
+                    skipped += 1
+                    continue
+
+            await coll.insert_one(doc)
+            inserted += 1
+        except Exception as e:
+            err_msg = str(e)
+            if "duplicate key" in err_msg.lower():
+                skipped += 1
+            else:
+                errors.append(f"doc _id={doc_id}: {err_msg[:200]}")
+
+    return {
+        "collection": collection_name,
+        "total_received": len(documents),
+        "inserted": inserted,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+
+@router.get("/admin/migrate/export/{collection_name}")
+async def migrate_export_collection(collection_name: str, admin=Depends(get_admin_user)):
+    """Export all documents from a collection. Returns JSON array."""
+    if collection_name not in MIGRATABLE_COLLECTIONS:
+        raise HTTPException(status_code=400, detail=f"Collection '{collection_name}' is not allowed")
+
+    coll = db[collection_name]
+    docs = await coll.find({}).to_list(100000)
+    serialized = []
+    for doc in docs:
+        d = {}
+        for k, v in doc.items():
+            if k == "_id":
+                d[k] = str(v)
+            elif isinstance(v, ObjectId):
+                d[k] = str(v)
+            elif isinstance(v, datetime):
+                d[k] = v.isoformat()
+            else:
+                d[k] = v
+        serialized.append(d)
+    return {"collection": collection_name, "count": len(serialized), "documents": serialized}
