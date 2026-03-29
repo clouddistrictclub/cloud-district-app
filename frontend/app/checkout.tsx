@@ -7,8 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import axios from 'axios';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 interface ActiveReward {
   id: string;

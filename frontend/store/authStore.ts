@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { API_URL } from '../constants/api';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const TOKEN_KEY = 'cloud-district-token';
 
 // Storage helpers — same pattern as cartStore

@@ -7,8 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatLedgerType, getLedgerIcon, getLedgerColor } from '../constants/ledger';
 import axios from 'axios';
 import { theme } from '../theme';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 interface Tier {
   id: string;

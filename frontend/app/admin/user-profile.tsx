@@ -7,8 +7,7 @@ import { getLedgerLabel, getLedgerDescription } from '../../constants/ledger';
 import { useToast } from '../../components/Toast';
 import { useAuthStore } from '../../store/authStore';
 import axios from 'axios';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../../constants/api';
 
 const statusColors: Record<string, string> = {
   'Pending Payment': '#fbbf24',

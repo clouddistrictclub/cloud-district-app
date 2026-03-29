@@ -5,8 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCartStore } from '../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import { crossAlert } from '../utils/crossAlert';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 const resolveImageUri = (image: string | undefined | null) => {
   if (!image) return '';

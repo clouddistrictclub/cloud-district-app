@@ -8,8 +8,7 @@ import ProductCard from '../../components/ProductCard';
 import HeroBanner from '../../components/HeroBanner';
 import AppHeader from '../../components/AppHeader';
 import axios from 'axios';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../../constants/api';
 
 interface Product {
   id: string;

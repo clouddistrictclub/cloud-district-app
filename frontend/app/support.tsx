@@ -6,8 +6,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { theme } from '../theme';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 export default function Support() {
   const router = useRouter();

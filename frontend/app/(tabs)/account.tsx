@@ -9,8 +9,7 @@ import { theme } from '../../theme';
 import AppHeader from '../../components/AppHeader';
 import axios from 'axios';
 import * as Clipboard from 'expo-clipboard';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../../constants/api';
 
 interface TierInfo {
   id: string;

@@ -6,8 +6,7 @@ import { useCartStore } from '../../store/cartStore';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AppHeader from '../../components/AppHeader';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../../constants/api';
 
 const resolveImageUri = (image: string | null | undefined) => {
   if (!image) return '';

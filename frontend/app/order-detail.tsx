@@ -6,8 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { crossAlert } from '../utils/crossAlert';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 interface OrderDetail {
   id: string;

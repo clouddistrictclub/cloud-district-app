@@ -8,8 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { formatLedgerType, getLedgerIcon, getLedgerColor } from '../constants/ledger';
 import { theme } from '../theme';
 import axios from 'axios';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../constants/api';
 
 interface LedgerEntry {
   userId: string;

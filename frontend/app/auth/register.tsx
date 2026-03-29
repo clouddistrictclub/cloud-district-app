@@ -8,8 +8,7 @@ import { theme } from '../../theme';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_URL } from '../../constants/api';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken';
 
