@@ -202,6 +202,18 @@ async def admin_force_logout(user_id: str, admin=Depends(get_admin_user)):
     return {"success": True}
 
 
+@router.post("/admin/users/{user_id}/clear-force-logout")
+async def admin_clear_force_logout(user_id: str, admin=Depends(get_admin_user)):
+    """Clear forceLogoutAt so the user can access their account with fresh tokens."""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$unset": {"forceLogoutAt": ""}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": "forceLogoutAt cleared"}
+
+
 @router.patch("/admin/users/{user_id}/username", response_model=UserResponse)
 async def admin_set_username(user_id: str, data: UserUsernameUpdate, admin=Depends(get_admin_user)):
     username = data.username.strip().lower()

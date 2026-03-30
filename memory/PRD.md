@@ -130,6 +130,13 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Admin ledger: horizontal scrollable filter chips for all ledger types
   - Zero backend changes — frontend-only presentation upgrade
 
+## Completed (2026-03-30 Session 6)
+- **P0 Bug Fix: JWT missing `iat` → /auth/me always 401 for users with forceLogoutAt**
+  - Root cause: `create_access_token` in `auth.py` did not include `iat` (issued-at) in JWT payload. `get_current_user` falls back to `iat = 0` when field missing. For users with `forceLogoutAt` set (e.g., jraymasangkay@gmail.com, forceLogoutAt=1773177646), `0 < forceLogoutAt` was always TRUE → every `/auth/me` call returned 401 "Session has been invalidated", even after fresh login.
+  - Fix: Added `"iat": now` to `create_access_token`. Fresh tokens now carry current timestamp → `iat > past forceLogoutAt` → check passes.
+  - New endpoint: `POST /api/admin/users/{user_id}/clear-force-logout` — admins can unset forceLogoutAt cleanly.
+  - **DEPLOYMENT REQUIRED**: These fixes are in preview code. Must deploy to Railway production (api.clouddistrict.club) for affected user jraymasangkay@gmail.com to be unblocked.
+
 ## Completed (2026-03-28 Session 5)
 - **Age Gate Replaced**: Rewrote `age-gate.tsx` — simple 1-button modal with hero image, warning box, "I am 21+ Enter" CTA, "Exit" button, and disclaimer. Persists via `cloudDistrictAgeVerified` + legacy `ageVerified` in AsyncStorage/localStorage. DOB picker fully removed.
 - **Login with Username OR Email**: Backend `UserLogin` schema changed from `email: EmailStr` to `identifier: str`. Login handler detects `@` to route by email vs username. `authStore.login()` now sends `{ identifier, password }`. Login form label updated to "Email or Username". Login response now includes `username` field.
