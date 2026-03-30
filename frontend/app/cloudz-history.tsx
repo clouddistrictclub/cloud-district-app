@@ -102,13 +102,15 @@ export default function CloudzHistory() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} data-testid="back-btn">
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Cloudz History</Text>
-        <View style={{ width: 24 }} />
+    <View style={styles.container}>
+      <View style={{ paddingTop: insets.top }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} data-testid="back-btn">
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Cloudz History</Text>
+          <View style={{ width: 24 }} />
+        </View>
       </View>
 
       {loading ? (
@@ -121,6 +123,7 @@ export default function CloudzHistory() {
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={entries}
           keyExtractor={(_, i) => i.toString()}
           renderItem={renderItem}
@@ -141,8 +144,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   title: {
     fontSize: 20,

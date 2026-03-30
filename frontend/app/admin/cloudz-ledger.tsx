@@ -127,49 +127,51 @@ export default function AdminCloudzLedger() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Text style={styles.title} data-testid="admin-ledger-title">Cloudz Ledger</Text>
-      <Text style={styles.subtitle}>{total.toLocaleString()} total transactions</Text>
+    <View style={styles.container}>
+      <View style={{ paddingTop: insets.top }}>
+        <Text style={styles.title} data-testid="admin-ledger-title">Cloudz Ledger</Text>
+        <Text style={styles.subtitle}>{total.toLocaleString()} total transactions</Text>
 
-      {/* Type filter chips — scrollable row */}
-      <FlatList
-        horizontal
-        data={[...ADMIN_LEDGER_FILTERS]}
-        keyExtractor={(t) => t}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        renderItem={({ item: t }) => (
-          <TouchableOpacity
-            style={[styles.chip, typeFilter === t && styles.chipActive]}
-            onPress={() => { setTypeFilter(t); setPage(0); }}
-            data-testid={`filter-chip-${t}`}
-          >
-            <Text style={[styles.chipText, typeFilter === t && styles.chipTextActive]}>
-              {t === 'all' ? 'All' : formatLedgerType(t)}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* User ID filter */}
-      <View style={styles.userFilterRow}>
-        <TextInput
-          style={styles.userFilterInput}
-          placeholder="Filter by User ID..."
-          placeholderTextColor="#555"
-          value={userIdFilter}
-          onChangeText={setUserIdFilter}
-          onSubmitEditing={handleApplyUserId}
-          data-testid="admin-ledger-userid-filter"
+        {/* Type filter chips — scrollable row */}
+        <FlatList
+          horizontal
+          data={[...ADMIN_LEDGER_FILTERS]}
+          keyExtractor={(t) => t}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          renderItem={({ item: t }) => (
+            <TouchableOpacity
+              style={[styles.chip, typeFilter === t && styles.chipActive]}
+              onPress={() => { setTypeFilter(t); setPage(0); }}
+              data-testid={`filter-chip-${t}`}
+            >
+              <Text style={[styles.chipText, typeFilter === t && styles.chipTextActive]}>
+                {t === 'all' ? 'All' : formatLedgerType(t)}
+              </Text>
+            </TouchableOpacity>
+          )}
         />
-        <TouchableOpacity style={styles.filterBtn} onPress={handleApplyUserId} data-testid="admin-ledger-apply-filter">
-          <Ionicons name="search" size={18} color="#fff" />
-        </TouchableOpacity>
-        {appliedUserId ? (
-          <TouchableOpacity style={styles.clearBtn} onPress={handleClearUserId} data-testid="admin-ledger-clear-filter">
-            <Ionicons name="close" size={18} color="#fff" />
+
+        {/* User ID filter */}
+        <View style={styles.userFilterRow}>
+          <TextInput
+            style={styles.userFilterInput}
+            placeholder="Filter by User ID..."
+            placeholderTextColor="#555"
+            value={userIdFilter}
+            onChangeText={setUserIdFilter}
+            onSubmitEditing={handleApplyUserId}
+            data-testid="admin-ledger-userid-filter"
+          />
+          <TouchableOpacity style={styles.filterBtn} onPress={handleApplyUserId} data-testid="admin-ledger-apply-filter">
+            <Ionicons name="search" size={18} color="#fff" />
           </TouchableOpacity>
-        ) : null}
+          {appliedUserId ? (
+            <TouchableOpacity style={styles.clearBtn} onPress={handleClearUserId} data-testid="admin-ledger-clear-filter">
+              <Ionicons name="close" size={18} color="#fff" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {loading ? (
@@ -182,6 +184,7 @@ export default function AdminCloudzLedger() {
       ) : (
         <>
           <FlatList
+            style={{ flex: 1 }}
             data={entries}
             keyExtractor={(_, i) => `${page}-${i}`}
             renderItem={renderItem}
