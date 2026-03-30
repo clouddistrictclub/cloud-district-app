@@ -2,7 +2,7 @@ name: Backend Health Check
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Check backend health
         run: |
-          if curl -fsS https://vape-shop-staging.emergent.host/health > /dev/null 2>&1; then
+          if curl -fsS https://api.clouddistrict.club/api/health > /dev/null 2>&1; then
             echo "Cloud District backend healthy"
           else
             echo "Cloud District backend DOWN"
