@@ -421,20 +421,24 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                             {"_id": referrer_obj_id},
                             {"$inc": {"referralRewardsEarned": reward}}
                         )
-                        ref_result = await db.users.find_one_and_update(
+                        ref_update = await db.users.update_one(
                             {"_id": referrer_obj_id},
                             {"$inc": {"loyaltyPoints": reward}},
-                            return_document=True,
                         )
-                        await db.cloudz_ledger.insert_one({
+                        print(f"DB UPDATE referral_order_reward: matched={ref_update.matched_count} modified={ref_update.modified_count} referrer_id={referrer_id_str}")
+                        updated_referrer = await db.users.find_one({"_id": referrer_obj_id}, {"loyaltyPoints": 1})
+                        new_ref_balance = updated_referrer["loyaltyPoints"] if updated_referrer else 0
+                        print(f"UPDATED BALANCE after referral_order_reward: {new_ref_balance}")
+                        ledger_result = await db.cloudz_ledger.insert_one({
                             "userId": referrer_id_str,
                             "type": "referral_order_reward",
                             "amount": reward,
-                            "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
+                            "balanceAfter": new_ref_balance,
                             "description": f"Referral order reward from order #{order_id}",
                             "orderId": order_id,
                             "createdAt": datetime.utcnow(),
                         })
+                        print(f"LEDGER INSERTED (referral_order_reward): {ledger_result.inserted_id}")
                         logger.info(
                             f"[referral_order_reward] issued {reward} Cloudz to {referrer_id_str} "
                             f"for order {order_id}"

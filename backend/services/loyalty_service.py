@@ -13,12 +13,16 @@ async def log_cloudz_transaction(
     reference: str = "", description: str = "", order_id: str = ""
 ) -> int:
     """Atomically update Cloudz balance and write ledger entry. Returns new balance."""
-    result = await db.users.find_one_and_update(
+    update_result = await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$inc": {"loyaltyPoints": amount}},
-        return_document=True,
     )
-    new_balance = result["loyaltyPoints"] if result else 0
+    print(f"DB UPDATE loyaltyPoints ({tx_type}): matched={update_result.matched_count} modified={update_result.modified_count} user_id={user_id}")
+
+    updated_user = await db.users.find_one({"_id": ObjectId(user_id)}, {"loyaltyPoints": 1})
+    new_balance = updated_user["loyaltyPoints"] if updated_user else 0
+    print(f"UPDATED BALANCE after {tx_type}: {new_balance}")
+
     entry = {
         "userId": user_id,
         "type": tx_type,
@@ -30,7 +34,8 @@ async def log_cloudz_transaction(
     }
     if order_id:
         entry["orderId"] = order_id
-    await db.cloudz_ledger.insert_one(entry)
+    ledger_result = await db.cloudz_ledger.insert_one(entry)
+    print(f"LEDGER INSERTED ({tx_type}): {ledger_result.inserted_id}")
     return new_balance
 
 
@@ -281,12 +286,14 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
 
     # Credit +1500 to referrer balance
     print("REFERRAL UNLOCK: unlocking 1500")
-    ref_result = await db.users.find_one_and_update(
+    update_result = await db.users.update_one(
         {"_id": referrer_obj_id},
         {"$inc": {"loyaltyPoints": 1500, "referralRewardsEarned": 1500}},
-        return_document=True,
     )
-    new_balance = ref_result["loyaltyPoints"] if ref_result else 0
+    print(f"DB UPDATE referral_unlock: matched={update_result.matched_count} modified={update_result.modified_count} referrer_id={referrer_id_str}")
+    updated_referrer = await db.users.find_one({"_id": referrer_obj_id}, {"loyaltyPoints": 1})
+    new_balance = updated_referrer["loyaltyPoints"] if updated_referrer else 0
+    print(f"UPDATED BALANCE after referral_unlock: {new_balance}")
 
     # If no pending entry existed, insert a completed reward entry
     if not pending:
