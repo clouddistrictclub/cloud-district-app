@@ -78,6 +78,15 @@ def api_health():
     return {"status": "ok"}
 
 
+@app.get("/api/debug/version")
+async def debug_version():
+    from datetime import datetime, timezone
+    return {
+        "version": "REFERRAL_SYSTEM_V2",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok"}
