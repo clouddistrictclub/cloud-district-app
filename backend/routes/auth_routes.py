@@ -77,19 +77,23 @@ async def register(request: Request, user_data: UserRegister):
 
     result = await db.users.insert_one(user_dict)
     user_id = str(result.inserted_id)
+    print("SIGNUP: user created", result.inserted_id, username)
 
     signup_bonus = 500
     await log_cloudz_transaction(user_id, "signup_bonus", signup_bonus, "Welcome to Cloud District Club!")
+    print("SIGNUP: base bonus issued")
     user_points = signup_bonus
 
     # Referral signup rewards: +500 to user, +500 to referrer (idempotent)
     if referred_by:
+        print("SIGNUP: referral detected", referred_by)
         ref_rewards = await issue_referral_signup_rewards(
             new_user_id=user_id,
             referrer_identifier=referred_by,
             new_user_first_name=user_data.firstName,
             new_user_username=username,
         )
+        print("SIGNUP: referral rewards attempted")
         user_points += ref_rewards["user_bonus"]
 
     access_token = create_access_token(data={"sub": user_id})

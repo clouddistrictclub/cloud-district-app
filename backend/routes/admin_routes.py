@@ -363,6 +363,8 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         )
         if claimed_loyalty is not None:
             points = int(float(order.get("total") or 0)) * 3
+            print("PURCHASE REWARD: entered", order_id)
+            print("PURCHASE REWARD: awarding", points)
             await log_cloudz_transaction(
                 order["userId"], "purchase_reward", points,
                 f"Order #{order_id[:8]}",
@@ -400,6 +402,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             if referrer_id:
                 # Issue 6: referral_order_reward = floor(order.total * 0.5) to referrer
                 reward = math.floor(float(order.get("total") or 0) * 0.5)
+                print("REFERRAL ORDER REWARD: entered")
                 try:
                     from bson.errors import InvalidId
                     referrer_doc = None
@@ -413,6 +416,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                     if referrer_doc and reward > 0:
                         referrer_obj_id = referrer_doc["_id"]
                         referrer_id_str = str(referrer_obj_id)
+                        print("REFERRAL ORDER REWARD: awarding", reward)
                         await db.users.update_one(
                             {"_id": referrer_obj_id},
                             {"$inc": {"referralRewardsEarned": reward}}
@@ -446,9 +450,11 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                 logger.info(f"[referral_order_reward] skipped — order {order_id} has no referredBy")
 
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status_update.status}})
+    print("ORDER STATUS UPDATED:", order_id, status_update.status)
 
     # Issue 5: Check referral unlock AFTER status update so this order counts in lifetime spend aggregate
     if incoming_completion and not already_completed:
+        print("ORDER: triggering rewards")
         try:
             await check_and_unlock_referral_reward(order["userId"])
         except Exception as e:

@@ -90,6 +90,8 @@ async def issue_referral_signup_rewards(
     import re
     from bson.errors import InvalidId
 
+    print("REFERRAL: function entered", new_user_id, referrer_identifier)
+
     # Fast path: if flag already set, skip entirely
     new_user_doc = await db.users.find_one(
         {"_id": ObjectId(new_user_id)},
@@ -111,6 +113,7 @@ async def issue_referral_signup_rewards(
         "type": {"$in": ["referral_signup_bonus", "referral_new_user_bonus"]},
     })
     if not already_user:
+        print("REFERRAL: awarding new user bonus +500")
         await log_cloudz_transaction(
             new_user_id, "referral_signup_bonus", 500,
             f"Referral bonus — signed up with a referral code",
@@ -158,6 +161,7 @@ async def issue_referral_signup_rewards(
             {"_id": referrer_obj_id},
             {"$inc": {"referralCount": 1}},
         )
+        print("REFERRAL: creating pending 1500 for referrer")
         await db.cloudz_ledger.insert_one({
             "userId": referrer_id_str,
             "type": "referral_pending",
@@ -197,6 +201,7 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
 
     Returns True if the reward was unlocked in this call.
     """
+    print("REFERRAL UNLOCK: checking spend for", buyer_user_id)
     buyer_doc = await db.users.find_one(
         {"_id": ObjectId(buyer_user_id)},
         {"referredBy": 1, "referralUnlocked": 1},
@@ -275,6 +280,7 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
         )
 
     # Credit +1500 to referrer balance
+    print("REFERRAL UNLOCK: unlocking 1500")
     ref_result = await db.users.find_one_and_update(
         {"_id": referrer_obj_id},
         {"$inc": {"loyaltyPoints": 1500, "referralRewardsEarned": 1500}},
