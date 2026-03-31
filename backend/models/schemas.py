@@ -231,6 +231,9 @@ class OrderCreate(BaseModel):
     rewardId: Optional[str] = None
     couponApplied: bool = False
     storeCreditApplied: float = Field(default=0.0, ge=0)
+    name: Optional[str] = Field(default=None, max_length=100)
+    email: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=20)
 
 
 class Order(BaseModel):
@@ -247,6 +250,7 @@ class Order(BaseModel):
     expiresAt: Optional[datetime] = None
     customerName: Optional[str] = None
     customerEmail: Optional[str] = None
+    customerPhone: Optional[str] = None
     adminNotes: Optional[str] = None
     storeCreditApplied: float = 0.0
 

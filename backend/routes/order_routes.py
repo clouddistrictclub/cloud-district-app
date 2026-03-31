@@ -95,6 +95,9 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "createdAt": created_at,
         "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
         "referralRewardIssued": False,
+        "customerName": order_data.name or None,
+        "customerEmail": order_data.email or None,
+        "customerPhone": order_data.phone or None,
     }
 
     result = await db.orders.insert_one(order_dict)
