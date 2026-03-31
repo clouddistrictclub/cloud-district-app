@@ -138,32 +138,37 @@ async def issue_referral_signup_rewards(
         )
         result["user_bonus"] = 500
 
-    # 2. +500 to REFERRER — type: referral_reward, keyed on referredUserId
-    #    Idempotency: check both new and legacy type names
+    # 2. REFERRER gets a PENDING reward (+1500) — unlocked when referred user spends $50+
+    #    Idempotency: check for any existing entry (pending OR converted)
     already_referrer = await db.cloudz_ledger.find_one({
         "userId": referrer_id_str,
-        "type": {"$in": ["referral_reward", "referral_signup_bonus"]},
+        "type": {"$in": ["referral_reward", "referral_signup_bonus", "referral_pending"]},
         "referredUserId": new_user_id,
     })
     if not already_referrer:
-        ref_result = await db.users.find_one_and_update(
+        # Increment referralCount on referrer (no balance change yet)
+        await db.users.update_one(
             {"_id": referrer_obj_id},
-            {"$inc": {"referralCount": 1, "loyaltyPoints": 500, "referralRewardsEarned": 500}},
-            return_document=True,
+            {"$inc": {"referralCount": 1}},
         )
         await db.cloudz_ledger.insert_one({
             "userId": referrer_id_str,
-            "type": "referral_reward",
-            "amount": 500,
-            "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
-            "description": f"Referral signup reward — {new_user_first_name} joined",
+            "type": "referral_pending",
+            "amount": 1500,
+            "status": "pending",
+            "description": f"Pending referral reward — {new_user_first_name} joined (unlocks at $50 spend)",
             "referredUserId": new_user_id,
-            "metadata": {"referredUser": new_user_username},
+            "metadata": {
+                "referredUserId": new_user_id,
+                "referredUsername": new_user_username,
+                "unlockThreshold": 50,
+            },
             "createdAt": datetime.utcnow(),
         })
-        result["referrer_bonus"] = 500
+        result["referrer_bonus"] = 1500  # pending — not yet in balance
         logger.info(
-            f"[referral_signup] +500 to referrer {referrer_id_str} for user {new_user_id}"
+            f"[referral_signup] pending reward created for referrer {referrer_id_str} "
+            f"(referred user {new_user_id}, unlocks at $50 spend)"
         )
 
     # Mark rewards as given on the new user
@@ -173,6 +178,127 @@ async def issue_referral_signup_rewards(
     )
 
     return result
+
+
+async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
+    """
+    Called when an order is marked Paid.
+    If the buyer was referred AND their lifetime spend >= $50 AND reward not yet unlocked:
+      - Converts their referrer's 'referral_pending' entry to 'referral_reward'
+      - Credits +1500 to referrer's Cloudz balance
+      - Sets buyer.referralUnlocked = True
+
+    Returns True if the reward was unlocked in this call.
+    """
+    buyer_doc = await db.users.find_one(
+        {"_id": ObjectId(buyer_user_id)},
+        {"referredBy": 1, "referralUnlocked": 1},
+    )
+    if not buyer_doc:
+        return False
+
+    # Already unlocked — nothing to do
+    if buyer_doc.get("referralUnlocked", False):
+        return False
+
+    referrer_id = buyer_doc.get("referredBy")
+    if not referrer_id:
+        return False  # Not a referred user
+
+    # Sum lifetime spend from completed orders (Paid / Completed / Ready for Pickup)
+    completed_statuses = ["Paid", "Completed", "Ready for Pickup"]
+    pipeline = [
+        {"$match": {"userId": buyer_user_id, "status": {"$in": completed_statuses}}},
+        {"$group": {"_id": None, "total": {"$sum": "$total"}}},
+    ]
+    agg = await db.orders.aggregate(pipeline).to_list(1)
+    lifetime_spend = float(agg[0]["total"]) if agg else 0.0
+
+    if lifetime_spend < 50.0:
+        logger.info(
+            f"[referral_unlock] buyer {buyer_user_id} spend={lifetime_spend:.2f} < $50 — not yet"
+        )
+        return False
+
+    # Atomic gate: only the first call that flips referralUnlocked wins
+    claimed = await db.users.find_one_and_update(
+        {"_id": ObjectId(buyer_user_id), "referralUnlocked": {"$ne": True}},
+        {"$set": {"referralUnlocked": True}},
+    )
+    if claimed is None:
+        logger.info(f"[referral_unlock] already unlocked for buyer {buyer_user_id} (race)")
+        return False
+
+    # Resolve referrer
+    from bson.errors import InvalidId
+    referrer_doc = None
+    if len(str(referrer_id)) == 24:
+        try:
+            referrer_doc = await db.users.find_one({"_id": ObjectId(referrer_id)}, {"_id": 1})
+        except (InvalidId, Exception):
+            pass
+    if not referrer_doc:
+        referrer_doc = await db.users.find_one({"username": referrer_id}, {"_id": 1})
+
+    if not referrer_doc:
+        logger.warning(f"[referral_unlock] referrer {referrer_id} not found for buyer {buyer_user_id}")
+        return False
+
+    referrer_obj_id = referrer_doc["_id"]
+    referrer_id_str = str(referrer_obj_id)
+
+    # Convert the pending entry to a real reward
+    pending = await db.cloudz_ledger.find_one({
+        "userId": referrer_id_str,
+        "type": "referral_pending",
+        "referredUserId": buyer_user_id,
+        "status": "pending",
+    })
+
+    if not pending:
+        logger.warning(
+            f"[referral_unlock] no pending entry found for referrer {referrer_id_str} "
+            f"/ buyer {buyer_user_id}"
+        )
+        # Still credit — idempotency is already guaranteed by the flag above
+    else:
+        await db.cloudz_ledger.update_one(
+            {"_id": pending["_id"]},
+            {"$set": {"type": "referral_reward", "status": "completed"}},
+        )
+
+    # Credit +1500 to referrer balance
+    ref_result = await db.users.find_one_and_update(
+        {"_id": referrer_obj_id},
+        {"$inc": {"loyaltyPoints": 1500, "referralRewardsEarned": 1500}},
+        return_document=True,
+    )
+    new_balance = ref_result["loyaltyPoints"] if ref_result else 0
+
+    # If no pending entry existed, insert a completed reward entry
+    if not pending:
+        await db.cloudz_ledger.insert_one({
+            "userId": referrer_id_str,
+            "type": "referral_reward",
+            "amount": 1500,
+            "status": "completed",
+            "balanceAfter": new_balance,
+            "description": f"Referral reward unlocked — referred user reached $50 spend",
+            "referredUserId": buyer_user_id,
+            "createdAt": datetime.utcnow(),
+        })
+    else:
+        # Back-fill the balance on the converted entry
+        await db.cloudz_ledger.update_one(
+            {"_id": pending["_id"]},
+            {"$set": {"balanceAfter": new_balance}},
+        )
+
+    logger.info(
+        f"[referral_unlock] +1500 unlocked for referrer {referrer_id_str} "
+        f"(buyer {buyer_user_id}, lifetime_spend=${lifetime_spend:.2f})"
+    )
+    return True
 
 
 async def maybe_award_streak_bonus(user_id: str, order_id: str):

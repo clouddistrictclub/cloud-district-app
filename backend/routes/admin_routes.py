@@ -7,7 +7,7 @@ from models.schemas import (
     Order, OrderStatusUpdate, OrderEdit, ReviewModerationUpdate,
     UserUsernameUpdate
 )
-from services.loyalty_service import log_cloudz_transaction, maybe_award_streak_bonus, issue_referral_signup_rewards
+from services.loyalty_service import log_cloudz_transaction, maybe_award_streak_bonus, check_and_unlock_referral_reward, issue_referral_signup_rewards
 from services.order_service import send_push_notification, chat_manager
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -427,6 +427,12 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                     logger.error(f"[referral_reward] error for order {order_id}: {e}")
             else:
                 logger.info(f"[referral_reward] skipped — order {order_id} has no referredBy")
+
+        # Check if referred user has now hit $50 lifetime spend → unlock pending referral reward
+        try:
+            await check_and_unlock_referral_reward(order["userId"])
+        except Exception as e:
+            logger.error(f"[referral_unlock] error for order {order_id}: {e}")
 
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status_update.status}})
     await send_push_notification(

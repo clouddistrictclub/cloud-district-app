@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user
 from models.schemas import Order, OrderCreate
-from services.loyalty_service import log_cloudz_transaction
+from services.loyalty_service import log_cloudz_transaction, check_and_unlock_referral_reward
 from services.email_service import is_email_configured, send_email, build_order_confirmation_html
 from services.order_service import chat_manager
 from limiter import limiter, get_user_id_or_ip
@@ -24,7 +24,16 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {item.productId} not found")
 
-    points_earned = int(order_data.total) * 3
+    # --- Bulk discount: 10% when total quantity >= 10 items (applied BEFORE store credit) ---
+    total_qty = sum(item.quantity for item in order_data.items)
+    bulk_discount = 0.0
+    if total_qty >= 10:
+        bulk_discount = round(order_data.total * 0.10, 2)
+
+    # Final total after discount
+    final_total = round(order_data.total - bulk_discount, 2)
+
+    points_earned = int(final_total) * 3
     reward_discount = 0.0
     reward_points_used = 0
 
@@ -82,7 +91,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     order_dict = {
         "userId": str(user["_id"]),
         "items": [item.dict() for item in order_data.items],
-        "total": order_data.total,
+        "total": final_total,
         "pickupTime": order_data.pickupTime,
         "paymentMethod": order_data.paymentMethod,
         "status": "Awaiting Pickup (Cash)" if order_data.paymentMethod == "Cash on Pickup" else "Pending Payment",
@@ -92,6 +101,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "rewardDiscount": reward_discount,
         "couponDiscount": coupon_discount,
         "storeCreditApplied": store_credit_applied,
+        "discountApplied": bulk_discount,
         "createdAt": created_at,
         "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
         "referralRewardIssued": False,
@@ -102,6 +112,17 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
 
     result = await db.orders.insert_one(order_dict)
     order_dict["id"] = str(result.inserted_id)
+
+    # Bulk discount audit entry (no balance change — informational only)
+    if bulk_discount > 0:
+        await db.cloudz_ledger.insert_one({
+            "userId": str(user["_id"]),
+            "type": "bulk_discount",
+            "amount": -round(bulk_discount, 2),
+            "orderId": str(result.inserted_id),
+            "description": f"10% bulk discount on order #{str(result.inserted_id)[:8]} ({total_qty} items)",
+            "createdAt": created_at,
+        })
 
     # Deduct store credit from user balance
     if store_credit_applied > 0:

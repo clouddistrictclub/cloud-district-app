@@ -130,6 +130,14 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Admin ledger: horizontal scrollable filter chips for all ledger types
   - Zero backend changes — frontend-only presentation upgrade
 
+## Completed (2026-03-31 Session 8)
+- **Referral anti-abuse + cart discount system**
+  - Referrer signup reward now creates `referral_pending` ledger entry (+1500, no balance yet); balance unlocks only when referred user's lifetime spend >= $50
+  - `check_and_unlock_referral_reward()` in `loyalty_service.py`: aggregates completed orders, atomically flips `referralUnlocked` flag, converts `referral_pending → referral_reward`, credits +1500 to referrer; idempotent via flag + find_one_and_update gate
+  - Called automatically in admin "Paid" status update handler
+  - Bulk cart discount: 10% applied when quantity >= 10 items; `discountApplied` stored on order; audit entry in ledger; loyalty points calculated on discounted total; discount applied before store credit
+  - All safeguards: no self-referral, no duplicate pending entries, no duplicate unlocks, fully auditable
+
 ## Completed (2026-03-31 Session 7)
 - **Referral system complete**
   - `GET /api/users/check?username=` — public endpoint, case-insensitive, always 200 with `{exists, userId, username}`

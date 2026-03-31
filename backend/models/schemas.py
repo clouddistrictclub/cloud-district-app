@@ -252,6 +252,7 @@ class Order(BaseModel):
     customerEmail: Optional[str] = None
     customerPhone: Optional[str] = None
     adminNotes: Optional[str] = None
+    discountApplied: float = 0.0
     storeCreditApplied: float = 0.0
 
 
