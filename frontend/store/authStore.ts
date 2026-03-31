@@ -124,7 +124,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshUser: async () => {
     try {
       const response = await axios.get(`${API_URL}/api/auth/me`);
+      console.log("REFRESH USER:", response.data.loyaltyPoints);
       set({ user: response.data });
+      console.log("CURRENT USER STATE:", get().user?.loyaltyPoints);
     } catch (error) {
       console.error('Failed to refresh user:', error);
     }
