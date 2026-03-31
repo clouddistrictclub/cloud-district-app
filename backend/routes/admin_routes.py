@@ -329,7 +329,7 @@ async def get_all_orders(admin=Depends(get_admin_user)):
     return result
 
 
-COMPLETION_STATUSES = {"Paid", "Ready for Pickup", "Completed"}
+COMPLETION_STATUSES = {"Paid", "Completed"}
 
 
 @router.patch("/admin/orders/{order_id}/status")
