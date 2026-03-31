@@ -246,6 +246,8 @@ class Order(BaseModel):
     status: str = "Pending Payment"
     loyaltyPointsEarned: int = 0
     loyaltyPointsUsed: int = 0
+    loyaltyRewardIssued: bool = False
+    referralRewardIssued: bool = False
     createdAt: datetime = Field(default_factory=datetime.utcnow)
     expiresAt: Optional[datetime] = None
     customerName: Optional[str] = None

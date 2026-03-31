@@ -105,6 +105,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "createdAt": created_at,
         "expiresAt": created_at + timedelta(minutes=30) if is_pending_payment else None,
         "referralRewardIssued": False,
+        "loyaltyRewardIssued": False,
         "customerName": order_data.name or None,
         "customerEmail": order_data.email or None,
         "customerPhone": order_data.phone or None,
@@ -112,17 +113,6 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
 
     result = await db.orders.insert_one(order_dict)
     order_dict["id"] = str(result.inserted_id)
-
-    # Bulk discount audit entry (no balance change — informational only)
-    if bulk_discount > 0:
-        await db.cloudz_ledger.insert_one({
-            "userId": str(user["_id"]),
-            "type": "bulk_discount",
-            "amount": -round(bulk_discount, 2),
-            "orderId": str(result.inserted_id),
-            "description": f"10% bulk discount on order #{str(result.inserted_id)[:8]} ({total_qty} items)",
-            "createdAt": created_at,
-        })
 
     # Deduct store credit from user balance
     if store_credit_applied > 0:

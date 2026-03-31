@@ -130,6 +130,16 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Admin ledger: horizontal scrollable filter chips for all ledger types
   - Zero backend changes — frontend-only presentation upgrade
 
+## Completed (2026-03-31 Session 9)
+- **6 Loyalty/Referral Logic Fixes** (CRITICAL, all verified via curl against preview API):
+  - **Issue 1 Fixed**: Removed `bulk_discount` ledger entry from `order_routes.py`. Discount only reduces `discountApplied` field on order — zero impact on Cloudz.
+  - **Issue 2 Fixed**: `purchase_reward` now fires on "Paid", "Ready for Pickup", OR "Completed" (was only "Paid"). Idempotency via new `loyaltyRewardIssued: bool` flag on `Order` schema (atomic `find_one_and_update` gate). Backward-safe: `already_completed` check prevents re-processing existing "Paid" orders.
+  - **Issue 3 Fixed**: New user's +500 `referral_signup_bonus` is issued BEFORE referrer lookup in `issue_referral_signup_rewards()`. Previously, if referrer document was not found, the function returned early and the new user got $0 bonus. Now always awards 1000 Cloudz on referred signup.
+  - **Issue 4**: `referral_pending` (+1500, no balance change) was already correctly created. Verified.
+  - **Issue 5 Fixed**: `check_and_unlock_referral_reward()` now called AFTER the final `db.orders.update_one(status)` call, so the current order counts in the $50 lifetime-spend aggregate. Previously it ran before, returning 0 spend.
+  - **Issue 6 Fixed**: Per-order referral earning type changed from `"referral_reward"` to `"referral_order_reward"` to disambiguate from the one-time unlock reward. Also now fires on all completion statuses, not just "Paid".
+  - Files changed: `backend/models/schemas.py`, `backend/routes/order_routes.py`, `backend/routes/admin_routes.py`, `backend/services/loyalty_service.py`
+
 ## Completed (2026-03-31 Session 8)
 - **Referral anti-abuse + cart discount system**
   - Referrer signup reward now creates `referral_pending` ledger entry (+1500, no balance yet); balance unlocks only when referred user's lifetime spend >= $50

@@ -329,12 +329,16 @@ async def get_all_orders(admin=Depends(get_admin_user)):
     return result
 
 
+COMPLETION_STATUSES = {"Paid", "Ready for Pickup", "Completed"}
+
+
 @router.patch("/admin/orders/{order_id}/status")
 async def update_order_status(order_id: str, status_update: OrderStatusUpdate, admin=Depends(get_admin_user)):
     order = await db.orders.find_one({"_id": ObjectId(order_id)})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    # --- Cancellation: restore stock and bail early ---
     if status_update.status == "Cancelled" and order["status"] != "Cancelled":
         for item in order.get("items", []):
             await db.products.update_one(
@@ -348,14 +352,28 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
         )
         return {"message": "Order status updated"}
 
-    if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
-        await log_cloudz_transaction(
-            order["userId"], "purchase_reward", order["loyaltyPointsEarned"],
-            f"Order #{order_id[:8]}",
-            f"Purchase reward from order #{order_id}",
-            order_id,
+    incoming_completion = status_update.status in COMPLETION_STATUSES
+    already_completed = order.get("status") in COMPLETION_STATUSES
+
+    # --- Issue 2: Loyalty purchase reward — once on first completion status ---
+    if incoming_completion and not already_completed and not order.get("loyaltyRewardIssued", False):
+        claimed_loyalty = await db.orders.find_one_and_update(
+            {"_id": ObjectId(order_id), "loyaltyRewardIssued": {"$ne": True}},
+            {"$set": {"loyaltyRewardIssued": True}},
         )
-        await maybe_award_streak_bonus(order["userId"], order_id)
+        if claimed_loyalty is not None:
+            points = int(float(order.get("total") or 0)) * 3
+            await log_cloudz_transaction(
+                order["userId"], "purchase_reward", points,
+                f"Order #{order_id[:8]}",
+                f"Purchase reward from order #{order_id}",
+                order_id,
+            )
+            await maybe_award_streak_bonus(order["userId"], order_id)
+            logger.info(f"[purchase_reward] awarded {points} Cloudz for order {order_id}")
+
+    # --- $5 next-order coupon: only on first transition to "Paid" ---
+    if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
         coupon_expires = datetime.utcnow() + timedelta(days=7)
         await db.users.update_one(
             {"_id": ObjectId(order["userId"])},
@@ -368,25 +386,24 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             }}}
         )
 
-    if status_update.status == "Paid" and not order.get("referralRewardIssued", False):
-        # Atomic claim: only the request that flips the flag gets to issue the reward.
-        # Concurrent requests will receive None here and skip entirely.
+    # --- Issues 5 & 6: Per-order referral reward + unlock pending — once on first completion ---
+    if incoming_completion and not already_completed and not order.get("referralRewardIssued", False):
         claimed = await db.orders.find_one_and_update(
             {"_id": ObjectId(order_id), "referralRewardIssued": False},
             {"$set": {"referralRewardIssued": True}},
         )
         if claimed is None:
-            logger.info(f"[referral_reward] skipped — already issued for order {order_id}")
+            logger.info(f"[referral_order_reward] skipped — already issued for order {order_id}")
         else:
             buyer_doc = await db.users.find_one({"_id": ObjectId(order["userId"])}, {"referredBy": 1})
             referrer_id = buyer_doc.get("referredBy") if buyer_doc else None
             if referrer_id:
+                # Issue 6: referral_order_reward = floor(order.total * 0.5) to referrer
                 reward = math.floor(float(order.get("total") or 0) * 0.5)
                 try:
                     from bson.errors import InvalidId
                     referrer_doc = None
-                    is_object_id = len(str(referrer_id)) == 24
-                    if is_object_id:
+                    if len(str(referrer_id)) == 24:
                         try:
                             referrer_doc = await db.users.find_one({"_id": ObjectId(referrer_id)})
                         except (InvalidId, Exception):
@@ -407,34 +424,35 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
                         )
                         await db.cloudz_ledger.insert_one({
                             "userId": referrer_id_str,
-                            "type": "referral_reward",
+                            "type": "referral_order_reward",
                             "amount": reward,
                             "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
-                            "description": f"Referral reward from order #{order_id}",
+                            "description": f"Referral order reward from order #{order_id}",
                             "orderId": order_id,
                             "createdAt": datetime.utcnow(),
                         })
                         logger.info(
-                            f"[referral_reward] issued {reward} Cloudz to {referrer_id_str} "
+                            f"[referral_order_reward] issued {reward} Cloudz to {referrer_id_str} "
                             f"for order {order_id}"
                         )
                     else:
                         logger.info(
-                            f"[referral_reward] skipped — referrer not found or reward=0 "
+                            f"[referral_order_reward] skipped — referrer not found or reward=0 "
                             f"(referrer_id={referrer_id}, reward={reward})"
                         )
                 except Exception as e:
-                    logger.error(f"[referral_reward] error for order {order_id}: {e}")
+                    logger.error(f"[referral_order_reward] error for order {order_id}: {e}")
             else:
-                logger.info(f"[referral_reward] skipped — order {order_id} has no referredBy")
+                logger.info(f"[referral_order_reward] skipped — order {order_id} has no referredBy")
 
-        # Check if referred user has now hit $50 lifetime spend → unlock pending referral reward
+    await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status_update.status}})
+
+    # Issue 5: Check referral unlock AFTER status update so this order counts in lifetime spend aggregate
+    if incoming_completion and not already_completed:
         try:
             await check_and_unlock_referral_reward(order["userId"])
         except Exception as e:
             logger.error(f"[referral_unlock] error for order {order_id}: {e}")
-
-    await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": status_update.status}})
     await send_push_notification(
         order["userId"], "Order Update",
         f"Order #{order_id[-6:].upper()} is now: {status_update.status}",

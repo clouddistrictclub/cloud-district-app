@@ -101,6 +101,22 @@ async def issue_referral_signup_rewards(
     if not new_user_username:
         new_user_username = new_user_doc.get("username", "") if new_user_doc else ""
 
+    result = {"user_bonus": 0, "referrer_bonus": 0}
+
+    # 1. +500 to NEW USER — type: referral_signup_bonus
+    #    Issue this FIRST, before resolving the referrer, so it never depends on referrer lookup success.
+    #    Idempotency: check both new and legacy type names
+    already_user = await db.cloudz_ledger.find_one({
+        "userId": new_user_id,
+        "type": {"$in": ["referral_signup_bonus", "referral_new_user_bonus"]},
+    })
+    if not already_user:
+        await log_cloudz_transaction(
+            new_user_id, "referral_signup_bonus", 500,
+            f"Referral bonus — signed up with a referral code",
+        )
+        result["user_bonus"] = 500
+
     # Resolve referrer document (stored as userId or username)
     referrer_doc = None
     if len(str(referrer_identifier)) == 24:
@@ -118,25 +134,16 @@ async def issue_referral_signup_rewards(
 
     if not referrer_doc:
         logger.warning(f"[referral_signup] referrer not found: {referrer_identifier}")
-        return {"user_bonus": 0, "referrer_bonus": 0}
+        # Mark rewards as given on the new user (new user bonus was issued above)
+        await db.users.update_one(
+            {"_id": ObjectId(new_user_id)},
+            {"$set": {"referralRewardGiven": True}},
+        )
+        return result
 
     referrer_obj_id = referrer_doc["_id"]
     referrer_id_str = str(referrer_obj_id)
     referrer_username = referrer_doc.get("username", referrer_id_str)
-    result = {"user_bonus": 0, "referrer_bonus": 0}
-
-    # 1. +500 to NEW USER — type: referral_signup_bonus
-    #    Idempotency: check both new and legacy type names
-    already_user = await db.cloudz_ledger.find_one({
-        "userId": new_user_id,
-        "type": {"$in": ["referral_signup_bonus", "referral_new_user_bonus"]},
-    })
-    if not already_user:
-        await log_cloudz_transaction(
-            new_user_id, "referral_signup_bonus", 500,
-            f"Referral bonus — signed up with {referrer_username}'s referral",
-        )
-        result["user_bonus"] = 500
 
     # 2. REFERRER gets a PENDING reward (+1500) — unlocked when referred user spends $50+
     #    Idempotency: check for any existing entry (pending OR converted)
