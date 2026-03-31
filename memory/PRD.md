@@ -130,6 +130,14 @@ Mobile app for local pickup of disposable vape products, 21+ age gate.
   - Admin ledger: horizontal scrollable filter chips for all ledger types
   - Zero backend changes — frontend-only presentation upgrade
 
+## Completed (2026-03-31 Session 7)
+- **Referral system complete**
+  - `GET /api/users/check?username=` — public endpoint, case-insensitive, always 200 with `{exists, userId, username}`
+  - Registration: `referredBy` stored as userId (consistent with admin assignment); self-referral blocked pre-insert; `referralRewardGiven` flag added
+  - Ledger types updated: new user gets `referral_signup_bonus` (+500); referrer gets `referral_reward` (+500, was +1500) with `metadata.referredUser`
+  - `issue_referral_signup_rewards` fully idempotent via `referralRewardGiven` flag + secondary ledger check; backward-compatible with old type names
+  - Registration response now includes `referredByUserId`
+
 ## Completed (2026-03-30 Session 6)
 - **P0 Bug Fix: JWT missing `iat` → /auth/me always 401 for users with forceLogoutAt**
   - Root cause: `create_access_token` in `auth.py` did not include `iat` (issued-at) in JWT payload. `get_current_user` falls back to `iat = 0` when field missing. For users with `forceLogoutAt` set (e.g., jraymasangkay@gmail.com, forceLogoutAt=1773177646), `0 < forceLogoutAt` was always TRUE → every `/auth/me` call returned 401 "Session has been invalidated", even after fresh login.

@@ -77,80 +77,100 @@ async def issue_referral_signup_rewards(
     new_user_id: str,
     referrer_identifier: str,
     new_user_first_name: str = "A user",
+    new_user_username: str = "",
 ) -> dict:
     """
     Issue one-time referral signup rewards:
-      - +500 Cloudz to the new user   (referral_new_user_bonus)
-      - +1500 Cloudz to the referrer  (referral_signup_bonus)
+      - +500 Cloudz to the new user   (type: referral_signup_bonus)
+      - +500 Cloudz to the referrer   (type: referral_reward)
 
-    Fully idempotent — safe to call multiple times for the same pair.
+    Idempotent: gated by user.referralRewardGiven flag, with ledger as secondary check.
     Returns {"user_bonus": int, "referrer_bonus": int}.
     """
     import re
     from bson.errors import InvalidId
 
-    # Resolve referrer document (may be stored as ObjectId string or username)
+    # Fast path: if flag already set, skip entirely
+    new_user_doc = await db.users.find_one(
+        {"_id": ObjectId(new_user_id)},
+        {"referralRewardGiven": 1, "username": 1},
+    )
+    if new_user_doc and new_user_doc.get("referralRewardGiven", False):
+        return {"user_bonus": 0, "referrer_bonus": 0}
+
+    if not new_user_username:
+        new_user_username = new_user_doc.get("username", "") if new_user_doc else ""
+
+    # Resolve referrer document (stored as userId or username)
     referrer_doc = None
     if len(str(referrer_identifier)) == 24:
         try:
             referrer_doc = await db.users.find_one(
-                {"_id": ObjectId(referrer_identifier)}, {"_id": 1}
+                {"_id": ObjectId(referrer_identifier)}, {"_id": 1, "username": 1}
             )
         except (InvalidId, Exception):
             pass
     if not referrer_doc:
         referrer_doc = await db.users.find_one(
             {"username": {"$regex": f"^{re.escape(referrer_identifier)}$", "$options": "i"}},
-            {"_id": 1},
+            {"_id": 1, "username": 1},
         )
 
     if not referrer_doc:
-        logger.warning(
-            f"[referral_signup] referrer not found: {referrer_identifier}"
-        )
+        logger.warning(f"[referral_signup] referrer not found: {referrer_identifier}")
         return {"user_bonus": 0, "referrer_bonus": 0}
 
     referrer_obj_id = referrer_doc["_id"]
     referrer_id_str = str(referrer_obj_id)
+    referrer_username = referrer_doc.get("username", referrer_id_str)
     result = {"user_bonus": 0, "referrer_bonus": 0}
 
-    # 1. +500 to NEW USER (once per lifetime — keyed on userId + type)
+    # 1. +500 to NEW USER — type: referral_signup_bonus
+    #    Idempotency: check both new and legacy type names
     already_user = await db.cloudz_ledger.find_one({
         "userId": new_user_id,
-        "type": "referral_new_user_bonus",
+        "type": {"$in": ["referral_signup_bonus", "referral_new_user_bonus"]},
     })
     if not already_user:
         await log_cloudz_transaction(
-            new_user_id, "referral_new_user_bonus", 500,
-            "Referral bonus — signed up with a referral!",
+            new_user_id, "referral_signup_bonus", 500,
+            f"Referral bonus — signed up with {referrer_username}'s referral",
         )
         result["user_bonus"] = 500
 
-    # 2. +1500 to REFERRER (once per referred user — keyed on referredUserId)
+    # 2. +500 to REFERRER — type: referral_reward, keyed on referredUserId
+    #    Idempotency: check both new and legacy type names
     already_referrer = await db.cloudz_ledger.find_one({
         "userId": referrer_id_str,
-        "type": "referral_signup_bonus",
+        "type": {"$in": ["referral_reward", "referral_signup_bonus"]},
         "referredUserId": new_user_id,
     })
     if not already_referrer:
         ref_result = await db.users.find_one_and_update(
             {"_id": referrer_obj_id},
-            {"$inc": {"referralCount": 1, "loyaltyPoints": 1500, "referralRewardsEarned": 1500}},
+            {"$inc": {"referralCount": 1, "loyaltyPoints": 500, "referralRewardsEarned": 500}},
             return_document=True,
         )
         await db.cloudz_ledger.insert_one({
             "userId": referrer_id_str,
-            "type": "referral_signup_bonus",
-            "amount": 1500,
+            "type": "referral_reward",
+            "amount": 500,
             "balanceAfter": ref_result["loyaltyPoints"] if ref_result else 0,
-            "description": f"Referral signup bonus — {new_user_first_name} joined",
+            "description": f"Referral signup reward — {new_user_first_name} joined",
             "referredUserId": new_user_id,
+            "metadata": {"referredUser": new_user_username},
             "createdAt": datetime.utcnow(),
         })
-        result["referrer_bonus"] = 1500
+        result["referrer_bonus"] = 500
         logger.info(
-            f"[referral_signup] +1500 to referrer {referrer_id_str} for user {new_user_id}"
+            f"[referral_signup] +500 to referrer {referrer_id_str} for user {new_user_id}"
         )
+
+    # Mark rewards as given on the new user
+    await db.users.update_one(
+        {"_id": ObjectId(new_user_id)},
+        {"$set": {"referralRewardGiven": True}},
+    )
 
     return result
 

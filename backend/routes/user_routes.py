@@ -12,6 +12,21 @@ import re as _re
 router = APIRouter()
 
 
+@router.get("/users/check")
+async def check_user_exists(username: str):
+    """Public endpoint — validates a referral code / username without requiring auth."""
+    slug = username.strip().lower()
+    if not slug:
+        return {"exists": False}
+    user = await db.users.find_one(
+        {"username": {"$regex": f"^{_re.escape(slug)}$", "$options": "i"}},
+        {"_id": 1, "username": 1},
+    )
+    if user:
+        return {"exists": True, "userId": str(user["_id"]), "username": user.get("username")}
+    return {"exists": False}
+
+
 @router.patch("/profile", response_model=UserResponse)
 async def update_profile(profile_data: UserProfileUpdate, user=Depends(get_current_user)):
     update_dict = {k: v for k, v in profile_data.dict().items() if v is not None}

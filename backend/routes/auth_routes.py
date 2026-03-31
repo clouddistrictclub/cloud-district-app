@@ -45,10 +45,14 @@ async def register(request: Request, user_data: UserRegister):
     referred_by = None
     if user_data.referralCode:
         ref_input = user_data.referralCode.strip().lower()
-        referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
-        if not referrer:
-            raise HTTPException(status_code=400, detail="Invalid referral code — enter a valid username")
-        referred_by = referrer.get("username") or str(referrer["_id"])
+        # Self-referral prevention: reject if referral code matches the new user's own username
+        if ref_input == username.lower():
+            referred_by = None
+        else:
+            referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
+            if not referrer:
+                raise HTTPException(status_code=400, detail="Invalid referral code — enter a valid username")
+            referred_by = str(referrer["_id"])  # store as userId, consistent with admin assignment
 
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
@@ -67,26 +71,24 @@ async def register(request: Request, user_data: UserRegister):
         "referralCount": 0,
         "referralRewardsEarned": 0,
         "referralRewardIssued": False,
+        "referralRewardGiven": False,
         "createdAt": datetime.utcnow()
     }
 
     result = await db.users.insert_one(user_dict)
     user_id = str(result.inserted_id)
 
-    if referred_by and referred_by == username:
-        await db.users.update_one({"_id": result.inserted_id}, {"$set": {"referredBy": None}})
-        referred_by = None
-
     signup_bonus = 500
     await log_cloudz_transaction(user_id, "signup_bonus", signup_bonus, "Welcome to Cloud District Club!")
     user_points = signup_bonus
 
-    # Referral signup rewards: +500 to user, +1500 to referrer (idempotent)
+    # Referral signup rewards: +500 to user, +500 to referrer (idempotent)
     if referred_by:
         ref_rewards = await issue_referral_signup_rewards(
             new_user_id=user_id,
             referrer_identifier=referred_by,
             new_user_first_name=user_data.firstName,
+            new_user_username=username,
         )
         user_points += ref_rewards["user_bonus"]
 
@@ -105,7 +107,8 @@ async def register(request: Request, user_data: UserRegister):
         username=username,
         referralCode=username,
         referralCount=0,
-        referralRewardsEarned=0
+        referralRewardsEarned=0,
+        referredByUserId=referred_by,
     )
 
     return Token(access_token=access_token, token_type="bearer", user=user_response)
