@@ -87,6 +87,22 @@ async def debug_version():
     }
 
 
+@app.get("/api/debug/env")
+async def debug_env():
+    from datetime import datetime, timezone
+    mongo_uri = os.environ.get("MONGO_URL", "NOT_SET")
+    db_name = db.name
+    users_count = await db.users.count_documents({})
+    orders_count = await db.orders.count_documents({})
+    return {
+        "version": "REFERRAL_SYSTEM_V2",
+        "mongo_uri": mongo_uri,
+        "db_name": db_name,
+        "users_count": users_count,
+        "orders_count": orders_count,
+    }
+
+
 @app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok"}
@@ -171,6 +187,11 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
 
 @app.on_event("startup")
 async def startup_migrate():
+    mongo_uri = os.environ.get("MONGO_URL", "NOT_SET")
+    print(f"STARTUP: MONGO_URI = {mongo_uri}")
+    print(f"STARTUP: DB_NAME = {db.name}")
+    logger.info(f"STARTUP: MONGO_URI = {mongo_uri}")
+    logger.info(f"STARTUP: DB_NAME = {db.name}")
     await migrate_base64_images()
     asyncio.create_task(expire_pending_orders_loop())
     asyncio.create_task(leaderboard_snapshot_loop())

@@ -365,6 +365,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             points = int(float(order.get("total") or 0)) * 3
             print("PURCHASE REWARD: entered", order_id)
             print("PURCHASE REWARD: awarding", points)
+            print("DB NAME:", db.name)
             await log_cloudz_transaction(
                 order["userId"], "purchase_reward", points,
                 f"Order #{order_id[:8]}",
