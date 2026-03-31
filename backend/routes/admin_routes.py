@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from typing import List, Optional
 import re as _re
+import asyncio
+import math
+import logging
 import math
 import logging
 
@@ -464,10 +467,19 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             await check_and_unlock_referral_reward(order["userId"])
         except Exception as e:
             logger.error(f"[referral_unlock] error for order {order_id}: {e}")
-    await send_push_notification(
+
+    # --- Final balance read: confirms all writes committed before response ---
+    if incoming_completion and not already_completed:
+        final_user = await db.users.find_one(
+            {"_id": ObjectId(order["userId"])}, {"loyaltyPoints": 1}
+        )
+        print("FINAL BALANCE BEFORE RESPONSE:", final_user.get("loyaltyPoints") if final_user else "USER NOT FOUND")
+
+    # Push notification is fire-and-forget — must NOT block the response
+    asyncio.create_task(send_push_notification(
         order["userId"], "Order Update",
         f"Order #{order_id[-6:].upper()} is now: {status_update.status}",
-    )
+    ))
     return {"message": "Order status updated"}
 
 
