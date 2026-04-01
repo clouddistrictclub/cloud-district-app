@@ -1,126 +1,126 @@
 <analysis>**original_problem_statement**: 
-The user wants to build a mobile-first web app called Cloud District Club for the local pickup of disposable vape products, restricted to users aged 21 and over.
+The user is building a mobile-first web app called Cloud District Club for the local pickup of disposable vape products, restricted to users aged 21 and over. 
 
 PRODUCT REQUIREMENTS:
 *   **Age Verification:** Mandatory 21+ age gate.
 *   **Design:** Dark, premium, fast, simple UI.
 *   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
-*   **Product Catalog:** Category organization with detailed product views.
 *   **Checkout Flow:** Local pickup only, manual payment methods.
 *   **Order Status System:** Track order progress.
 *   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus.
-*   **Referral Program:** Username-based referral system.
+*   **Referral Program:** Username-based referral system (referrer gets pending rewards that unlock after referred user spends 0, plus 50% points on future orders).
 *   **User Accounts:** Order history, loyalty status, profile management.
 *   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management, store credit, account notes, and account merging.
-*   **Live Chat:** Real-time WebSocket chat.
-*   **Store Credit System:** Admin can add/deduct credit; users can apply it at checkout.
 
-**User's preferred language**: English (INSTRUCT NEXT AGENT: Please respond in English only).
+**User's preferred language**: English (INSTRUCT NEXT AGENT: Please respond in English only)
 
 **what currently exists?** 
-A full-stack Expo (React Native for Web) and FastAPI/MongoDB application. The backend is modularized with a highly robust API contract. Recently, the registration and authentication flows were heavily upgraded: Registration now includes a phone number, inline UI validation (replacing ), a real-time username availability check, and an optional avatar upload. The age gate has been simplified to a 1-button 21+ modal, and users can now log in using either their email or username. 
+A full-stack Expo (React Native for Web) and FastAPI/MongoDB application. The application has a strictly enforced and deeply integrated referral and loyalty (Cloudz) system. Order status update logic has been centralized so that rewards trigger consistently whether marked 'Completed' via the admin dashboard or the web user interface. The frontend is currently locked to talk to the live production backend.
 
 **Last working item**: 
-- **Last item agent was working**: Replacing the DOB age gate with a 1-button 21+ persistence modal, enabling login via  (Username OR Email), and adding an optional base64 avatar upload () to the signup flow. 
-- **Status**: COMPLETED
-- **Agent Testing Done**: Y
-- **Which testing method agent to use?**: manual testing by bash (curl/python e2e scripts) and screenshot tool. 
-- **User Testing Done**: N
+    - Last item agent was working: Providing the exact backend API contract details to the user for the  field during the  signup flow to ensure frontend parity.
+    - Status: COMPLETED
+    - Agent Testing Done: Y (Ran extensive bash/curl testing prior to this during the order status fix and production verification).
+    - Which testing method agent to use? manual testing by bash/curl
+    - User Testing Done: N
 
-**All Pending/In progress Issue list**:
-- None currently active. The agent successfully completed all requested features in the last prompt.
+**All Pending/In progress Issue list**: 
+None active. The web order status reward bug and production deployment sync concerns were resolved/verified in this session.
 
 **In progress Task List**: 
-- None.
+None currently in progress.
 
-**Upcoming and Future Tasks**:
-- **P2**: Admin screen modularization: Break down large admin components like  into smaller chunks.
-- **P2**: Display User Avatar: Show the newly added  on the user's Profile/Account screen and in the admin user list.
-- **P2**: Google Workspace Integration: Fully implement email sending via  (currently mocked).
-- **P3**: Push notifications expansion.
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Display User Avatar: Show the user's  on the Account screen and in the admin user list.
+    - P2: Admin screen modularization: Refactor  (currently over 600 lines) into smaller, manageable components.
+    - P2: Google Workspace Integration: Replace the mocked email service in  with actual email sending via .
+    
+    Future Tasks:
+    - P3: Push notifications expansion.
+    - P3: Social sharing integration (X, Facebook, Instagram) for referral links.
 
-**Completed work in this session**:
-- **Registration Form Fixes** (): Reordered inputs to include Username and Confirm Password. Replaced web-incompatible  with inline error states. Added strict validation blocks. (DONE)
-- **Registration Enhancements**: Added required  number field with auto-formatting, and implemented a debounced real-time  availability check. (DONE)
-- **Age Gate Simplification** (): Replaced complex DOB picker with a 1-button 21+ modal that stores  in . (DONE)
-- **Flexible Login** (, ): Updated schema and frontend to accept , allowing users to log in with either email or username. (DONE)
-- **Avatar Upload**: Added  to registration to upload an optional  (base64 string) during sign-up. (DONE)
+**Completed work in this session**
+- **Shared Order Status Reward Logic**: Moved  out of  and into  as a shared wrapper . (DONE)
+- **Web Order Status Endpoint**: Added  to  so web frontend updates trigger rewards using the shared service. (DONE)
+- **Admin Order Status Refactor**: Updated  to use the shared service, ensuring duplicate logic is removed. (DONE)
+- **Production Deployment Verification**: Verified via curl that production was already running the latest strict referral code via auto-deploy, executing pending records, strict 500 exceptions on invalid codes, and referral unlocks properly. No deployment action was needed. (DONE)
+- **API Contract Documentation**: Provided the user with the exact strict API contract for 's  payload requirement. (DONE)
 
-**Earlier issues found/mentioned but not fixed**:
-- None.
+**Earlier issues found/mentioned but not fixed**
+None.
 
-**Known issue recurrence from previous fork**:
-- **Issue recurrence in previous fork**: Frontend Metro bundler cache issues serving stale UI.
-- **Recurrence count**: High.
-- **Status**: RESOLVED (The agent used expo: ERROR (not running)
-expo: started or forced unmounts to clear the cache).
-- **Issue recurrence in previous fork**:  timeouts and Playwright click failures on React Native Web buttons.
-- **Recurrence count**: Medium.
-- **Status**: RESOLVED (The agent bypassed UI automation limits by utilizing direct backend API execution scripts and visual verification via the screenshot tool).
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: React Native  overlapping with FlatLists/ScrollViews.
+  - Recurrence count: 2
+  - Status: RESOLVED
 
-**Code Architecture**:
+**Code Architecture**
 
 
-**Key Technical Concepts**:
-- **Frontend**: React Native, Expo for Web, Zustand.
-- **Backend**: FastAPI, Motor (Async MongoDB), Pydantic.
-- **Integrations**: slowapi, expo-image-picker.
+**Key Technical Concepts**
+- Frontend: React Native, Expo for Web, Zustand.
+- Backend: FastAPI, Motor (Async MongoDB).
+- Architecture Note: Reward triggers and referral logic are strictly guarded. Rewards ONLY fire when order.status == Completed globally via the new shared service.
 
-**key DB schema**:
-- :  (required, unique),  (new, required, digits only),  (new, optional base64 string), .
+**key DB schema**
+  - : 
+  - : 
+  - : 
 
-**changes in tech stack**:
-- None.
+**changes in tech stack**
+  - None.
 
-**All files of reference**:
-- : Heavily updated with new fields, avatar upload, and inline error states.
-- : Updated label and payload for identifier-based login.
-- : Completely rewritten to a simple 1-button modal.
-- : Updated to support , , and .
-- : Updated to handle identifier logins, new check-username endpoint, and storing avatars/phones.
-- : Updated  and .
+**All files of reference** 
+- : Centralized hub for triggering order completion rewards ().
+- : Contains the new web-facing order status update endpoint.
+- : Refactored to use the shared order service.
+- : Contains strict referral signup logic.
+- : Source of API URL routing (currently locked to prod).
 
-**Areas that need refactoring**:
+**Areas that need refactoring**: 
 -  is over 600 lines. Top priority for UI refactoring tasks.
 
-**key api endpoints**:
-- : Payload now accepts  and .
-- : Payload now uses  (accepts either username or email).
-- : New endpoint to check username availability.
+**key api endpoints**
+- : Web endpoint for updating order status.
+- : Admin endpoint for updating order status.
+- : Signup and strictly-enforced referral bonus.
 
-**Critical Info for New Agent**:
-- **Testing React Native Web**: The  struggles to trigger React Native web gestures/buttons using standard Playwright locators. To test form submissions reliably, utilize the  for visual checks and a python/bash script directly hitting the API for functional validation.
-- **UI Error States**:  does not work properly on React Native Web. Always use inline JSX error states (e.g., a text box above the submit button) for form validations. 
-- **Expo Caching**: If changes to the frontend do not appear in screenshots, restart the bundler using expo: stopped
-expo: started.
+**Critical Info for New Agent** 
+- 🚨 **FRONTEND API LOCK WARNING**: All 24 frontend files import  from , which is currently **hardcoded to the live production backend**. To test backend changes safely via the UI, you MUST temporarily point  back to  and revert it when finished to adhere to user's strict environment isolation.
+- **Reward Triggers Centralized**: Both admin and web order status updates MUST pass through  in . Do not duplicate reward triggering logic in the route files.
+- **Referral Contract**: The backend strictly expects  in the JSON body of  to be the referrer's  string (case-insensitive). 
 
-**documents and test reports created in this job**:
+**documents and test reports created in this job** 
+-  (Updated)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. **User**: Provided handoff context and confirmed previous tasks were completed.
+2. **Agent**: Asked for confirmation to proceed with the P1/P2 tasks.
+3. **User**: Identified a critical bug: Web order status updates were not triggering rewards, only admin updates did. Demanded a shared service in  to fix this without duplicating logic. (COMPLETED)
+4. **Agent**: Implemented the shared  logic, refactored both route files, tested thoroughly via bash scripts, and provided a finish summary.
+5. **User**: Reported referral logic was failing on production. Requested the current codebase be deployed immediately to production without modifying frontend or creating new logic. (COMPLETED)
+6. **Agent**: Probed the production server directly via curl and confirmed Railway auto-deploy had already pushed the changes. Verified strict referral logic, pending ledgers, and unlocks were completely functional on production. Provided a finish summary explaining no deployment action was needed.
+7. **User**: Requested the EXACT API contract for  during  (field name, expected value, behavior, payload location) to perfectly align the frontend. (COMPLETED)
+
+**Project Health Check:**
+- Broken: None.
+- Mocked: Email service in backend (Requires integration replacing).
+
+**3rd Party Integrations** 
 - 
 - 
 
-**Last 10 User Messages and any pending HUMAN messages**:
-1. COMPLETE AND FIX REGISTRATION SCREEN (register.tsx) with username, confirm password, 21+ age check, and inline errors. (Completed)
-2. Add phone number field to registration and add debounced username availability check. (Completed)
-3. Replace DOB age gate with 1-button 21+ gate, allow login with username OR email, add optional avatar upload at signup. (Completed)
+**Testing status**
+  - Testing agent used after significant changes: NO (Testing was achieved efficiently via direct python/bash curl execution to strictly control logic paths and verify prod vs preview).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None.
 
-**Project Health Check**:
-- **Broken**: None.
-- **Mocked**: Email service is mocked (no actual emails sent).
-
-**3rd Party Integrations**:
-- 
-- 
-
-**Testing status**:
-- Testing agent used after significant changes: YES (Timed out due to RN Web click issues; fallback to direct script testing was successful).
-- Troubleshoot agent used after agent stuck in loop: NO.
-- Test files created: None.
-- Known regressions: None. 
-
-**Credentials to test flow**:
+**Credentials to test flow:**
 - Admin Email: 
 - Admin Username: 
 - Admin Password: 
 
-**What agent forgot to execute**:
-- The agent executed all requirements flawlessly. The agent suggested a quick next step: displaying the newly uploaded  on the frontend account pages and admin panels, which should be picked up next.</analysis>
+**What agent forgot to execute**
+Nothing. The agent successfully handled the backend refactor for order statuses, correctly diagnosed the production state, and provided the exact API contract. The agent is now ready to ask the user to proceed to the P1 task (Displaying User Avatars).</analysis>

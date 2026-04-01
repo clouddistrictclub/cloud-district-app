@@ -6,7 +6,7 @@ import pytest
 import httpx
 import math
 
-BASE = "https://cloud-district-1.preview.emergentagent.com"
+BASE = "https://cloudz-loyalty.preview.emergentagent.com"
 ADMIN_EMAIL = "jkaatz@gmail.com"
 ADMIN_PASS = "Just1n23$"
 

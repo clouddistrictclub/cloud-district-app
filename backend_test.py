@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Backend URL from frontend .env
-BASE_URL = "https://cloud-district-1.preview.emergentagent.com/api"
+BASE_URL = "https://cloudz-loyalty.preview.emergentagent.com/api"
 
 # Test data
 TEST_USER = {

@@ -14,7 +14,7 @@ import sys
 import requests
 from datetime import datetime
 
-PREVIEW_URL = "https://cloud-district-1.preview.emergentagent.com"
+PREVIEW_URL = "https://cloudz-loyalty.preview.emergentagent.com"
 PRODUCTION_URL = "https://api.clouddistrict.club"
 ADMIN_EMAIL = "jkaatz@gmail.com"
 ADMIN_PASSWORD = "Just1n23$"
