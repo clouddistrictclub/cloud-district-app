@@ -5,6 +5,9 @@ from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS
 import logging
 import math
 
+# Confirm at import time that this module uses the same db instance as startup
+print(f"LOYALTY SERVICE DB NAME: {db.name}")
+
 logger = logging.getLogger(__name__)
 
 
