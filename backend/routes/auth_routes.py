@@ -43,16 +43,22 @@ async def register(request: Request, user_data: UserRegister):
         raise HTTPException(status_code=400, detail="Must be 21 or older")
 
     referred_by = None
+    referrer = None
+    print("REFERRAL CODE RECEIVED:", user_data.referralCode)
     if user_data.referralCode:
         ref_input = user_data.referralCode.strip().lower()
-        # Self-referral prevention: reject if referral code matches the new user's own username
         if ref_input == username.lower():
-            referred_by = None
+            # Self-referral: silently ignore
+            print("REFERRAL LOOKUP RESULT: self-referral ignored")
         else:
-            referrer = await db.users.find_one({"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}})
+            referrer = await db.users.find_one(
+                {"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}}
+            )
+            print("REFERRAL LOOKUP RESULT: id=", referrer["_id"] if referrer else None,
+                  "username=", referrer.get("username") if referrer else None)
             if not referrer:
                 raise HTTPException(status_code=400, detail="Invalid referral code — enter a valid username")
-            referred_by = str(referrer["_id"])  # store as userId, consistent with admin assignment
+            referred_by = str(referrer["_id"])
 
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
@@ -79,22 +85,37 @@ async def register(request: Request, user_data: UserRegister):
     user_id = str(result.inserted_id)
     print("SIGNUP: user created", result.inserted_id, username)
 
-    signup_bonus = 500
-    await log_cloudz_transaction(user_id, "signup_bonus", signup_bonus, "Welcome to Cloud District Club!")
+    # Base signup bonus — always +500
+    await log_cloudz_transaction(user_id, "signup_bonus", 500, "Welcome to Cloud District Club!")
+    user_points = 500
     print("SIGNUP: base bonus issued")
-    user_points = signup_bonus
 
-    # Referral signup rewards: +500 to user, +500 to referrer (idempotent)
-    if referred_by:
-        print("SIGNUP: referral detected", referred_by)
-        ref_rewards = await issue_referral_signup_rewards(
-            new_user_id=user_id,
-            referrer_identifier=referred_by,
-            new_user_first_name=user_data.firstName,
-            new_user_username=username,
+    # Referral rewards — direct inline execution, no intermediary
+    if referred_by and referrer:
+        print("REFERRAL FUNCTION CALLED")
+        # +500 to new user
+        await log_cloudz_transaction(
+            user_id, "referral_signup_bonus", 500,
+            "Referral bonus — signed up with a referral code"
         )
-        print("SIGNUP: referral rewards attempted")
-        user_points += ref_rewards["user_bonus"]
+        user_points += 500
+        print("REFERRAL: new user +500 issued, total=", user_points)
+
+        # Pending 1500 for referrer — no balance change
+        pending_result = await db.cloudz_ledger.insert_one({
+            "userId": referred_by,
+            "type": "referral_pending",
+            "amount": 1500,
+            "status": "pending",
+            "referredUserId": user_id,
+            "description": f"Pending referral reward — {username} signed up",
+            "createdAt": datetime.utcnow(),
+        })
+        await db.users.update_one(
+            {"_id": ObjectId(referred_by)},
+            {"$inc": {"referralCount": 1}}
+        )
+        print("REFERRAL: pending 1500 created for referrer", referred_by, "ledger=", pending_result.inserted_id)
 
     access_token = create_access_token(data={"sub": user_id})
 
