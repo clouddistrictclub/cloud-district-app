@@ -82,6 +82,18 @@ Mobile-first web app for local pickup of disposable vape products, restricted to
 2. referral_order_reward: if referrer exists and not yet unlocked → referrer +50
 3. referral_unlock: if referred user total spend >= $50 → unlock pending 1500 for referrer
 
+## Key API Endpoints (updated)
+- POST /api/auth/register — Signup with optional referralCode (strict referral logic)
+- PATCH /api/orders/{order_id}/status — **Web** status update (admin auth, calls shared service)
+- PATCH /api/admin/orders/{order_id}/status — **Admin** status update (calls shared service)
+- Both routes call `update_order_status_shared()` in `services/order_service.py`
+
+## Shared Order Completion Architecture
+- `services/order_service.py` is the single source of truth:
+  - `handle_order_completed(order)` — all reward logic (purchase, referral order, referral unlock)
+  - `update_order_status_shared(order_id, new_status, source)` — DB update + reward trigger
+- Both routes log: `STATUS UPDATE SOURCE: web|admin` and `REWARD TRIGGER EXECUTED`
+
 ## What's Been Built
 - Age gate (21+ verification)
 - Full product catalog with categories and brands

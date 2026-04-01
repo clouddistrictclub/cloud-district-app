@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
-from auth import get_current_user
-from models.schemas import Order, OrderCreate
+from auth import get_current_user, get_admin_user
+from models.schemas import Order, OrderCreate, OrderStatusUpdate
 from services.loyalty_service import log_cloudz_transaction, check_and_unlock_referral_reward
 from services.email_service import is_email_configured, send_email, build_order_confirmation_html
-from services.order_service import chat_manager
+from services.order_service import chat_manager, update_order_status_shared
 from limiter import limiter, get_user_id_or_ip
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -191,6 +191,15 @@ async def cancel_order(order_id: str, user=Depends(get_current_user)):
         )
     await db.orders.update_one({"_id": ObjectId(order_id)}, {"$set": {"status": "Cancelled"}})
     return {"message": "Order cancelled"}
+
+
+@router.patch("/orders/{order_id}/status")
+async def update_order_status_web(order_id: str, status_update: OrderStatusUpdate, admin=Depends(get_admin_user)):
+    """
+    Web-accessible order status update endpoint.
+    Identical reward logic to /admin/orders/:id/status — both call the shared service.
+    """
+    return await update_order_status_shared(order_id, status_update.status, source="web")
 
 
 @router.get("/chat/messages/{chat_id}")
