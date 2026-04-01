@@ -28,6 +28,9 @@ async def check_username(username: str):
 @router.post("/auth/register", response_model=Token)
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserRegister):
+    # STEP 1 — LOG INPUT BEFORE ANYTHING
+    print("REFERRAL CODE RECEIVED:", user_data.referralCode)
+
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -42,24 +45,6 @@ async def register(request: Request, user_data: UserRegister):
     if age < 21:
         raise HTTPException(status_code=400, detail="Must be 21 or older")
 
-    referred_by = None
-    referrer = None
-    print("REFERRAL CODE RECEIVED:", user_data.referralCode)
-    if user_data.referralCode:
-        ref_input = user_data.referralCode.strip().lower()
-        if ref_input == username.lower():
-            # Self-referral: silently ignore
-            print("REFERRAL LOOKUP RESULT: self-referral ignored")
-        else:
-            referrer = await db.users.find_one(
-                {"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}}
-            )
-            print("REFERRAL LOOKUP RESULT: id=", referrer["_id"] if referrer else None,
-                  "username=", referrer.get("username") if referrer else None)
-            if not referrer:
-                raise HTTPException(status_code=400, detail="Invalid referral code — enter a valid username")
-            referred_by = str(referrer["_id"])
-
     hashed_password = get_password_hash(user_data.password)
     user_dict = {
         "email": user_data.email,
@@ -73,7 +58,7 @@ async def register(request: Request, user_data: UserRegister):
         "profilePhoto": user_data.profilePhoto or None,
         "username": username,
         "referralCode": username,
-        "referredBy": referred_by,
+        "referredBy": None,
         "referralCount": 0,
         "referralRewardsEarned": 0,
         "referralRewardIssued": False,
@@ -90,7 +75,28 @@ async def register(request: Request, user_data: UserRegister):
     user_points = 500
     print("SIGNUP: base bonus issued")
 
-    # Referral rewards — direct inline execution, no intermediary
+    # STEP 2 — FORCE LOOKUP + FAIL LOUD (after user creation)
+    referrer = None
+    referred_by = None
+    if user_data.referralCode:
+        ref_input = user_data.referralCode.strip().lower()
+        if ref_input == username.lower():
+            print("REFERRAL LOOKUP RESULT: self-referral ignored")
+        else:
+            referrer = await db.users.find_one(
+                {"username": {"$regex": f"^{_re.escape(ref_input)}$", "$options": "i"}}
+            )
+            print("REFERRAL LOOKUP RESULT:", referrer)
+            if referrer is None:
+                raise Exception(f"REFERRER NOT FOUND — DO NOT SILENTLY FAIL: code={ref_input}")
+            referred_by = str(referrer["_id"])
+            # Persist referredBy on the new user record
+            await db.users.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"referredBy": referred_by}}
+            )
+
+    # STEP 3 — FORCE EXECUTION (no conditions, no skips)
     if referred_by and referrer:
         print("REFERRAL FUNCTION CALLED")
         # +500 to new user
