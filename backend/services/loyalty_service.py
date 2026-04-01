@@ -225,8 +225,8 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
     if not referrer_id:
         return False  # Not a referred user
 
-    # Sum lifetime spend from completed orders (Paid / Completed / Ready for Pickup)
-    completed_statuses = ["Paid", "Completed", "Ready for Pickup"]
+    # Sum lifetime spend from completed orders
+    completed_statuses = ["Completed"]
     pipeline = [
         {"$match": {"userId": buyer_user_id, "status": {"$in": completed_statuses}}},
         {"$group": {"_id": None, "total": {"$sum": "$total"}}},

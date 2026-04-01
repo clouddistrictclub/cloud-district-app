@@ -91,7 +91,7 @@ async def get_user_profile(user_id: str, admin=Depends(get_admin_user)):
         except Exception:
             pass
     orders = await db.orders.find({"userId": user_id}).sort("createdAt", -1).to_list(200)
-    paid_statuses = {"Paid", "Ready for Pickup", "Completed"}
+    paid_statuses = {"Completed"}
     total_spent = sum(o.get("total", 0) for o in orders if o.get("status") in paid_statuses)
     orders_resp = []
     for o in orders:
@@ -332,7 +332,7 @@ async def get_all_orders(admin=Depends(get_admin_user)):
     return result
 
 
-COMPLETION_STATUSES = {"Paid", "Completed"}
+COMPLETION_STATUSES = {"Completed"}
 
 
 @router.patch("/admin/orders/{order_id}/status")
@@ -357,6 +357,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
 
     incoming_completion = status_update.status in COMPLETION_STATUSES
     already_completed = order.get("status") in COMPLETION_STATUSES
+    print("REWARD TRIGGER STATUS:", status_update.status)
 
     # --- Issue 2: Loyalty purchase reward — once on first completion status ---
     if incoming_completion and not already_completed and not order.get("loyaltyRewardIssued", False):
@@ -378,8 +379,8 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
             await maybe_award_streak_bonus(order["userId"], order_id)
             logger.info(f"[purchase_reward] awarded {points} Cloudz for order {order_id}")
 
-    # --- $5 next-order coupon: only on first transition to "Paid" ---
-    if status_update.status == "Paid" and order["status"] in ("Pending Payment", "Awaiting Pickup (Cash)"):
+    # --- $5 next-order coupon: only on first transition to "Completed" ---
+    if status_update.status == "Completed" and order.get("status") != "Completed":
         coupon_expires = datetime.utcnow() + timedelta(days=7)
         await db.users.update_one(
             {"_id": ObjectId(order["userId"])},
