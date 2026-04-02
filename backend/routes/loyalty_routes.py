@@ -142,6 +142,7 @@ async def get_user_streak(user=Depends(get_current_user)):
 async def get_leaderboard(user=Depends(get_current_user)):
     projection = {"_id": 1, "firstName": 1, "lastName": 1, "loyaltyPoints": 1, "referralCount": 1}
     current_uid = str(user["_id"])
+    print(f"[LEADERBOARD] current_uid={current_uid}")
 
     by_points_raw = await db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20).to_list(20)
     by_referrals_raw = await db.users.find({}, projection).sort("referralCount", -1).limit(20).to_list(20)
@@ -162,6 +163,7 @@ async def get_leaderboard(user=Depends(get_current_user)):
         pts = doc.get("loyaltyPoints", 0)
         tier_name, tier_color = resolve_tier(pts)
         uid = str(doc["_id"])
+        print(f"[LEADERBOARD] entry uid={uid} rank={rank} pts={pts} match={uid == current_uid}")
         prev_rank = prev_ranks.get(uid)
         # Positive = moved up (e.g. was rank 5 yesterday, rank 3 today → +2)
         movement = (prev_rank - rank) if prev_rank is not None else None
@@ -176,7 +178,30 @@ async def get_leaderboard(user=Depends(get_current_user)):
             "movement": movement,
         }
 
+    by_points = [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)]
+    by_referrals = [build_entry(d, i + 1) for i, d in enumerate(by_referrals_raw)]
+
+    # If current user is not in top 20 byPoints but has loyalty activity, append with true rank
+    if not any(e["isCurrentUser"] for e in by_points):
+        user_pts = user.get("loyaltyPoints", 0)
+        has_activity = user_pts > 0 or await db.cloudz_ledger.count_documents({"userId": current_uid}) > 0
+        if has_activity:
+            rank_above = await db.users.count_documents({"loyaltyPoints": {"$gt": user_pts}})
+            user_rank = rank_above + 1
+            by_points.append(build_entry(user, user_rank))
+            print(f"[LEADERBOARD] Current user not in top 20 byPoints — appended at rank {user_rank}")
+
+    # If current user is not in top 20 byReferrals but has referral activity, append with true rank
+    if not any(e["isCurrentUser"] for e in by_referrals):
+        user_refs = user.get("referralCount", 0)
+        has_referral_activity = user_refs > 0
+        if has_referral_activity:
+            rank_above = await db.users.count_documents({"referralCount": {"$gt": user_refs}})
+            user_rank = rank_above + 1
+            by_referrals.append(build_entry(user, user_rank))
+            print(f"[LEADERBOARD] Current user not in top 20 byReferrals — appended at rank {user_rank}")
+
     return {
-        "byPoints": [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)],
-        "byReferrals": [build_entry(d, i + 1) for i, d in enumerate(by_referrals_raw)],
+        "byPoints": by_points,
+        "byReferrals": by_referrals,
     }
