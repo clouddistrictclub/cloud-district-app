@@ -26,6 +26,98 @@ def _save_base64_image(b64: str) -> str:
     return f"/api/uploads/products/{filename}"
 
 
+async def migrate_catalog_images():
+    """
+    Production startup migration – applies EXACT verified image URLs for CLIO and CLR.
+    Also replaces /api/uploads/ local paths with CDN equivalents for known model groups.
+    SAFE to run multiple times (idempotent).
+    """
+
+    # ── CLIO Platinum 50K: flavor-specific images (verified HTTP 200) ─────────
+    CLIO_IMAGES = {
+        "Code Red":             "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-code-red.webp",
+        "Cool Mint":            "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-cool-mint.webp",
+        "White Peach Raspberry":"https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-white-peach-raspberry.webp",
+        "Dragonfruit Lemonade": "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-dragonfruit-lemonade.webp",
+        "Fcuking Fab":          "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-fcuking-fab.webp",
+        "Peach Slush":          "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-peach-slush.webp",
+        "Sour Watermelon Drop": "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-sour-watermelon-drop.webp",
+        "Strawberry B-Burst":   "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-strawberry-bburst.webp",
+    }
+    for flavor, url in CLIO_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "Geek Bar", "model": "CLIO Platinum 50K", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
+    # ── CLR 50K: flavor-specific images (verified HTTP 200) ──────────────────
+    CLR_IMAGES = {
+        "Sour Apple Ice":   "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Sour-Apple-Ice.jpg",
+        "Sour Gush":        "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Sour-Gush.jpg",
+        "Sour Strawberry":  "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Sour-Strawberry.jpg",
+        "Amazon Lemonade":  "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Amazon-Lemonade.jpg",
+        "Banana Ice":       "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Banana-Ice.jpg",
+        "Strazz":           "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Strazz.jpg",
+        "Triple Berry Ice": "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Triple-Berry-Ice.jpg",
+        "Watermelon Ice":   "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Watermelon-Ice.jpg",
+        "White Gummy":      "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-White-Gummy.jpg",
+        "Blue Rancher":     "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Blue-Rancher.jpg",
+        "Blue Razz Ice":    "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Blue-Razz-Ice.jpg",
+        "Cool Mint":        "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Cool-Mint.jpg",
+        "Miami Mint":       "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Mint-Mint.jpg",
+        "Peach Berry":      "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Peach-Berry.jpg",
+        "Pineapple Savers": "https://ebcreate.store/cdn/shop/files/Geek-Bar-CLR-50K-Pineapple-Savers.jpg",
+    }
+    for flavor, url in CLR_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "Geek Bar", "model": "CLR 50K", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
+    # ── Replace any remaining /api/uploads/ paths with CDN for known models ──
+    # Only replaces broken local paths – never overwrites a valid CDN URL
+    LOCAL_UPLOAD_QUERY = {"image": {"$regex": "^/api/uploads/"}}
+    MODEL_CDN_MAP = {
+        # (brandName, model)   → CDN URL
+        ("Geek Bar", "Pulse X"):          "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2539/9022/PULSE_X_01-800x800__41304.1755553340.jpg?c=2",
+        ("Geek Bar", "Pulse"):            "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2490/8990/geek-bar-geek-bar-pulse-15000__33880.1717506396.jpg?c=2",
+        ("Geek Bar", "Meloso Mini"):      "https://oss.geekbar.com/products/meloso-mini/flavor3.jpg",
+        ("Geek Bar", "Meloso"):           "https://oss.geekbar.com/products/meloso-mini/flavor3.jpg",
+        ("Geek Bar", "Meloso Max"):       "https://oss.geekbar.com/products/meloso-mini/flavor3.jpg",
+        ("RAZ",      "CA6000"):           "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2399/5769/raz-ca6000-disposable-6000-puffs__71199.1713328264.jpg?c=2",
+        ("RAZ",      "TN9000"):           "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2480/8471/raz-tn9000__46610.1713328462.jpg?c=2",
+        ("RAZ",      "RYL 35K"):          "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2628/9490/RYL-Classic-35K-Box_Blue-Raz-Ice-800x800__55999.1738881104.jpg?c=2",
+        ("RAZ",      "VUE 50K"):          None,   # handled per-type below
+        ("Lost Mary","Nera 70K"):         None,   # handled per-type below
+        ("Lost Mary","MT35000 Turbo"):    "https://d31ixytk8zua6i.cloudfront.net/products/mt35000/p3_product_2x.png",
+    }
+    VUE_KIT_IMG  = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2807/10165/RAZ-VUE-50K-Full-Kit_00-800x800__68447.1769025029.jpg?c=2"
+    VUE_POD_IMG  = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2808/10169/VUE_Pods_Web_Square-800x800__45772.1769025312.jpg?c=2"
+    NERA_POD_IMG = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"
+    NERA_KIT_IMG = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2767/10010/___71173.1760037985.png?c=2"
+
+    broken_prods = await db.products.find(LOCAL_UPLOAD_QUERY).to_list(500)
+    for p in broken_prods:
+        bn  = p.get("brandName", "")
+        mod = p.get("model", "")
+        pt  = p.get("productType", "")
+        new_img = None
+
+        if (bn, mod) in MODEL_CDN_MAP:
+            cdn = MODEL_CDN_MAP[(bn, mod)]
+            if cdn:
+                new_img = cdn
+            elif mod == "VUE 50K":
+                new_img = VUE_KIT_IMG if pt == "kit" else VUE_POD_IMG
+            elif mod == "Nera 70K":
+                new_img = NERA_KIT_IMG if pt == "kit" else NERA_POD_IMG
+
+        if new_img:
+            await db.products.update_one({"_id": p["_id"]}, {"$set": {"image": new_img}})
+
+    logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
+
+
 async def migrate_base64_images():
     # Migrate product images
     cursor = db.products.find({"image": {"$regex": "^data:image/"}})
