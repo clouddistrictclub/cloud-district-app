@@ -115,6 +115,31 @@ async def migrate_catalog_images():
         if new_img:
             await db.products.update_one({"_id": p["_id"]}, {"$set": {"image": new_img}})
 
+    # ── RAZ RX50K Dew Edition: flavor-specific images (verified HTTP 200) ────
+    RX50K_IMAGES = {
+        "Code Green (Dew Edition)":  "https://cdn11.bigcommerce.com/s-w062o0xp7r/images/stencil/1280x1280/products/5285/20751/RAZ-RX50K-Dew-Edition-Disposable-Vape-Code-Green__53639.1764815893.jpg?c=1",
+        "Code Pink (Dew Edition)":   "https://cdn11.bigcommerce.com/s-w062o0xp7r/images/stencil/1280x1280/products/5285/20747/RAZ-RX50K-Dew-Edition-Disposable-Vape-Code-Pink__54438.1764815893.jpg?c=1",
+        "Code Red (Dew Edition)":    "https://cdn11.bigcommerce.com/s-w062o0xp7r/images/stencil/1280x1280/products/5285/20750/RAZ-RX50K-Dew-Edition-Disposable-Vape-Code-Red__76650.1764815893.jpg?c=1",
+        "Code White (Dew Edition)":  "https://cdn11.bigcommerce.com/s-w062o0xp7r/images/stencil/1280x1280/products/5285/20748/RAZ-RX50K-Dew-Edition-Disposable-Vape-Code-White__86701.1764815893.jpg?c=1",
+    }
+    for flavor, url in RX50K_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "RAZ", "model": "RX50K", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
+    # ── Geek Bar RIA 25K: flavor-specific images (verified HTTP 200) ─────────
+    RIA_IMAGES = {
+        "Deep Purple":        "https://nexussmoke.com/wp-content/uploads/2025/11/Deep-Purple-Watermark-600x600.png",
+        "Dualicious":         "https://nexussmoke.com/wp-content/uploads/2025/05/Dualicious-600x600.png",
+        "Watermelon B-Burst": "https://nexussmoke.com/wp-content/uploads/2025/05/Watermelon_B-Pop-600x600.png",
+    }
+    for flavor, url in RIA_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "Geek Bar", "model": "RIA", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
     logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
 
 

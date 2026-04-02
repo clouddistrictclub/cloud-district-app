@@ -122,7 +122,8 @@ Building a mobile-first web app called "Cloud District Club" for local pickup of
   - Geek Bar Pulse: Peach Lemonade (Thermal), Strawberry Kiwi (Thermal), Blueberry Watermelon, Strawberry Mango, Blow Pop / B-Burst (B-Pop)
   - Geek Bar RIA NV30K: Blue Razz Ice (NEW model, 30K puffs)
 - **Backend fallback image**: `product_routes.py` now returns `https://clouddistrict.club/placeholder.png` for any null/empty image
-- **Total catalog**: 162 products | 0 empty images | 137 absolute HTTPS CDN URLs
+- **Final 7 local-upload images fixed** (2026-04): RAZ RX50K Dew Edition (Code Green/Pink/Red/White — flavor-specific BigCommerce CDN) + Geek Bar RIA (Deep Purple/Dualicious/Watermelon B-Burst — nexussmoke CDN). Migration added to `migrate_catalog_images()` for production sync.
+- **Total catalog**: 162 products | 0 empty images | 162 absolute HTTPS CDN URLs | 0 /api/uploads/ paths
 
 ---
 
