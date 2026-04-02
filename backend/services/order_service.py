@@ -140,6 +140,58 @@ async def migrate_catalog_images():
             {"$set": {"image": url}},
         )
 
+    # ── CLIO Platinum 50K — Triple Berry Ice (kit + pod) ─────────────────────
+    await db.products.update_many(
+        {"brandName": "Geek Bar", "model": "CLIO Platinum 50K", "flavor": "Triple Berry Ice"},
+        {"$set": {"image": "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-triple-berry-ice.webp"}},
+    )
+
+    # ── Geek Bar Meloso Mini 1500 — flavor-specific ───────────────────────────
+    MELOSO_MINI_IMAGES = {
+        "Blueberry Ice":       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSmHsnkAoXNCVXwhVHPV7rpmrkluktzUXnL0vmoCV9gg&s=10",
+        "Miami Mint":          "https://www.jellypuffs.com/cdn/shop/files/geek-bar-meloso-mini-1500-disposable-miami-mint-1204364919.jpg",
+        "Alaskan Mint":        "https://www.jellypuffs.com/cdn/shop/files/alaskan-mint-geek-bar-meloso-mini-1500-disposable-1192504717.jpg",
+        "Raspberry Watermelon": "https://www.jellypuffs.com/cdn/shop/files/geek-bar-meloso-mini-1500-disposable-raspberry-watermelon-1204364921.jpg",
+        "Strawberry Mango":    "https://www.jellypuffs.com/cdn/shop/files/strawberry-mango-geek-bar-meloso-mini-1500-disposable-1184434120.jpg",
+    }
+    for flavor, url in MELOSO_MINI_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "Geek Bar", "model": "Meloso Mini", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
+    # ── RAZ CA6000 — flavor-specific ─────────────────────────────────────────
+    CA6000_IMAGES = {
+        "Frozen Strawberry":    "https://vaperdudes.com/cdn/shop/products/raz_geek_vape_ca6000_frozen_strawberry_wholesale_distributor_near_me_free_shipping_master_wholesaler_flum_slimz_air_bar.jpg",
+        "Dragon Fruit Lemonade": "https://vaperdudes.com/cdn/shop/products/raz_geek_vape_ca6000_dragonfruit_lemonade_wholesale_distributor_near_me_free_shipping_master_wholesaler_flum_slimz_air_bar.jpg",
+        "Strawberry Kiwi":      "https://vaperdudes.com/cdn/shop/products/raz_geek_vape_ca6000_strawberry_kiwi_wholesale_distributor_near_me_free_shipping_master_wholesaler_flum_slimz_air_bar.jpg",
+        "Fuji Blue Raz":        "https://www.vapepapa.com/cdn/shop/files/raz-ca6000-Fuji-Blue-Razz-flavor-disposable-vape-15.jpg",
+    }
+    for flavor, url in CA6000_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "RAZ", "model": "CA6000", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
+    # ── RAZ VUE 50K PODs — flavor-specific ───────────────────────────────────
+    VUE_POD_IMAGES = {
+        "Blue Raz Ice":     "https://www.ejuicedb.com/cdn/shop/files/blue-raz-ice-raz-vue-50k-pod-flavor.webp",
+        "Hawaiian Punch":   "https://www.ejuicedb.com/cdn/shop/files/hawaiian-punch-raz-vue-50k-pod-flavor.webp",
+        "Miami Mint":       "https://www.ejuicedb.com/cdn/shop/files/miami-mint-raz-vue-50k-pod-flavor.webp",
+        "Pineapple MTN Dew": "https://www.ejuicedb.com/cdn/shop/files/pineapple-mtn-dew-raz-vue-50k-pod-flavor.webp",
+        "Polar Ice":        "https://www.ejuicedb.com/cdn/shop/files/polar-ice-raz-vue-50k-pod-flavor.webp",
+        "Strawberry Blast": "https://www.ejuicedb.com/cdn/shop/files/strawberry-blast-raz-vue-50k-pod-flavor.webp",
+        "Triple Berry Lime": "https://www.ejuicedb.com/cdn/shop/files/triple-berry-lime-raz-vue-50k-pod-flavor.webp",
+        "Watermelon Ice":   "https://www.ejuicedb.com/cdn/shop/files/watermelon-ice-raz-vue-50k-pod-flavor.webp",
+        "White Gummy":      "https://www.ejuicedb.com/cdn/shop/files/White_Gummy_1__25161.webp",
+        "Sour Apple Ice":   "https://www.ejuicedb.com/cdn/shop/files/sour-apple-ice-raz-vue-50k-pod-flavor.webp",
+    }
+    for flavor, url in VUE_POD_IMAGES.items():
+        await db.products.update_many(
+            {"brandName": "RAZ", "model": "VUE 50K", "productType": "pod", "flavor": flavor},
+            {"$set": {"image": url}},
+        )
+
     logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
 
 
