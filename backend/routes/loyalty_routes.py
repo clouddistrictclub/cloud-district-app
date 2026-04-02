@@ -3,7 +3,8 @@ from database import db
 from auth import get_current_user
 from models.schemas import TierRedeemRequest, LOYALTY_TIERS
 from services.loyalty_service import (
-    log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier
+    log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier,
+    process_daily_checkin,
 )
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -234,3 +235,10 @@ async def get_leaderboard(user=Depends(get_current_user)):
         "byPoints":    by_points,
         "byReferrals": by_referrals,
     }
+
+
+@router.post("/loyalty/check-in")
+async def daily_check_in(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    result = await process_daily_checkin(user_id)
+    return result

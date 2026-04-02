@@ -1,7 +1,7 @@
 from database import db
 from bson import ObjectId
 from datetime import datetime, timedelta
-from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS
+from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS, CHECKIN_REWARDS
 import logging
 import math
 
@@ -357,3 +357,88 @@ async def maybe_award_streak_bonus(user_id: str, order_id: str):
         "createdAt": now,
     })
     return bonus
+
+
+
+async def process_daily_checkin(user_id: str) -> dict:
+    """
+    Award daily check-in Cloudz reward. Atomic and idempotent.
+    - One reward per UTC calendar day.
+    - Consecutive days increment checkInStreak; any gap resets to 1.
+    - Streak cycles through CHECKIN_REWARDS on a 7-day loop.
+    """
+    user = await db.users.find_one(
+        {"_id": ObjectId(user_id)},
+        {"lastCheckInDate": 1, "checkInStreak": 1},
+    )
+
+    today_str     = datetime.utcnow().strftime("%Y-%m-%d")
+    yesterday_str = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    last_date     = user.get("lastCheckInDate") if user else None
+    cur_streak    = (user.get("checkInStreak") or 0) if user else 0
+
+    # Already checked in today — return current state without writing anything
+    if last_date == today_str:
+        next_day    = (cur_streak % 7) + 1
+        next_reward = CHECKIN_REWARDS[next_day]
+        return {
+            "success":          False,
+            "alreadyCheckedIn": True,
+            "reward":           0,
+            "streak":           cur_streak,
+            "nextReward":       next_reward,
+        }
+
+    # Compute new streak
+    new_streak  = (cur_streak + 1) if last_date == yesterday_str else 1
+    reward      = CHECKIN_REWARDS[(new_streak - 1) % 7 + 1]
+    next_reward = CHECKIN_REWARDS[(new_streak % 7) + 1]
+
+    # Atomic write — filter ensures a concurrent duplicate request loses the race
+    result = await db.users.find_one_and_update(
+        {
+            "_id":             ObjectId(user_id),
+            "lastCheckInDate": {"$ne": today_str},
+        },
+        {
+            "$set": {
+                "lastCheckInDate": today_str,
+                "checkInStreak":   new_streak,
+            },
+            "$inc": {"loyaltyPoints": reward},
+        },
+        return_document=True,
+    )
+
+    # Concurrent request already claimed today's reward
+    if result is None:
+        cur_streak  = (await db.users.find_one({"_id": ObjectId(user_id)}, {"checkInStreak": 1}) or {}).get("checkInStreak", new_streak)
+        next_day    = (cur_streak % 7) + 1
+        return {
+            "success":          False,
+            "alreadyCheckedIn": True,
+            "reward":           0,
+            "streak":           cur_streak,
+            "nextReward":       CHECKIN_REWARDS[next_day],
+        }
+
+    balance_after = result["loyaltyPoints"]
+
+    await db.cloudz_ledger.insert_one({
+        "userId":      user_id,
+        "type":        "daily_checkin",
+        "amount":      reward,
+        "balanceAfter": balance_after,
+        "reference":   f"Day {new_streak} check-in",
+        "description": f"Daily check-in — day {new_streak}",
+        "isoDate":     today_str,
+        "createdAt":   datetime.utcnow(),
+    })
+
+    return {
+        "success":          True,
+        "alreadyCheckedIn": False,
+        "reward":           reward,
+        "streak":           new_streak,
+        "nextReward":       next_reward,
+    }
