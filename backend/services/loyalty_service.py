@@ -1,7 +1,7 @@
 from database import db
 from bson import ObjectId
 from datetime import datetime, timedelta
-from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS, CHECKIN_REWARDS
+from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS, CHECKIN_REWARDS, LEADERBOARD_REWARDS
 import logging
 import math
 
@@ -442,3 +442,75 @@ async def process_daily_checkin(user_id: str) -> dict:
         "streak":           new_streak,
         "nextReward":       next_reward,
     }
+
+
+async def issue_weekly_leaderboard_rewards(iso_year: int, iso_week: int):
+    """
+    Issue top-3 byPoints weekly leaderboard rewards. Called on every leaderboard request.
+    Atomic + idempotent: rewards fire exactly once per ISO week.
+
+    Idempotency mechanism:
+      - update_one with upsert=True + $setOnInsert creates the record only when
+        it does not yet exist. If it already exists, the upsert is a no-op.
+      - result.upserted_id is set ONLY when a new document was inserted.
+        If None, the record already existed → rewards already issued → skip.
+    """
+    # Atomic claim: insert record for this (year, week) only if not yet present
+    result = await db.leaderboard_rewards.update_one(
+        {"isoYear": iso_year, "isoWeek": iso_week},
+        {
+            "$setOnInsert": {
+                "isoYear":       iso_year,
+                "isoWeek":       iso_week,
+                "rewardsIssued": False,
+                "topUsers":      [],
+                "createdAt":     datetime.utcnow(),
+            }
+        },
+        upsert=True,
+    )
+
+    if result.upserted_id is None:
+        # Document already existed — rewards already issued (or in progress). Skip.
+        return
+
+    # We own this week. Fetch top 3 by loyaltyPoints.
+    top3 = await db.users.find(
+        {}, {"_id": 1, "loyaltyPoints": 1}
+    ).sort("loyaltyPoints", -1).limit(3).to_list(3)
+
+    ordinal = {1: "1st", 2: "2nd", 3: "3rd"}
+    top_users = []
+
+    for rank, user_doc in enumerate(top3, start=1):
+        uid    = str(user_doc["_id"])
+        reward = LEADERBOARD_REWARDS[rank]
+
+        updated = await db.users.find_one_and_update(
+            {"_id": user_doc["_id"]},
+            {"$inc": {"loyaltyPoints": reward}},
+            return_document=True,
+        )
+        balance_after = updated["loyaltyPoints"] if updated else 0
+
+        await db.cloudz_ledger.insert_one({
+            "userId":      uid,
+            "type":        "leaderboard_reward",
+            "amount":      reward,
+            "balanceAfter": balance_after,
+            "reference":   f"Weekly leaderboard #{rank}",
+            "description": f"{ordinal[rank]} place weekly leaderboard",
+            "isoYear":     iso_year,
+            "isoWeek":     iso_week,
+            "createdAt":   datetime.utcnow(),
+        })
+
+        top_users.append({"userId": uid, "rank": rank, "reward": reward})
+        print(f"[LB_REWARD] {ordinal[rank]} place uid={uid} awarded {reward} Cloudz (ISO {iso_year}-W{iso_week})")
+
+    # Finalise record
+    await db.leaderboard_rewards.update_one(
+        {"isoYear": iso_year, "isoWeek": iso_week},
+        {"$set": {"rewardsIssued": True, "topUsers": top_users, "issuedAt": datetime.utcnow()}},
+    )
+    print(f"[LB_REWARD] Weekly rewards issued for ISO {iso_year}-W{iso_week}: {len(top_users)} users")

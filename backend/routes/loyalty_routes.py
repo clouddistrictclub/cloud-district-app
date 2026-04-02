@@ -4,7 +4,7 @@ from auth import get_current_user
 from models.schemas import TierRedeemRequest, LOYALTY_TIERS
 from services.loyalty_service import (
     log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier,
-    process_daily_checkin,
+    process_daily_checkin, issue_weekly_leaderboard_rewards,
 )
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -166,6 +166,11 @@ async def get_leaderboard(user=Depends(get_current_user)):
 
     # Load yesterday's snapshot for rank movement calculation
     now = datetime.utcnow()
+    iso_year, iso_week = now.isocalendar()[:2]
+
+    # Issue weekly rewards if this is the first leaderboard request of a new ISO week
+    await issue_weekly_leaderboard_rewards(iso_year, iso_week)
+
     yesterday_midnight = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_snap = await db.leaderboard_snapshots.find_one({"date": yesterday_midnight})
     prev_ranks: dict = {}
