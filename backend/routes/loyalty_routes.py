@@ -141,11 +141,27 @@ async def get_user_streak(user=Depends(get_current_user)):
 @router.get("/leaderboard")
 async def get_leaderboard(user=Depends(get_current_user)):
     projection = {"_id": 1, "firstName": 1, "lastName": 1, "loyaltyPoints": 1, "referralCount": 1}
-    current_uid = str(user["_id"])
-    print(f"[LEADERBOARD] current_uid={current_uid}")
 
-    by_points_raw = await db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20).to_list(20)
+    # ── DIAGNOSTIC BLOCK ─────────────────────────────────────────────────────
+    raw_id   = user["_id"]
+    current_uid = str(raw_id)
+    user_pts = user.get("loyaltyPoints", 0) or 0
+    user_refs = user.get("referralCount", 0) or 0
+    print("[LB] ===== LEADERBOARD REQUEST =====")
+    print(f"[LB] current_uid={current_uid!r}  type={type(raw_id).__name__}")
+    print(f"[LB] loyaltyPoints={user_pts}  referralCount={user_refs}")
+    # ─────────────────────────────────────────────────────────────────────────
+
+    by_points_raw    = await db.users.find({}, projection).sort("loyaltyPoints", -1).limit(20).to_list(20)
     by_referrals_raw = await db.users.find({}, projection).sort("referralCount", -1).limit(20).to_list(20)
+
+    # Diagnostic: show every raw uid in the top-20 and whether it matches
+    raw_uids_pts = [str(d["_id"]) for d in by_points_raw]
+    in_top20_pts = current_uid in raw_uids_pts
+    print(f"[LB] byPoints raw count={len(by_points_raw)}, current_uid in raw={in_top20_pts}")
+    if not in_top20_pts:
+        for i, u in enumerate(raw_uids_pts):
+            print(f"[LB]   byPoints[{i}] uid={u!r}  pts={by_points_raw[i].get('loyaltyPoints', 0)}")
 
     # Load yesterday's snapshot for rank movement calculation
     now = datetime.utcnow()
@@ -158,50 +174,63 @@ async def get_leaderboard(user=Depends(get_current_user)):
 
     def build_entry(doc, rank):
         first = doc.get("firstName", "")
-        last = doc.get("lastName", "")
+        last  = doc.get("lastName", "")
         display = f"{first} {last[0]}." if last else first
-        pts = doc.get("loyaltyPoints", 0)
+        pts      = doc.get("loyaltyPoints", 0) or 0
         tier_name, tier_color = resolve_tier(pts)
-        uid = str(doc["_id"])
-        print(f"[LEADERBOARD] entry uid={uid} rank={rank} pts={pts} match={uid == current_uid}")
+        uid      = str(doc["_id"])
+        is_me    = uid == current_uid
         prev_rank = prev_ranks.get(uid)
-        # Positive = moved up (e.g. was rank 5 yesterday, rank 3 today → +2)
-        movement = (prev_rank - rank) if prev_rank is not None else None
+        movement  = (prev_rank - rank) if prev_rank is not None else None
         return {
-            "rank": rank,
-            "displayName": display,
-            "points": pts,
-            "referralCount": doc.get("referralCount", 0),
-            "tier": tier_name,
-            "tierColor": tier_color,
-            "isCurrentUser": uid == current_uid,
-            "movement": movement,
+            "rank":          rank,
+            "displayName":   display,
+            "points":        pts,
+            "referralCount": doc.get("referralCount", 0) or 0,
+            "tier":          tier_name,
+            "tierColor":     tier_color,
+            "isCurrentUser": is_me,
+            "movement":      movement,
         }
 
-    by_points = [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)]
+    by_points    = [build_entry(d, i + 1) for i, d in enumerate(by_points_raw)]
     by_referrals = [build_entry(d, i + 1) for i, d in enumerate(by_referrals_raw)]
 
-    # If current user is not in top 20 byPoints but has loyalty activity, append with true rank
+    # ── ALWAYS INCLUDE CURRENT USER IN byPoints ───────────────────────────────
     if not any(e["isCurrentUser"] for e in by_points):
-        user_pts = user.get("loyaltyPoints", 0)
-        has_activity = user_pts > 0 or await db.cloudz_ledger.count_documents({"userId": current_uid}) > 0
+        ledger_count = await db.cloudz_ledger.count_documents({"userId": current_uid})
+        has_activity = user_pts > 0 or ledger_count > 0
+        print(f"[LB] byPoints: user NOT found. pts={user_pts} ledger_entries={ledger_count} has_activity={has_activity}")
         if has_activity:
             rank_above = await db.users.count_documents({"loyaltyPoints": {"$gt": user_pts}})
-            user_rank = rank_above + 1
-            by_points.append(build_entry(user, user_rank))
-            print(f"[LEADERBOARD] Current user not in top 20 byPoints — appended at rank {user_rank}")
+            user_rank  = rank_above + 1
+            appended   = build_entry(user, user_rank)
+            print(f"[LB] byPoints: appending user rank={user_rank} isCurrentUser={appended['isCurrentUser']} pts={appended['points']}")
+            by_points.append(appended)
+    else:
+        print("[LB] byPoints: current user found in top-20 OK")
 
-    # If current user is not in top 20 byReferrals but has referral activity, append with true rank
+    # ── ALWAYS INCLUDE CURRENT USER IN byReferrals ────────────────────────────
     if not any(e["isCurrentUser"] for e in by_referrals):
-        user_refs = user.get("referralCount", 0)
-        has_referral_activity = user_refs > 0
-        if has_referral_activity:
+        if user_refs > 0:
             rank_above = await db.users.count_documents({"referralCount": {"$gt": user_refs}})
-            user_rank = rank_above + 1
-            by_referrals.append(build_entry(user, user_rank))
-            print(f"[LEADERBOARD] Current user not in top 20 byReferrals — appended at rank {user_rank}")
+            user_rank  = rank_above + 1
+            appended   = build_entry(user, user_rank)
+            print(f"[LB] byReferrals: appending user rank={user_rank} isCurrentUser={appended['isCurrentUser']}")
+            by_referrals.append(appended)
+
+    # ── FINAL PAYLOAD SUMMARY ─────────────────────────────────────────────────
+    final_pts_any = any(e["isCurrentUser"] for e in by_points)
+    final_ref_any = any(e["isCurrentUser"] for e in by_referrals)
+    print(f"[LB] FINAL byPoints={len(by_points)} entries, any isCurrentUser={final_pts_any}")
+    print(f"[LB] FINAL byReferrals={len(by_referrals)} entries, any isCurrentUser={final_ref_any}")
+    if final_pts_any:
+        me = next(e for e in by_points if e["isCurrentUser"])
+        print(f"[LB] Current user entry: rank={me['rank']} pts={me['points']} isCurrentUser={me['isCurrentUser']}")
+    print("[LB] ===== END =====")
+    # ─────────────────────────────────────────────────────────────────────────
 
     return {
-        "byPoints": by_points,
+        "byPoints":    by_points,
         "byReferrals": by_referrals,
     }
