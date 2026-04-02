@@ -19,6 +19,28 @@ router = APIRouter()
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
+# Fallback image served if a product has no valid image URL
+FALLBACK_IMAGE_URL = "https://clouddistrict.club/placeholder.png"
+
+
+def resolve_image(image: str | None) -> str:
+    """
+    Normalise a product image URL:
+    - Empty / None  → FALLBACK_IMAGE_URL
+    - Relative /api/uploads/… → returned unchanged (frontend prefixes with API_URL)
+    - Already absolute → returned unchanged.
+    """
+    if not image:
+        return FALLBACK_IMAGE_URL
+    return image
+
+
+def _build_product(raw: dict) -> dict:
+    """Return a clean product dict with a normalised image URL."""
+    d = {k: v for k, v in raw.items() if k not in ("_id", "id")}
+    d["image"] = resolve_image(d.get("image"))
+    return d
+
 
 # ==================== BRAND ENDPOINTS ====================
 
@@ -110,7 +132,7 @@ async def get_products(
     if brand_id:
         query["brandId"] = brand_id
     products = await db.products.find(query).to_list(1000)
-    return [Product(id=str(p["_id"]), **{k: v for k, v in p.items() if k not in ("_id", "id")}) for p in products]
+    return [Product(id=str(p["_id"]), **_build_product(p)) for p in products]
 
 
 @router.get("/products/{product_id}", response_model=Product)
@@ -118,7 +140,7 @@ async def get_product(product_id: str):
     product = await db.products.find_one({"_id": ObjectId(product_id)})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k not in ("_id", "id")})
+    return Product(id=str(product["_id"]), **_build_product(product))
 
 
 @router.post("/products", response_model=Product)
