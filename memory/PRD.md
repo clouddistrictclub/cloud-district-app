@@ -1,126 +1,170 @@
-# Cloud District Club - Product Requirements Document
-_Last updated: 2026-04-01_
+# Cloud District Club — PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Mobile-first web app for local pickup of disposable vape products, restricted to 21+ users.
 
-## Tech Stack
-- Frontend: React Native / Expo 54 / Expo Router / TypeScript / Zustand
-- Backend: FastAPI / Python / MongoDB (Motor async)
-- Deploy: Backend on Railway (api.clouddistrict.club), Frontend on Emergent (clouddistrict.club)
-- Frontend API is HARDCODED to https://api.clouddistrict.club in constants/api.ts
+Building a mobile-first web app called "Cloud District Club" for local pickup of disposable vape products, restricted to users 21+.
+
+---
+
+## Core Product Requirements
+
+- **Age Verification**: Mandatory 21+ age gate on every session
+- **Design**: Dark, premium, fast, simple mobile-first UI
+- **Home Screen**: Featured products, shop by brand, loyalty points display, "Order for Local Pickup" CTA
+- **Checkout Flow**: Local pickup only, manual payment methods (Cash, Venmo, Zelle, etc.)
+- **Order Status System**: Track order progress (Pending → Paid → Preparing → Ready → Completed)
+- **Loyalty Program ("Cloudz Points")**: Tier-based system, streak bonus, daily check-in rewards, weekly leaderboard rewards
+- **Referral Program**: Username-based referral system (referrer gets pending rewards that unlock after referred user spends $50)
+- **User Accounts**: Order history, loyalty status, profile management, profile photo
+- **Admin Dashboard**: Full CRUD on products, brands, users, inventory, orders; user management, store credit, account notes
+
+---
 
 ## Architecture
+
 ```
 /app
 ├── backend/
-│   ├── server.py / main.py
-│   ├── database.py
-│   ├── models/schemas.py
+│   ├── auth.py                    # JWT + password hashing
+│   ├── database.py                # MongoDB Motor async client
+│   ├── models/schemas.py          # Pydantic models + reward constants
 │   ├── routes/
-│   │   ├── admin_routes.py     # handle_order_completed (centralized)
-│   │   ├── auth_routes.py      # inline referral logic on signup
-│   │   └── order_routes.py
+│   │   ├── admin_routes.py        # Admin CRUD + order status management
+│   │   ├── auth_routes.py         # Signup (strict referral) + login
+│   │   ├── loyalty_routes.py      # Leaderboard + check-in endpoints
+│   │   ├── order_routes.py        # PATCH /api/orders/{id}/status
+│   │   └── product_routes.py      # Products + brands + image fallback
 │   ├── services/
-│   │   └── loyalty_service.py  # log_cloudz_transaction, DB writes
-│   └── tests/
-│       └── test_loyalty_referral.py
+│   │   ├── loyalty_service.py     # Atomic check-in, streak, weekly rewards
+│   │   └── order_service.py       # Centralized update_order_status_shared()
+│   └── scripts/
+│       └── catalog_repair.py      # Product catalog repair/creation script
 ├── frontend/
 │   ├── app/
-│   │   ├── (tabs)/             (Home, Shop, Orders, Account)
-│   │   ├── cloudz.tsx
-│   │   ├── cloudz-history.tsx  # Safe area layout fixed
-│   │   └── admin/
-│   │       └── cloudz-ledger.tsx # Safe area layout fixed
+│   │   ├── (admin)/               # Admin dashboard screens
+│   │   ├── (tabs)/                # User-facing screens (home, shop, account)
+│   │   └── ...
 │   ├── constants/
-│   │   ├── api.ts              # HARDCODED to production API URL
-│   │   └── ledger.ts           # Centralized label/color/icon mapping
-│   └── store/authStore.ts
-├── SYSTEM_EXPORT.md
-└── memory/
-    ├── PRD.md
-    └── test_credentials.md
+│   │   └── api.ts                 # WARNING: Hardcoded to production API URL
+│   └── store/authStore.ts         # Zustand auth store
 ```
 
-## Key Business Rules
-- Age gate: 21+ mandatory
-- Products: Disposable vapes, local pickup only
-- Payment: Manual (no payment processor)
+---
 
-## Cloudz Earn Rate
-- 3 Cloudz per $1 spent
-- Formula: `points_earned = int(order_data.total) * 3`
-- Rewards trigger ONLY when order.status == "Completed"
+## Tech Stack
 
-## Loyalty Tiers
-- Bronze Cloud  — 1,000 pts → $5.00
-- Silver Storm  — 5,000 pts → $30.00
-- Gold Thunder  — 10,000 pts → $75.00
-- Platinum Haze — 20,000 pts → $175.00
-- Diamond Sky   — 30,000 pts → $300.00
+- **Frontend**: React Native (Expo for Web), Zustand state management
+- **Backend**: FastAPI, Motor (async MongoDB driver)
+- **Database**: MongoDB
+- **External Libs**: slowapi (rate limiting), expo-image-picker
 
-## Referral System
-- New user with valid referral code receives +500 bonus (total: 500 signup + 500 referral = 1000)
-- Referrer gets 1500 pts PENDING (created at signup of referred user)
-- Pending 1500 UNLOCKS when referred user spends $50 cumulative
-- Referrer also gets 50 pts bonus on each referred user's completed order (while pending is locked)
-- No self-referral allowed
+---
 
-## DB Schema (key fields)
-- users: `loyaltyPoints`, `creditBalance`, `referralCode`, `referredBy`, `referralUnlocked`, `referralCount`
-- cloudz_ledger: `type`, `amount`, `balanceAfter`, `userId`, `status` (pending/unlocked), `referredUserId`
-- orders: `status`, `discountApplied`, `loyaltyRewardIssued`, `finalTotal`, `userId`
+## Key Database Schema
+
+| Collection | Key Fields |
+|---|---|
+| `users` | `loyaltyPoints, creditBalance, referralCode, referredBy, referralUnlocked, checkInStreak, lastCheckInDate` |
+| `cloudz_ledger` | `type, amount, balanceAfter, userId, reference, isoDate` |
+| `products` | `brandId, brandName, model, flavor, name, productType, puffCount, nicotinePercent, price, stock, image, isActive, isFeatured` |
+| `orders` | `status, discountApplied, loyaltyRewardIssued, finalTotal` |
+| `brands` | `name, image, description, isActive` |
+| `leaderboard_rewards` | `isoYear, isoWeek, rewardsIssued, topUsers` |
+
+---
 
 ## Key API Endpoints
-- POST /api/auth/register — Signup with optional referralCode
-- PATCH /api/admin/orders/{order_id}/status — Triggers handle_order_completed on "Completed"
-- GET /api/auth/me — Returns updated user profile
-- GET /api/debug/env — Shows which MongoDB database is connected
 
-## Reward Logic Flow (on order "Completed")
-1. purchase_reward: loyaltyPoints += int(finalTotal) * 3
-2. referral_order_reward: if referrer exists and not yet unlocked → referrer +50
-3. referral_unlock: if referred user total spend >= $50 → unlock pending 1500 for referrer
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/register` | Signup with strict referral code (username) |
+| `POST` | `/api/auth/login` | Login (field: `identifier`, not `email`) |
+| `GET` | `/api/products` | Product catalog with fallback image URL |
+| `GET` | `/api/products/{id}` | Single product with fallback image URL |
+| `PATCH` | `/api/orders/{order_id}/status` | Web order status update (triggers rewards) |
+| `PATCH` | `/api/admin/orders/{order_id}/status` | Admin order status update |
+| `POST` | `/api/loyalty/check-in` | Daily check-in reward (atomic) |
+| `GET` | `/api/leaderboard` | Leaderboard with weekly rewards + current user |
+| `GET` | `/api/loyalty/streak` | Real-time streak calculation |
 
-## Key API Endpoints (updated)
-- POST /api/auth/register — Signup with optional referralCode (strict referral logic)
-- PATCH /api/orders/{order_id}/status — **Web** status update (admin auth, calls shared service)
-- PATCH /api/admin/orders/{order_id}/status — **Admin** status update (calls shared service)
-- Both routes call `update_order_status_shared()` in `services/order_service.py`
+---
 
-## Shared Order Completion Architecture
-- `services/order_service.py` is the single source of truth:
-  - `handle_order_completed(order)` — all reward logic (purchase, referral order, referral unlock)
-  - `update_order_status_shared(order_id, new_status, source)` — DB update + reward trigger
-- Both routes log: `STATUS UPDATE SOURCE: web|admin` and `REWARD TRIGGER EXECUTED`
+## What's Been Implemented
 
-## What's Been Built
-- Age gate (21+ verification)
-- Full product catalog with categories and brands
-- Shopping cart and checkout flow (local pickup, manual payment)
-- Order status system (Pending → Paid → Ready for Pickup → Completed)
-- Cloudz (loyalty) points system with tier display
-- Referral program with pending/unlock flow
-- User account: order history, loyalty status, profile photo
-- Admin dashboard: products, brands, users, orders, inventory
-- Live chat (WebSocket)
-- Store credit system
-- Push notifications (partial)
-- Cloudz Ledger UI (fintech-style with dark cards, running balance)
+### Phase 1 – Core MVP (Complete)
+- Age gate, auth (JWT), product catalog, cart, checkout, order tracking
+- Admin dashboard (CRUD: products, brands, users, orders)
+- Loyalty points system (Cloudz Points) with tier display
 
-## Email Service
-- MOCKED in backend/services/email_service.py — No actual emails sent
+### Phase 2 – Loyalty & Gamification (Complete)
+- Referral program: username-based, $50 spend unlock, 50% bonus points
+- Daily check-in system: ladder rewards, atomic MongoDB operations
+- Weekly leaderboard: top 3 rewards, idempotency-safe
+- Streak calculation: counts both "Paid" and "Completed" orders
+- `isCurrentUser` fix on leaderboard for users outside top 20
 
-## Known Constraints
-- Frontend hardcoded to production API — test new features against preview backend by temporarily editing constants/api.ts
-- Safe Area Layout: Use `useSafeAreaInsets().top` on header wrapper; avoid SafeAreaView for scrollable content
+### Phase 3 – Order Status Reward Centralization (Complete)
+- `update_order_status_shared()` in `order_service.py` as single truth for reward triggers
+- Web order status endpoint (`PATCH /api/orders/{id}/status`) added
+- Admin and web both route through shared service
+
+### Phase 4 – Product Catalog Repair (Complete — 2025-04)
+- **Fixed 43 products with empty images** — all now have CDN URLs
+- **CLIO Platinum 50K fix**: Kit → BigCommerce product/2810 image (full device); Pod → BigCommerce product/2816 image (pod cartridge only); Kit ≠ Pod images enforced
+- **CLR 50K fix**: All 8 products now have BigCommerce product/2822 CDN image
+- **Normalized 40+ local-upload products** to absolute HTTPS CDN URLs (Pulse X, CA6000, TN9000, RYL 35K, Pulse, Meloso Mini, Meloso, Meloso Max)
+- **Created 17 new products** (all with verified CDN images, zero duplicates):
+  - Geek Bar CLR 50K: Blue Razz Ice, Sour Strawberry, Sour Apple Ice
+  - Geek Bar CLIO Platinum 50K POD: Dragonfruit Lemonade, Blue Razz Ice (stock updates)
+  - RAZ VUE 50K Kit: Hawaiian Punch, Blue Razz Ice (stock updates)
+  - Lost Mary Nera Fullview 70K POD: Scary Berry, Blue Razz Ice, Golden Berry, Pink Lemonade, Rocket Freeze
+  - Lost Mary Nera 70K KIT: Pink Lemonade + Pink Blue, Scary Berry + Golden Berry, Blue Razz Ice
+  - Geek Bar Pulse: Peach Lemonade (Thermal), Strawberry Kiwi (Thermal), Blueberry Watermelon, Strawberry Mango, Blow Pop / B-Burst (B-Pop)
+  - Geek Bar RIA NV30K: Blue Razz Ice (NEW model, 30K puffs)
+- **Backend fallback image**: `product_routes.py` now returns `https://clouddistrict.club/placeholder.png` for any null/empty image
+- **Total catalog**: 162 products | 0 empty images | 137 absolute HTTPS CDN URLs
+
+---
 
 ## Credentials
-- Admin: jkaatz@gmail.com / Just1n23$ / username: dad
 
-## P0/P1 Backlog
-- P1: Display user profilePhoto on Account screen and admin user list
-- P2: Modularize frontend/app/(admin)/user-profile.tsx (600+ lines)
-- P2: Real email sending (Google Workspace / SendGrid integration)
-- P3: Push notifications expansion
-- P3: Social sharing for referral links (X, Facebook, Instagram)
+| Role | Email/Username | Password |
+|---|---|---|
+| Admin | `jkaatz@gmail.com` / `dad` | `Just1n23$` |
+
+### Auth Note
+- Login API uses `identifier` field (accepts email OR username), NOT `email`
+
+---
+
+## Critical Notes for Developers
+
+1. **FRONTEND API LOCK**: `frontend/constants/api.ts` is hardcoded to `https://api.clouddistrict.club`. Change to `process.env.EXPO_PUBLIC_BACKEND_URL` for preview testing, revert before commit.
+2. **Reward Triggers**: MUST pass through `update_order_status_shared()` in `order_service.py`. Never duplicate reward logic in route files.
+3. **Referral Contract**: `POST /api/auth/register` expects `referralCode` = referrer's username (case-insensitive).
+4. **Login Field**: Uses `identifier` (not `email`) — accepts both email and username.
+5. **Image Fallback**: `product_routes.py` → `resolve_image()` returns `https://clouddistrict.club/placeholder.png` for null/empty images.
+
+---
+
+## Mocked Services
+
+| Service | File | Status |
+|---|---|---|
+| Email service | `backend/services/email_service.py` | MOCKED — no real emails sent |
+
+---
+
+## Prioritized Backlog
+
+### P1 (Next)
+- Display User Avatar (`profilePhoto`) on Account screen and in admin user list
+
+### P2
+- Modularize `frontend/app/(admin)/user-profile.tsx` (600+ lines → smaller components)
+- Google Workspace Integration: Replace mocked email service via `integration_playbook_expert_v2`
+
+### P3 (Future)
+- Push notifications expansion
+- Social sharing for referral links (X, Facebook, Instagram)
+- Remaining 25 local-upload products → migrate to object storage (VIHO TRX, RX50K, Switch Ultra, Hookah X, Digiflavor SKY, ExtreBar, LTX 25K, Turbo X, RIA 25K)
