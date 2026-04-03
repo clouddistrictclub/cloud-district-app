@@ -269,6 +269,56 @@ async def migrate_catalog_images():
     logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
 
 
+async def cleanup_test_users():
+    """
+    One-time production cleanup: delete known test/spam accounts.
+    Idempotent — safe to run on every startup.
+    """
+    TARGET_EMAILS = [
+        "kippyruth@gmail.com",
+        "test@test.com",
+        "bill@buttsniffa.com",
+        "pickle@man.com",
+        "test_probe_99@test.com",
+        "zzz_test_no_real@test.com",
+        # willow@tree.com through willow@tree19.com
+        "willow@tree.com",
+    ] + [f"willow@tree{i}.com" for i in range(2, 20)]
+
+    # Lowercase all for case-insensitive match
+    lower_targets = [e.lower() for e in TARGET_EMAILS]
+
+    # Safety: never touch admin accounts
+    to_delete = await db.users.find(
+        {"email": {"$in": lower_targets}, "isAdmin": {"$ne": True}},
+        {"_id": 1, "email": 1}
+    ).to_list(200)
+
+    # Also match case-insensitive (original case stored)
+    to_delete_ci = await db.users.find(
+        {"email": {"$in": TARGET_EMAILS}, "isAdmin": {"$ne": True}},
+        {"_id": 1, "email": 1}
+    ).to_list(200)
+
+    # Merge deduped by _id
+    all_ids = {}
+    for u in to_delete + to_delete_ci:
+        all_ids[str(u["_id"])] = u
+
+    if not all_ids:
+        logger.info("cleanup_test_users: no matching test accounts found")
+        return
+
+    deleted_emails = [u["email"] for u in all_ids.values()]
+    ids_to_delete = list(all_ids.keys())
+
+    from bson import ObjectId as _OID
+    result = await db.users.delete_many(
+        {"_id": {"$in": [_OID(i) for i in ids_to_delete]}, "isAdmin": {"$ne": True}}
+    )
+    logger.info(f"cleanup_test_users: deleted {result.deleted_count} accounts: {deleted_emails}")
+
+
 async def migrate_base64_images():
     # Migrate product images
     cursor = db.products.find({"image": {"$regex": "^data:image/"}})
