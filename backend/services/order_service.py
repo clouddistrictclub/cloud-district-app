@@ -192,6 +192,80 @@ async def migrate_catalog_images():
             {"$set": {"image": url}},
         )
 
+    # ── Lost Mary Nera: normalize ALL legacy model names ─────────────────────
+    # Idempotent – safe to run every startup
+    import re as _re
+
+    def _nera_slug(model_slug_part: str, flavor: str) -> str:
+        return _re.sub(r'-+', '-', _re.sub(r'[^a-z0-9]+', '-', f"lost-mary-{model_slug_part}-{flavor}".lower())).strip('-')
+
+    # 1. Rename kits: "Nera 70K" productType=kit  OR  literal "Nera 70k Kit"
+    kit_docs = await db.products.find(
+        {"brandName": "Lost Mary", "$or": [
+            {"model": "Nera 70k Kit"},
+            {"model": "Nera 70K", "productType": "kit"},
+            {"model": {"$regex": "^Nera 70[Kk]$"}, "productType": "kit"},
+        ]},
+        {"_id": 1, "flavor": 1}
+    ).to_list(200)
+    for p in kit_docs:
+        await db.products.update_one(
+            {"_id": p["_id"]},
+            {"$set": {"model": "Nera Fullview 70K Kit",
+                      "slug": _nera_slug("nera-fullview-70k-kit", p.get("flavor", ""))}}
+        )
+
+    # 2. Rename pods: "Nera 70K" productType=pod  OR  "Nera 70k POD"  OR  bare "Nera 70k"
+    pod_docs = await db.products.find(
+        {"brandName": "Lost Mary", "$or": [
+            {"model": "Nera 70k POD"},
+            {"model": "Nera 70k"},
+            {"model": "Nera 70K", "productType": "pod"},
+            {"model": {"$regex": "^Nera 70[Kk]$"}, "productType": {"$ne": "kit"}},
+        ]},
+        {"_id": 1, "flavor": 1}
+    ).to_list(200)
+    for p in pod_docs:
+        await db.products.update_one(
+            {"_id": p["_id"]},
+            {"$set": {"model": "Nera Fullview 70K POD",
+                      "slug": _nera_slug("nera-fullview-70k-pod", p.get("flavor", ""))}}
+        )
+
+    logger.info(f"Nera normalization: {len(kit_docs)} kits + {len(pod_docs)} pods renamed")
+
+    # 3. Ensure 3 required POD products exist – create if missing
+    NERA_POD_FALLBACK_IMG = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"
+    REQUIRED_PODS = [
+        {"flavor": "Blue Razz Ice",  "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
+        {"flavor": "Pink Lemonade",  "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
+        {"flavor": "Golden Berry",   "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
+    ]
+    for rp in REQUIRED_PODS:
+        exists = await db.products.find_one(
+            {"brandName": "Lost Mary", "model": "Nera Fullview 70K POD", "flavor": rp["flavor"]}
+        )
+        if not exists:
+            new_prod = {
+                "brandName":       "Lost Mary",
+                "brandId":         "lost-mary",
+                "model":           "Nera Fullview 70K POD",
+                "flavor":          rp["flavor"],
+                "productType":     "pod",
+                "puffCount":       70000,
+                "nicotineStrength": "5%",
+                "price":           25.0,
+                "cloudzReward":    75,
+                "stock":           1,
+                "image":           rp["image"],
+                "slug":            _nera_slug("nera-fullview-70k-pod", rp["flavor"]),
+                "active":          True,
+                "description":     f"Lost Mary Nera Fullview 70K POD – {rp['flavor']}. 70,000 puffs. 5% nicotine. Rechargeable pod system.",
+                "createdAt":       datetime.utcnow(),
+            }
+            await db.products.insert_one(new_prod)
+            logger.info(f"Created missing Nera Fullview 70K POD: {rp['flavor']}")
+
     logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
 
 
