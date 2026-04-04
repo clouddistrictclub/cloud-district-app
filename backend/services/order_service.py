@@ -140,7 +140,61 @@ async def migrate_catalog_images():
             {"$set": {"image": url}},
         )
 
-    # ── CLIO Platinum 50K — Triple Berry Ice (kit + pod) ─────────────────────
+    # ── Brand normalization: fix brandId for all products ────────────────────
+    # Ensures brand documents exist and every product's brandId is valid.
+    # Safe to run every startup (idempotent).
+
+    # 1. Ensure all required brand documents exist
+    REQUIRED_BRANDS = ["Geek Bar", "Lost Mary", "RAZ", "VIHO", "ExtreBar", "Maskking", "Digiflavor SKY", "RYL 35k"]
+    brand_name_to_id = {}
+
+    for bname in REQUIRED_BRANDS:
+        existing = await db.brands.find_one(
+            {"name": bname},
+            {"_id": 1, "name": 1}
+        )
+        if existing:
+            brand_name_to_id[bname] = str(existing["_id"])
+        else:
+            from datetime import datetime as _dt
+            result = await db.brands.insert_one({
+                "name": bname,
+                "slug": _re.sub(r'-+', '-', _re.sub(r'[^a-z0-9]+', '-', bname.lower())).strip('-'),
+                "description": f"{bname} disposable vapes",
+                "isActive": True,
+                "createdAt": _dt.utcnow(),
+                "updatedAt": _dt.utcnow(),
+            })
+            brand_name_to_id[bname] = str(result.inserted_id)
+            logger.info(f"Brand normalization: created brand '{bname}'")
+
+    # 2. Fix brandId on every product that has a brandName we recognize
+    products_fixed = 0
+    for bname, bid in brand_name_to_id.items():
+        r = await db.products.update_many(
+            {"brandName": bname, "brandId": {"$ne": bid}},
+            {"$set": {"brandId": bid}}
+        )
+        products_fixed += r.modified_count
+
+    # 3. Infer missing brandName from model/flavor fields and fix brandId
+    no_brand = await db.products.find(
+        {"$or": [{"brandName": None}, {"brandName": ""}, {"brandName": {"$exists": False}}]},
+        {"_id": 1, "model": 1, "flavor": 1}
+    ).to_list(500)
+    inferred = 0
+    for p in no_brand:
+        text = f"{p.get('model','')} {p.get('flavor','')}".lower()
+        for bname in REQUIRED_BRANDS:
+            if bname.lower() in text:
+                await db.products.update_one(
+                    {"_id": p["_id"]},
+                    {"$set": {"brandName": bname, "brandId": brand_name_to_id[bname]}}
+                )
+                inferred += 1
+                break
+
+    logger.info(f"Brand normalization: {products_fixed} brandId fixes + {inferred} inferred brands")
     await db.products.update_many(
         {"brandName": "Geek Bar", "model": "CLIO Platinum 50K", "flavor": "Triple Berry Ice"},
         {"$set": {"image": "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-triple-berry-ice.webp"}},
