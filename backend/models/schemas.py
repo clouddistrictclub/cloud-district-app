@@ -198,6 +198,8 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
+    model_config = ConfigDict(extra='allow')
+
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     brandId: Optional[str] = Field(default=None, min_length=1)
     model: Optional[str] = None
