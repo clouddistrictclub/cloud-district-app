@@ -177,12 +177,15 @@ class Product(BaseModel):
 class ProductCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     brandId: str = Field(min_length=1)
+    model: Optional[str] = None
     category: str = Field(min_length=1, max_length=100)
     image: str = Field(min_length=1)
     images: Optional[List[str]] = []
     puffCount: int = Field(gt=0, le=100000)
     flavor: str = Field(min_length=1, max_length=100)
     nicotinePercent: float = Field(ge=0, le=20)
+    nicotineStrength: Optional[str] = None
+    productType: Optional[str] = None
     price: float = Field(gt=0, le=10000)
     stock: int = Field(ge=0)
     lowStockThreshold: int = Field(default=5, ge=0)
@@ -190,18 +193,22 @@ class ProductCreate(BaseModel):
     isActive: bool = True
     isFeatured: bool = False
     loyaltyEarnRate: Optional[float] = Field(default=None, ge=0)
+    cloudzReward: Optional[int] = None
     displayOrder: int = Field(default=0, ge=0)
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     brandId: Optional[str] = Field(default=None, min_length=1)
+    model: Optional[str] = None
     category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     image: Optional[str] = None
     images: Optional[List[str]] = None
     puffCount: Optional[int] = Field(default=None, gt=0, le=100000)
     flavor: Optional[str] = Field(default=None, min_length=1, max_length=100)
     nicotinePercent: Optional[float] = Field(default=None, ge=0, le=20)
+    nicotineStrength: Optional[str] = None
+    productType: Optional[str] = None
     price: Optional[float] = Field(default=None, gt=0, le=10000)
     stock: Optional[int] = Field(default=None, ge=0)
     lowStockThreshold: Optional[int] = Field(default=None, ge=0)
@@ -209,6 +216,7 @@ class ProductUpdate(BaseModel):
     isActive: Optional[bool] = None
     isFeatured: Optional[bool] = None
     loyaltyEarnRate: Optional[float] = Field(default=None, ge=0)
+    cloudzReward: Optional[int] = None
     displayOrder: Optional[int] = Field(default=None, ge=0)
 
 

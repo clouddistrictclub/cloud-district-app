@@ -284,35 +284,43 @@ async def migrate_catalog_images():
 
     # 3. Ensure 3 required POD products exist – create if missing
     NERA_POD_FALLBACK_IMG = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"
-    REQUIRED_PODS = [
-        {"flavor": "Blue Razz Ice",  "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
-        {"flavor": "Pink Lemonade",  "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
-        {"flavor": "Golden Berry",   "image": "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"},
-    ]
-    for rp in REQUIRED_PODS:
+    NERA_POD_BRAND_NAME = "Lost Mary"
+
+    # Find the Lost Mary brandId in THIS database (not hardcoded)
+    lm_brand = await db.brands.find_one({"name": NERA_POD_BRAND_NAME}, {"_id": 1})
+    lm_brand_id = str(lm_brand["_id"]) if lm_brand else None
+
+    REQUIRED_PODS = ["Blue Razz Ice", "Pink Lemonade", "Golden Berry"]
+    for flavor in REQUIRED_PODS:
         exists = await db.products.find_one(
-            {"brandName": "Lost Mary", "model": "Nera Fullview 70K POD", "flavor": rp["flavor"]}
+            {"brandName": NERA_POD_BRAND_NAME, "model": "Nera Fullview 70K POD", "flavor": flavor}
         )
-        if not exists:
+        if not exists and lm_brand_id:
             new_prod = {
-                "brandName":       "Lost Mary",
-                "brandId":         "lost-mary",
-                "model":           "Nera Fullview 70K POD",
-                "flavor":          rp["flavor"],
-                "productType":     "pod",
-                "puffCount":       70000,
+                "name":             f"Nera Fullview 70K POD - {flavor}",
+                "brandName":        NERA_POD_BRAND_NAME,
+                "brandId":          lm_brand_id,
+                "model":            "Nera Fullview 70K POD",
+                "flavor":           flavor,
+                "productType":      "pod",
+                "category":         "pods",
+                "puffCount":        70000,
+                "nicotinePercent":  5.0,
                 "nicotineStrength": "5%",
-                "price":           25.0,
-                "cloudzReward":    75,
-                "stock":           1,
-                "image":           rp["image"],
-                "slug":            _nera_slug("nera-fullview-70k-pod", rp["flavor"]),
-                "active":          True,
-                "description":     f"Lost Mary Nera Fullview 70K POD – {rp['flavor']}. 70,000 puffs. 5% nicotine. Rechargeable pod system.",
-                "createdAt":       datetime.utcnow(),
+                "price":            25.0,
+                "stock":            1,
+                "cloudzReward":     75,
+                "lowStockThreshold": 3,
+                "image":            NERA_POD_FALLBACK_IMG,
+                "slug":             _nera_slug("nera-fullview-70k-pod", flavor),
+                "isActive":         True,
+                "isFeatured":       False,
+                "displayOrder":     0,
+                "description":      f"Lost Mary Nera Fullview 70K POD – {flavor}. 70,000 puffs. 5% nicotine.",
+                "createdAt":        datetime.utcnow(),
             }
             await db.products.insert_one(new_prod)
-            logger.info(f"Created missing Nera Fullview 70K POD: {rp['flavor']}")
+            logger.info(f"Created missing Nera Fullview 70K POD: {flavor}")
 
     logger.info("migrate_catalog_images: CLIO + CLR + local-upload replacement complete")
 
