@@ -248,6 +248,7 @@ class OrderCreate(BaseModel):
     name: Optional[str] = Field(default=None, max_length=100)
     email: Optional[str] = Field(default=None, max_length=200)
     phone: Optional[str] = Field(default=None, max_length=20)
+    userId: Optional[str] = None  # Admin-only: create order on behalf of another user
 
 
 class Order(BaseModel):

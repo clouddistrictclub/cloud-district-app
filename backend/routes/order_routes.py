@@ -18,6 +18,24 @@ logger = logging.getLogger(__name__)
 @router.post("/orders", response_model=Order)
 @limiter.limit("5/minute", key_func=get_user_id_or_ip)
 async def create_order(request: Request, order_data: OrderCreate, user=Depends(get_current_user)):
+    # --- Resolve effective user (admin may create on behalf of another user) ---
+    if user.get("isAdmin") and order_data.userId and order_data.userId != str(user["_id"]):
+        try:
+            target_oid = ObjectId(order_data.userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid userId format")
+        order_user = await db.users.find_one({"_id": target_oid})
+        if not order_user:
+            raise HTTPException(status_code=400, detail="Target user not found")
+        effective_user_id = str(target_oid)
+        effective_user_oid = target_oid
+        print(f"ORDER CREATED FOR: {effective_user_id} (by admin {str(user['_id'])})")
+    else:
+        effective_user_id = str(user["_id"])
+        effective_user_oid = user["_id"]
+        order_user = user
+        print(f"ORDER CREATED FOR: {effective_user_id}")
+
     # Verify products exist (non-atomic, fast pre-check for 404s only)
     for item in order_data.items:
         product = await db.products.find_one({"_id": ObjectId(item.productId)}, {"name": 1})
@@ -40,7 +58,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     # Handle store credit application
     store_credit_applied = 0.0
     if order_data.storeCreditApplied > 0:
-        user_doc = await db.users.find_one({"_id": user["_id"]}, {"creditBalance": 1})
+        user_doc = await db.users.find_one({"_id": effective_user_oid}, {"creditBalance": 1})
         available_credit = float(user_doc.get("creditBalance", 0)) if user_doc else 0.0
         store_credit_applied = min(order_data.storeCreditApplied, available_credit)
         if store_credit_applied > order_data.total:
@@ -50,7 +68,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     coupon_discount = 0.0
     if order_data.couponApplied:
         from datetime import timezone
-        user_doc = await db.users.find_one({"_id": user["_id"]}, {"nextOrderCoupon": 1})
+        user_doc = await db.users.find_one({"_id": effective_user_oid}, {"nextOrderCoupon": 1})
         coupon = user_doc.get("nextOrderCoupon") if user_doc else None
         if coupon and not coupon.get("used", False):
             try:
@@ -74,7 +92,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
             raise HTTPException(status_code=400, detail="Invalid reward ID format")
         reward = await db.loyalty_rewards.find_one({
             "_id": reward_oid,
-            "userId": str(user["_id"]),
+            "userId": effective_user_id,
             "used": False,
         })
         if not reward:
@@ -89,7 +107,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     created_at = datetime.utcnow()
     is_pending_payment = order_data.paymentMethod != "Cash on Pickup"
     order_dict = {
-        "userId": str(user["_id"]),
+        "userId": effective_user_id,
         "items": [item.dict() for item in order_data.items],
         "total": final_total,
         "pickupTime": order_data.pickupTime,
@@ -114,10 +132,10 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     result = await db.orders.insert_one(order_dict)
     order_dict["id"] = str(result.inserted_id)
 
-    # Deduct store credit from user balance
+    # Deduct store credit from effective user balance
     if store_credit_applied > 0:
         await db.users.update_one(
-            {"_id": user["_id"]},
+            {"_id": effective_user_oid},
             {"$inc": {"creditBalance": -store_credit_applied}}
         )
 
@@ -146,7 +164,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
                 items=order_dict["items"],
                 total=order_dict["total"],
             )
-            send_email(user.get("email", ""), "Order Confirmation - Cloud District Club", email_html)
+            send_email(order_user.get("email", ""), "Order Confirmation - Cloud District Club", email_html)
     except Exception as e:
         logger.warning(f"Order confirmation email skipped: {e}")
 
