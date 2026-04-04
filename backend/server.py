@@ -15,6 +15,7 @@ from auth import SECRET_KEY, ALGORITHM
 from services.order_service import migrate_base64_images, migrate_catalog_images, cleanup_test_users, expire_pending_orders_loop, leaderboard_snapshot_loop, chat_manager
 from scripts.repair_product_data import run_repair
 from scripts.repair_brand_ids import run_brand_id_repair
+from scripts.repair_brand_ids_final import run_final_brand_repair
 from scripts.identify_invalid_brand_ids import identify_invalid_brand_ids
 from auth import get_admin_user
 from routes.auth_routes import router as auth_router
@@ -123,6 +124,12 @@ async def repair_products(admin=Depends(get_admin_user)):
 @app.post("/api/admin/repair-brand-ids")
 async def repair_brand_ids(admin=Depends(get_admin_user)):
     result = await run_brand_id_repair()
+    return result
+
+
+@app.post("/api/admin/repair-brand-ids-final")
+async def repair_brand_ids_final(admin=Depends(get_admin_user)):
+    result = await run_final_brand_repair()
     return result
 
 
