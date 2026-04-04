@@ -90,9 +90,10 @@ export default function ProductsManagement() {
   const loadData = async () => {
     try {
       const [productsRes, brandsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/products?active_only=false`),
+        axios.get(`${API_URL}/api/products`),
         axios.get(`${API_URL}/api/brands?active_only=false`)
       ]);
+      console.log("PRODUCT COUNT:", productsRes.data.length);
       setProducts(productsRes.data);
       setBrands(brandsRes.data);
     } catch (error: any) {
