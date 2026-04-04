@@ -194,45 +194,39 @@ async def migrate_catalog_images():
 
     # ── Lost Mary Nera: normalize ALL legacy model names ─────────────────────
     # Idempotent – safe to run every startup
+    # Broad regex catches ANY variant: "Nera 70K", "Nera 70k", "nera 70k", etc.
     import re as _re
 
     def _nera_slug(model_slug_part: str, flavor: str) -> str:
         return _re.sub(r'-+', '-', _re.sub(r'[^a-z0-9]+', '-', f"lost-mary-{model_slug_part}-{flavor}".lower())).strip('-')
 
-    # 1. Rename kits: "Nera 70K" productType=kit  OR  literal "Nera 70k Kit"
-    kit_docs = await db.products.find(
-        {"brandName": "Lost Mary", "$or": [
-            {"model": "Nera 70k Kit"},
-            {"model": "Nera 70K", "productType": "kit"},
-            {"model": {"$regex": "^Nera 70[Kk]$"}, "productType": "kit"},
-        ]},
-        {"_id": 1, "flavor": 1}
-    ).to_list(200)
-    for p in kit_docs:
+    # Find ALL Lost Mary products with any "nera 70" variant in model (case-insensitive)
+    all_legacy = await db.products.find(
+        {"brandName": "Lost Mary", "model": {"$regex": "nera 70", "$options": "i"}},
+        {"_id": 1, "model": 1, "flavor": 1, "productType": 1}
+    ).to_list(500)
+
+    kit_count = 0
+    pod_count = 0
+    for p in all_legacy:
+        model_raw = (p.get("model") or "").lower()
+        prod_type = (p.get("productType") or "").lower()
+        flavor    = p.get("flavor", "")
+
+        is_kit = ("kit" in model_raw) or (prod_type == "kit")
+        new_model  = "Nera Fullview 70K Kit" if is_kit else "Nera Fullview 70K POD"
+        slug_part  = "nera-fullview-70k-kit"  if is_kit else "nera-fullview-70k-pod"
+
         await db.products.update_one(
             {"_id": p["_id"]},
-            {"$set": {"model": "Nera Fullview 70K Kit",
-                      "slug": _nera_slug("nera-fullview-70k-kit", p.get("flavor", ""))}}
+            {"$set": {"model": new_model, "slug": _nera_slug(slug_part, flavor)}}
         )
+        if is_kit:
+            kit_count += 1
+        else:
+            pod_count += 1
 
-    # 2. Rename pods: "Nera 70K" productType=pod  OR  "Nera 70k POD"  OR  bare "Nera 70k"
-    pod_docs = await db.products.find(
-        {"brandName": "Lost Mary", "$or": [
-            {"model": "Nera 70k POD"},
-            {"model": "Nera 70k"},
-            {"model": "Nera 70K", "productType": "pod"},
-            {"model": {"$regex": "^Nera 70[Kk]$"}, "productType": {"$ne": "kit"}},
-        ]},
-        {"_id": 1, "flavor": 1}
-    ).to_list(200)
-    for p in pod_docs:
-        await db.products.update_one(
-            {"_id": p["_id"]},
-            {"$set": {"model": "Nera Fullview 70K POD",
-                      "slug": _nera_slug("nera-fullview-70k-pod", p.get("flavor", ""))}}
-        )
-
-    logger.info(f"Nera normalization: {len(kit_docs)} kits + {len(pod_docs)} pods renamed")
+    logger.info(f"Nera normalization: {kit_count} kits + {pod_count} pods renamed")
 
     # 3. Ensure 3 required POD products exist – create if missing
     NERA_POD_FALLBACK_IMG = "https://cdn11.bigcommerce.com/s-nlylv/images/stencil/1280x1280/products/2768/10013/___77235.1760038255.png?c=2"
