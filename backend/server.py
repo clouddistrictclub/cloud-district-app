@@ -192,9 +192,10 @@ async def startup_migrate():
     print(f"STARTUP: DB_NAME = {db.name}")
     logger.info(f"STARTUP: MONGO_URI = {mongo_uri}")
     logger.info(f"STARTUP: DB_NAME = {db.name}")
-    await migrate_base64_images()
-    await migrate_catalog_images()
-    await cleanup_test_users()
+    # MIGRATIONS TEMPORARILY DISABLED — re-enable after healthcheck is stable
+    # await migrate_base64_images()
+    # await migrate_catalog_images()
+    # await cleanup_test_users()
     asyncio.create_task(expire_pending_orders_loop())
     asyncio.create_task(leaderboard_snapshot_loop())
 
