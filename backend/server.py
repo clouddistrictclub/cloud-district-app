@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
@@ -13,6 +13,8 @@ from limiter import limiter
 from database import client, db, UPLOADS_DIR
 from auth import SECRET_KEY, ALGORITHM
 from services.order_service import migrate_base64_images, migrate_catalog_images, cleanup_test_users, expire_pending_orders_loop, leaderboard_snapshot_loop, chat_manager
+from scripts.repair_product_data import run_repair
+from auth import get_admin_user
 from routes.auth_routes import router as auth_router
 from routes.user_routes import router as user_router
 from routes.product_routes import router as product_router
@@ -106,6 +108,14 @@ async def debug_env():
 @app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok"}
+
+
+# ==================== TEMPORARY ADMIN REPAIR (DELETE AFTER USE) ====================
+
+@app.post("/api/admin/repair-products")
+async def repair_products(admin=Depends(get_admin_user)):
+    result = await run_repair()
+    return result
 
 
 # ==================== WEBSOCKET (must be on app, not router) ====================
