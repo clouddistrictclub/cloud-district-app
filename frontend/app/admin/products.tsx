@@ -89,10 +89,12 @@ export default function ProductsManagement() {
 
   const loadData = async () => {
     try {
+      console.log("BACKEND RUNTIME:", process.env.EXPO_PUBLIC_BACKEND_URL);
       const [productsRes, brandsRes] = await Promise.all([
         axios.get(`${API_URL}/api/products`),
         axios.get(`${API_URL}/api/brands?active_only=false`)
       ]);
+      console.log("PRODUCT RESPONSE:", productsRes.data?.length, productsRes.data?.slice(0, 3));
       console.log("PRODUCT COUNT:", productsRes.data.length);
       setProducts(productsRes.data);
       setBrands(brandsRes.data);
