@@ -23,6 +23,7 @@ export default function RootLayout() {
   const hydrateCart = useCartStore(state => state.hydrateCart);
 
   useEffect(() => {
+    console.log("BACKEND:", process.env.EXPO_PUBLIC_BACKEND_URL);
     loadToken();
     // Hydrate cart from localStorage (web) or AsyncStorage (native) on client mount.
     hydrateCart();

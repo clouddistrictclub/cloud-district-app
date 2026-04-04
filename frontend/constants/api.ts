@@ -1,1 +1,1 @@
-export const API_URL = "https://api.clouddistrict.club";
+export const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL as string;
