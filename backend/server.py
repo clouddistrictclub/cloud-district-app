@@ -14,6 +14,7 @@ from database import client, db, UPLOADS_DIR
 from auth import SECRET_KEY, ALGORITHM
 from services.order_service import migrate_base64_images, migrate_catalog_images, cleanup_test_users, expire_pending_orders_loop, leaderboard_snapshot_loop, chat_manager
 from scripts.repair_product_data import run_repair
+from scripts.repair_brand_ids import run_brand_id_repair
 from auth import get_admin_user
 from routes.auth_routes import router as auth_router
 from routes.user_routes import router as user_router
@@ -115,6 +116,12 @@ async def health_check():
 @app.post("/api/admin/repair-products")
 async def repair_products(admin=Depends(get_admin_user)):
     result = await run_repair()
+    return result
+
+
+@app.post("/api/admin/repair-brand-ids")
+async def repair_brand_ids(admin=Depends(get_admin_user)):
+    result = await run_brand_id_repair()
     return result
 
 
