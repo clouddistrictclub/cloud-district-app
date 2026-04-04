@@ -195,6 +195,45 @@ async def migrate_catalog_images():
                 break
 
     logger.info(f"Brand normalization: {products_fixed} brandId fixes + {inferred} inferred brands")
+
+    # ── Fix products where model=None: infer from name field ─────────────────
+    MODEL_PATTERNS = [
+        ("Nera Fullview 70K POD",  "pod",        "Lost Mary"),
+        ("Nera Fullview 70K Kit",  "kit",        "Lost Mary"),
+        ("CLR 50K",                "disposable", "Geek Bar"),
+        ("CLIO Platinum 50K",      "pod",        "Geek Bar"),
+        ("Pulse",                  "disposable", "Geek Bar"),
+        ("RIA NV30K",              "disposable", "Geek Bar"),
+        ("VUE 50K",                "pod",        "RAZ"),
+    ]
+    null_model_prods = await db.products.find(
+        {"$or": [{"model": None}, {"model": ""}, {"model": {"$exists": False}}]},
+        {"_id": 1, "name": 1, "brandName": 1}
+    ).to_list(500)
+    fixed_models = 0
+    for p in null_model_prods:
+        name  = (p.get("name") or "").strip()
+        brand = (p.get("brandName") or "").strip()
+        matched = False
+        for model_str, prod_type, expected_brand in MODEL_PATTERNS:
+            if model_str.lower() in name.lower() and (not expected_brand or brand == expected_brand):
+                await db.products.update_one(
+                    {"_id": p["_id"]},
+                    {"$set": {"model": model_str, "productType": prod_type}}
+                )
+                fixed_models += 1
+                matched = True
+                break
+        if not matched and name and " - " in name:
+            inferred_model = name.split(" - ")[0].strip()
+            await db.products.update_one(
+                {"_id": p["_id"]},
+                {"$set": {"model": inferred_model}}
+            )
+            fixed_models += 1
+    if fixed_models:
+        logger.info(f"Fixed {fixed_models} products with missing model field")
+
     await db.products.update_many(
         {"brandName": "Geek Bar", "model": "CLIO Platinum 50K", "flavor": "Triple Berry Ice"},
         {"$set": {"image": "https://bigmosmokeshop.com/wp-content/uploads/2026/02/clio-triple-berry-ice.webp"}},
