@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 @limiter.limit("5/minute", key_func=get_user_id_or_ip)
 async def create_order(request: Request, order_data: OrderCreate, user=Depends(get_current_user)):
     # --- Resolve effective user (admin may create on behalf of another user) ---
-    if user.get("isAdmin") and order_data.userId and order_data.userId != str(user["_id"]):
+    print(f"ORDER DATA USER ID: {order_data.userId}")
+    print(f"AUTH USER ID: {str(user['_id'])}")
+    print(f"IS ADMIN: {user.get('isAdmin', False)}")
+
+    if user.get("isAdmin") and order_data.userId:
         try:
             target_oid = ObjectId(order_data.userId)
         except Exception:
@@ -34,7 +38,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         effective_user_id = str(user["_id"])
         effective_user_oid = user["_id"]
         order_user = user
-        print(f"ORDER CREATED FOR: {effective_user_id}")
+        print(f"ORDER CREATED FOR: {effective_user_id} (no override)")
 
     # Verify products exist (non-atomic, fast pre-check for 404s only)
     for item in order_data.items:
@@ -131,6 +135,8 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
 
     result = await db.orders.insert_one(order_dict)
     order_dict["id"] = str(result.inserted_id)
+    order_dict["requestedUserId"] = order_data.userId
+    order_dict["effectiveUserId"] = effective_user_id
 
     # Deduct store credit from effective user balance
     if store_credit_applied > 0:

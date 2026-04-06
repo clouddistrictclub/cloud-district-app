@@ -254,6 +254,8 @@ class OrderCreate(BaseModel):
 class Order(BaseModel):
     id: Optional[str] = None
     userId: str
+    requestedUserId: Optional[str] = None   # DEBUG: userId sent in request body
+    effectiveUserId: Optional[str] = None   # DEBUG: userId actually written to DB
     items: List[CartItem]
     total: float
     pickupTime: str
