@@ -241,6 +241,24 @@ async def admin_adjust_cloudz(user_id: str, data: CloudzAdjust, admin=Depends(ge
     return {"message": "Balance updated", "newBalance": new_balance}
 
 
+@router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, admin=Depends(get_admin_user)):
+    """Generate a temporary password and reset the user's password.
+    Returns the temporary password in plaintext so the admin can share it."""
+    import secrets, string
+    alphabet = string.ascii_letters + string.digits
+    temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+    hashed = get_password_hash(temp_password)
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"ADMIN ACTION: password reset for user {user_id} by admin {str(admin['_id'])}")
+    return {"temporaryPassword": temp_password}
+
+
 @router.post("/admin/users/{user_id}/set-password")
 async def admin_set_user_password(user_id: str, data: AdminSetPassword, admin=Depends(get_admin_user)):
     if len(data.newPassword) < 8:
