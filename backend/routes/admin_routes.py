@@ -15,9 +15,14 @@ from typing import List, Optional
 import re as _re
 import asyncio
 import logging
+import time
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# ==================== IN-MEMORY ANALYTICS CACHE ====================
+_analytics_cache: dict = {}
+_ANALYTICS_TTL = 60  # seconds
 
 
 # ==================== ADMIN REVIEWS ====================
@@ -472,6 +477,8 @@ async def get_admin_analytics(
     endDate: Optional[str] = None,
     admin=Depends(get_admin_user),
 ):
+    t0 = time.monotonic()
+
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     if startDate:
         try:
@@ -489,49 +496,120 @@ async def get_admin_analytics(
     else:
         end_dt = today + timedelta(days=1)
 
-    date_filter: dict = {"createdAt": {"$gte": start_dt, "$lt": end_dt}}
+    # Cache key based on date range — serve cached result if fresh
+    cache_key = f"{startDate}:{endDate}"
+    cached = _analytics_cache.get(cache_key)
+    if cached and (time.monotonic() - cached["ts"]) < _ANALYTICS_TTL:
+        logger.info(f"[analytics] cache hit ({cache_key}) — 0ms")
+        return cached["data"]
 
-    totals = await db.orders.aggregate([
-        {"$match": date_filter},
-        {"$group": {"_id": None, "count": {"$sum": 1}, "revenue": {"$sum": "$total"}}},
-    ]).to_list(1)
+    date_filter: dict = {"createdAt": {"$gte": start_dt, "$lt": end_dt}}
+    seven_days_ago = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
+
+    # ── RUN ALL 8 AGGREGATIONS IN PARALLEL ──────────────────────────────
+    t_db_start = time.monotonic()
+    (
+        totals,
+        payment_data,
+        top_products_data,
+        top_cust_data,
+        low_inv_docs,
+        customer_agg,
+        rpr_agg,
+        trend_raw,
+    ) = await asyncio.gather(
+        db.orders.aggregate([
+            {"$match": date_filter},
+            {"$group": {"_id": None, "count": {"$sum": 1}, "revenue": {"$sum": "$total"}}},
+        ]).to_list(1),
+        db.orders.aggregate([
+            {"$match": date_filter},
+            {"$group": {"_id": "$paymentMethod", "total": {"$sum": "$total"}, "count": {"$sum": 1}}},
+            {"$sort": {"total": -1}},
+        ]).to_list(20),
+        db.orders.aggregate([
+            {"$match": date_filter},
+            {"$unwind": "$items"},
+            {"$group": {
+                "_id": "$items.productId",
+                "name": {"$first": "$items.name"},
+                "quantity": {"$sum": "$items.quantity"},
+                "revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}},
+            }},
+            {"$sort": {"quantity": -1}},
+            {"$limit": 8},
+        ]).to_list(8),
+        db.orders.aggregate([
+            {"$match": date_filter},
+            {"$group": {"_id": "$userId", "totalSpent": {"$sum": "$total"}, "orderCount": {"$sum": 1}}},
+            {"$sort": {"totalSpent": -1}},
+            {"$limit": 8},
+        ]).to_list(8),
+        db.products.find(
+            {"stock": {"$lt": 3}, "isActive": True}, {"_id": 1, "name": 1, "stock": 1}
+        ).sort("stock", 1).to_list(20),
+        db.orders.aggregate([
+            {"$match": date_filter},
+            {"$group": {"_id": "$userId", "totalSpent": {"$sum": "$total"}, "orderCount": {"$sum": 1}}},
+            {"$group": {
+                "_id": None,
+                "totalCustomers": {"$sum": 1},
+                "repeatCustomers": {"$sum": {"$cond": [{"$gt": ["$orderCount", 1]}, 1, 0]}},
+                "avgCLV": {"$avg": "$totalSpent"},
+            }},
+        ]).to_list(1),
+        db.orders.aggregate([
+            {"$match": {"status": {"$ne": "Cancelled"}}},
+            {"$group": {"_id": "$userId", "orderCount": {"$sum": 1}}},
+            {"$group": {
+                "_id": None,
+                "totalUnique": {"$sum": 1},
+                "repeatUnique": {"$sum": {"$cond": [{"$gte": ["$orderCount", 2]}, 1, 0]}},
+            }},
+        ]).to_list(1),
+        db.orders.aggregate([
+            {"$match": {"createdAt": {"$gte": seven_days_ago}}},
+            {"$group": {
+                "_id": {"y": {"$year": "$createdAt"}, "m": {"$month": "$createdAt"}, "d": {"$dayOfMonth": "$createdAt"}},
+                "revenue": {"$sum": "$total"},
+            }},
+            {"$sort": {"_id.y": 1, "_id.m": 1, "_id.d": 1}},
+        ]).to_list(7),
+    )
+    t_db = time.monotonic() - t_db_start
+    logger.info(f"[analytics] parallel DB queries: {t_db * 1000:.0f}ms")
+
+    # ── BATCH USER LOOKUP (eliminates N+1 loop) ──────────────────────────
+    t_users_start = time.monotonic()
+    cust_user_ids = [c["_id"] for c in top_cust_data if c.get("_id")]
+    users_map: dict = {}
+    if cust_user_ids:
+        async for u in db.users.find(
+            {"_id": {"$in": [ObjectId(uid) for uid in cust_user_ids if uid]}},
+            {"_id": 1, "firstName": 1, "lastName": 1, "email": 1},
+        ):
+            users_map[str(u["_id"])] = u
+    t_users = time.monotonic() - t_users_start
+    logger.info(f"[analytics] batch user lookup: {t_users * 1000:.0f}ms")
+
+    # ── BUILD RESPONSE ───────────────────────────────────────────────────
     total_orders = totals[0]["count"] if totals else 0
     total_revenue = totals[0]["revenue"] if totals else 0.0
     avg_order_value = total_revenue / total_orders if total_orders else 0.0
 
-    payment_data = await db.orders.aggregate([
-        {"$match": date_filter},
-        {"$group": {"_id": "$paymentMethod", "total": {"$sum": "$total"}, "count": {"$sum": 1}}},
-        {"$sort": {"total": -1}},
-    ]).to_list(20)
-    revenue_by_payment = [{"method": r["_id"] or "Unknown", "total": r["total"], "count": r["count"]} for r in payment_data]
+    revenue_by_payment = [
+        {"method": r["_id"] or "Unknown", "total": r["total"], "count": r["count"]}
+        for r in payment_data
+    ]
 
-    top_products_data = await db.orders.aggregate([
-        {"$match": date_filter},
-        {"$unwind": "$items"},
-        {"$group": {
-            "_id": "$items.productId",
-            "name": {"$first": "$items.name"},
-            "quantity": {"$sum": "$items.quantity"},
-            "revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}},
-        }},
-        {"$sort": {"quantity": -1}},
-        {"$limit": 8},
-    ]).to_list(8)
-    top_products = [{"productId": p["_id"], "name": p["name"], "quantity": p["quantity"], "revenue": p["revenue"]} for p in top_products_data]
+    top_products = [
+        {"productId": p["_id"], "name": p["name"], "quantity": p["quantity"], "revenue": p["revenue"]}
+        for p in top_products_data
+    ]
 
-    top_cust_data = await db.orders.aggregate([
-        {"$match": date_filter},
-        {"$group": {"_id": "$userId", "totalSpent": {"$sum": "$total"}, "orderCount": {"$sum": 1}}},
-        {"$sort": {"totalSpent": -1}},
-        {"$limit": 8},
-    ]).to_list(8)
     top_customers = []
     for c in top_cust_data:
-        try:
-            user = await db.users.find_one({"_id": ObjectId(c["_id"])}, {"firstName": 1, "lastName": 1, "email": 1})
-        except Exception:
-            user = None
+        user = users_map.get(c["_id"])
         name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() if user else "Unknown"
         top_customers.append({
             "userId": c["_id"],
@@ -541,21 +619,10 @@ async def get_admin_analytics(
             "orderCount": c["orderCount"],
         })
 
-    low_inv_docs = await db.products.find(
-        {"stock": {"$lt": 3}, "isActive": True}, {"_id": 1, "name": 1, "stock": 1}
-    ).sort("stock", 1).to_list(20)
-    low_inventory = [{"productId": str(p["_id"]), "name": p["name"], "stock": p["stock"]} for p in low_inv_docs]
-
-    customer_agg = await db.orders.aggregate([
-        {"$match": date_filter},
-        {"$group": {"_id": "$userId", "totalSpent": {"$sum": "$total"}, "orderCount": {"$sum": 1}}},
-        {"$group": {
-            "_id": None,
-            "totalCustomers": {"$sum": 1},
-            "repeatCustomers": {"$sum": {"$cond": [{"$gt": ["$orderCount", 1]}, 1, 0]}},
-            "avgCLV": {"$avg": "$totalSpent"},
-        }},
-    ]).to_list(1)
+    low_inventory = [
+        {"productId": str(p["_id"]), "name": p["name"], "stock": p["stock"]}
+        for p in low_inv_docs
+    ]
 
     if customer_agg:
         ca = customer_agg[0]
@@ -567,31 +634,13 @@ async def get_admin_analytics(
         total_customers = repeat_customers = 0
         repeat_rate = avg_clv = 0.0
 
-    rpr_agg = await db.orders.aggregate([
-        {"$match": {"status": {"$ne": "Cancelled"}}},
-        {"$group": {"_id": "$userId", "orderCount": {"$sum": 1}}},
-        {"$group": {
-            "_id": None,
-            "totalUnique": {"$sum": 1},
-            "repeatUnique": {"$sum": {"$cond": [{"$gte": ["$orderCount", 2]}, 1, 0]}},
-        }},
-    ]).to_list(1)
     if rpr_agg:
         rpr = rpr_agg[0]
         repeat_purchase_rate = round(rpr["repeatUnique"] / rpr["totalUnique"] * 100, 1) if rpr["totalUnique"] else 0.0
     else:
         repeat_purchase_rate = 0.0
 
-    seven_days_ago = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
-    trend_raw = await db.orders.aggregate([
-        {"$match": {"createdAt": {"$gte": seven_days_ago}}},
-        {"$group": {
-            "_id": {"y": {"$year": "$createdAt"}, "m": {"$month": "$createdAt"}, "d": {"$dayOfMonth": "$createdAt"}},
-            "revenue": {"$sum": "$total"},
-        }},
-        {"$sort": {"_id.y": 1, "_id.m": 1, "_id.d": 1}},
-    ]).to_list(7)
-    trend_map = {}
+    trend_map: dict = {}
     for t in trend_raw:
         key = f"{t['_id']['y']}-{t['_id']['m']:02d}-{t['_id']['d']:02d}"
         trend_map[key] = round(t["revenue"], 2)
@@ -601,7 +650,7 @@ async def get_admin_analytics(
         key = day.strftime("%Y-%m-%d")
         revenue_trend.append({"date": key, "revenue": trend_map.get(key, 0)})
 
-    return {
+    result = {
         "period": {"startDate": startDate, "endDate": endDate},
         "totalOrders": total_orders,
         "totalRevenue": round(total_revenue, 2),
@@ -617,6 +666,14 @@ async def get_admin_analytics(
         "revenueTrendLast7Days": revenue_trend,
         "repeatPurchaseRate": repeat_purchase_rate,
     }
+
+    # Store in cache
+    _analytics_cache[cache_key] = {"data": result, "ts": time.monotonic()}
+
+    total_ms = (time.monotonic() - t0) * 1000
+    logger.info(f"[analytics] TOTAL: {total_ms:.0f}ms  (db={t_db*1000:.0f}ms, users={t_users*1000:.0f}ms)")
+
+    return result
 
 
 # ==================== TEMPORARY DATA MIGRATION ENDPOINTS ====================

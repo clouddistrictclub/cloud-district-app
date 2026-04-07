@@ -185,6 +185,17 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
 
 # ==================== STARTUP / SHUTDOWN ====================
 
+async def _ensure_analytics_indexes():
+    """Create indexes needed for analytics queries. No-op if they already exist."""
+    try:
+        await db.orders.create_index([("createdAt", -1)], background=True)
+        await db.orders.create_index([("userId", 1)], background=True)
+        await db.orders.create_index([("status", 1)], background=True)
+        logger.info("STARTUP: analytics indexes ensured")
+    except Exception as e:
+        logger.warning(f"STARTUP: index creation warning (non-fatal): {e}")
+
+
 @app.on_event("startup")
 async def startup_migrate():
     mongo_uri = os.environ.get("MONGO_URL", "NOT_SET")
@@ -198,6 +209,7 @@ async def startup_migrate():
     # await cleanup_test_users()
     asyncio.create_task(expire_pending_orders_loop())
     asyncio.create_task(leaderboard_snapshot_loop())
+    asyncio.create_task(_ensure_analytics_indexes())
 
 
 @app.on_event("shutdown")
