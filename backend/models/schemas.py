@@ -17,11 +17,11 @@ RESERVED_USERNAMES = {"admin", "support", "api", "clouddistrict", "orders", "roo
 USERNAME_RE = _re.compile(r'^[a-zA-Z0-9_]{3,20}$')
 
 LOYALTY_TIERS = [
-    {"id": "tier_1", "name": "Bronze Cloud", "pointsRequired": 1000, "reward": 5.00, "icon": "cloud-outline"},
-    {"id": "tier_2", "name": "Silver Storm", "pointsRequired": 5000, "reward": 30.00, "icon": "cloud"},
-    {"id": "tier_3", "name": "Gold Thunder", "pointsRequired": 10000, "reward": 75.00, "icon": "thunderstorm-outline"},
-    {"id": "tier_4", "name": "Platinum Haze", "pointsRequired": 20000, "reward": 175.00, "icon": "thunderstorm"},
-    {"id": "tier_5", "name": "Diamond Sky", "pointsRequired": 30000, "reward": 300.00, "icon": "diamond"},
+    {"id": "tier_1", "name": "Bronze Cloud",   "pointsRequired": 1000,  "reward": 3.50,   "icon": "cloud-outline"},
+    {"id": "tier_2", "name": "Silver Storm",   "pointsRequired": 5000,  "reward": 20.00,  "icon": "cloud"},
+    {"id": "tier_3", "name": "Gold Thunder",   "pointsRequired": 10000, "reward": 50.00,  "icon": "thunderstorm-outline"},
+    {"id": "tier_4", "name": "Platinum Haze",  "pointsRequired": 20000, "reward": 125.00, "icon": "thunderstorm"},
+    {"id": "tier_5", "name": "Diamond Sky",    "pointsRequired": 30000, "reward": 275.00, "icon": "diamond"},
 ]
 
 TIER_COLORS = {
