@@ -363,6 +363,37 @@ async def maybe_award_streak_bonus(user_id: str, order_id: str):
 
 
 
+import random as _random
+
+# Slot machine outcomes: (label, weight, multiplier_or_fn)
+# Weights sum to 1.0 — used with random.choices
+_SLOT_OUTCOMES = [
+    ("none",     0.40),
+    ("1.25x",    0.25),
+    ("1.5x",     0.20),
+    ("2x",       0.10),
+    ("bonus_50", 0.04),
+    ("jackpot",  0.01),
+]
+_SLOT_LABELS   = [o[0] for o in _SLOT_OUTCOMES]
+_SLOT_WEIGHTS  = [o[1] for o in _SLOT_OUTCOMES]
+
+
+def _apply_slot(base: int, result: str) -> tuple[int, float]:
+    """Return (final_points, multiplier_used)."""
+    if result == "1.25x":
+        return int(base * 1.25), 1.25
+    if result == "1.5x":
+        return int(base * 1.5), 1.5
+    if result == "2x":
+        return int(base * 2), 2.0
+    if result == "bonus_50":
+        return base + 50, 1.0
+    if result == "jackpot":
+        return int(base * 5), 5.0
+    return base, 1.0  # "none"
+
+
 async def process_daily_checkin(user_id: str) -> dict:
     """
     Award daily check-in Cloudz reward. Atomic and idempotent.
@@ -390,12 +421,20 @@ async def process_daily_checkin(user_id: str) -> dict:
             "reward":           0,
             "streak":           cur_streak,
             "nextReward":       next_reward,
+            "basePoints":       0,
+            "finalPoints":      0,
+            "slotResult":       "none",
+            "multiplier":       1.0,
         }
 
     # Compute new streak
     new_streak  = (cur_streak + 1) if last_date == yesterday_str else 1
-    reward      = CHECKIN_REWARDS[(new_streak - 1) % 7 + 1]
+    base_reward = CHECKIN_REWARDS[(new_streak - 1) % 7 + 1]
     next_reward = CHECKIN_REWARDS[(new_streak % 7) + 1]
+
+    # Spin the slot — one result per successful check-in
+    slot_result              = _random.choices(_SLOT_LABELS, weights=_SLOT_WEIGHTS, k=1)[0]
+    final_reward, multiplier = _apply_slot(base_reward, slot_result)
 
     # Atomic write — filter ensures a concurrent duplicate request loses the race
     result = await db.users.find_one_and_update(
@@ -408,7 +447,7 @@ async def process_daily_checkin(user_id: str) -> dict:
                 "lastCheckInDate": today_str,
                 "checkInStreak":   new_streak,
             },
-            "$inc": {"loyaltyPoints": reward},
+            "$inc": {"loyaltyPoints": final_reward},
         },
         return_document=True,
     )
@@ -423,27 +462,40 @@ async def process_daily_checkin(user_id: str) -> dict:
             "reward":           0,
             "streak":           cur_streak,
             "nextReward":       CHECKIN_REWARDS[next_day],
+            "basePoints":       0,
+            "finalPoints":      0,
+            "slotResult":       "none",
+            "multiplier":       1.0,
         }
 
     balance_after = result["loyaltyPoints"]
 
     await db.cloudz_ledger.insert_one({
-        "userId":      user_id,
-        "type":        "daily_checkin",
-        "amount":      reward,
+        "userId":       user_id,
+        "type":         "daily_checkin",
+        "amount":       final_reward,
         "balanceAfter": balance_after,
-        "reference":   f"Day {new_streak} check-in",
-        "description": f"Daily check-in — day {new_streak}",
-        "isoDate":     today_str,
-        "createdAt":   datetime.utcnow(),
+        "reference":    f"Day {new_streak} check-in",
+        "description":  f"Daily check-in — day {new_streak}",
+        "isoDate":      today_str,
+        "createdAt":    datetime.utcnow(),
+        "metadata": {
+            "basePoints": base_reward,
+            "slotResult": slot_result,
+            "multiplier": multiplier,
+        },
     })
 
     return {
         "success":          True,
         "alreadyCheckedIn": False,
-        "reward":           reward,
+        "reward":           final_reward,
         "streak":           new_streak,
         "nextReward":       next_reward,
+        "basePoints":       base_reward,
+        "finalPoints":      final_reward,
+        "slotResult":       slot_result,
+        "multiplier":       multiplier,
     }
 
 
