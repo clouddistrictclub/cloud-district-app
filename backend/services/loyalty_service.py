@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 async def log_cloudz_transaction(
     user_id: str, tx_type: str, amount: int,
-    reference: str = "", description: str = "", order_id: str = ""
+    reference: str = "", description: str = "", order_id: str = "",
+    metadata: dict = None,
 ) -> int:
     """Atomically update Cloudz balance and write ledger entry. Returns new balance."""
     update_result = await db.users.update_one(
@@ -37,6 +38,8 @@ async def log_cloudz_transaction(
     }
     if order_id:
         entry["orderId"] = order_id
+    if metadata:
+        entry["metadata"] = metadata
     ledger_result = await db.cloudz_ledger.insert_one(entry)
     print(f"LEDGER INSERTED ({tx_type}): {ledger_result.inserted_id}")
     return new_balance

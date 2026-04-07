@@ -577,13 +577,24 @@ async def leaderboard_snapshot_loop():
         await asyncio.sleep((next_midnight - now).total_seconds())
 
 
+# ==================== STREAK MULTIPLIER TABLE ====================
+_STREAK_MULTIPLIER = {1: 1.0, 2: 1.1, 3: 1.25, 4: 1.5}
+_STREAK_MULTIPLIER_CAP = 2.0   # 5+ weeks
+
+
+def _get_streak_multiplier(streak: int) -> float:
+    return _STREAK_MULTIPLIER.get(streak, _STREAK_MULTIPLIER_CAP)
+
+
 # ==================== SHARED ORDER COMPLETION LOGIC ====================
 
-async def handle_order_completed(order: dict):
-    """Single authoritative function for all order completion rewards. Idempotent."""
+async def handle_order_completed(order: dict) -> dict:
+    """Single authoritative function for all order completion rewards. Idempotent.
+    Returns {'weeklyOrderStreak': int, 'orderMultiplier': float}."""
     order_id = str(order["_id"])
     user_id = order["userId"]
     print("HANDLE ORDER COMPLETED START", order_id)
+    streak_result = {"weeklyOrderStreak": 0, "orderMultiplier": 1.0}
 
     # 1. PURCHASE REWARD — idempotent via loyaltyRewardIssued flag
     claimed_loyalty = await db.orders.find_one_and_update(
@@ -591,11 +602,37 @@ async def handle_order_completed(order: dict):
         {"$set": {"loyaltyRewardIssued": True}},
     )
     if claimed_loyalty is not None:
-        points = int(float(order.get("total") or 0)) * 3
-        print("PURCHASE REWARD: awarding", points, "for order", order_id)
+        # --- STREAK LOGIC ---
+        now = datetime.utcnow()
+        user_doc = await db.users.find_one(
+            {"_id": ObjectId(user_id)},
+            {"lastOrderAt": 1, "weeklyOrderStreak": 1},
+        )
+        last_order_at = user_doc.get("lastOrderAt") if user_doc else None
+        prev_streak   = int(user_doc.get("weeklyOrderStreak") or 0) if user_doc else 0
+
+        if last_order_at and (now - last_order_at).total_seconds() < 7 * 24 * 3600:
+            new_streak = prev_streak + 1
+        else:
+            new_streak = 1
+
+        multiplier = _get_streak_multiplier(new_streak)
+
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"weeklyOrderStreak": new_streak, "lastOrderAt": now}},
+        )
+        streak_result = {"weeklyOrderStreak": new_streak, "orderMultiplier": multiplier}
+
+        # --- APPLY MULTIPLIER ---
+        base_points = int(float(order.get("total") or 0)) * 3
+        points = int(base_points * multiplier)
+        print(f"PURCHASE REWARD: base={base_points} × {multiplier}x = {points} Cloudz  (streak={new_streak})")
+
         await log_cloudz_transaction(
             user_id, "purchase_reward", points,
             f"Order #{order_id[:8]}", f"Purchase reward from order #{order_id}", order_id,
+            metadata={"multiplier": multiplier, "weeklyOrderStreak": new_streak, "basePoints": base_points},
         )
         await maybe_award_streak_bonus(user_id, order_id)
     else:
@@ -657,6 +694,7 @@ async def handle_order_completed(order: dict):
     await check_and_unlock_referral_reward(user_id)
 
     print("HANDLE ORDER COMPLETED COMPLETE", order_id)
+    return streak_result
 
 
 async def update_order_status_shared(order_id: str, new_status: str, source: str = "unknown") -> dict:
@@ -708,7 +746,9 @@ async def update_order_status_shared(order_id: str, new_status: str, source: str
     # Reward trigger — idempotency handled inside handle_order_completed
     if new_status == "Completed":
         print("REWARD TRIGGER EXECUTED")
-        await handle_order_completed(order)
+        streak_data = await handle_order_completed(order)
+    else:
+        streak_data = {}
 
     # Final balance read — confirms all writes committed before response
     final_user = await db.users.find_one(
@@ -720,4 +760,8 @@ async def update_order_status_shared(order_id: str, new_status: str, source: str
         order["userId"], "Order Update",
         f"Order #{order_id[-6:].upper()} is now: {new_status}",
     ))
-    return {"message": "Order status updated"}
+    response = {"message": "Order status updated"}
+    if streak_data:
+        response["weeklyOrderStreak"] = streak_data.get("weeklyOrderStreak", 0)
+        response["orderMultiplier"]   = streak_data.get("orderMultiplier", 1.0)
+    return response
