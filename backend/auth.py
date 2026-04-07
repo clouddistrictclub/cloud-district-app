@@ -88,6 +88,18 @@ async def get_admin_user(user=Depends(get_current_user)):
     return user
 
 
+async def touch_last_active(user_id: str) -> None:
+    """Directly update lastActiveAt for explicit activity events (orders, check-ins).
+    No throttle — these are high-value signals always worth recording."""
+    try:
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"lastActiveAt": datetime.utcnow()}},
+        )
+    except Exception:
+        pass
+
+
 def build_user_response(user_doc: dict) -> UserResponse:
     uid = str(user_doc["_id"]) if "_id" in user_doc else user_doc.get("id", "")
     return UserResponse(

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from database import db
-from auth import get_current_user
+from auth import get_current_user, touch_last_active
 from models.schemas import TierRedeemRequest, LOYALTY_TIERS
 from services.loyalty_service import (
     log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier,
@@ -246,4 +246,5 @@ async def get_leaderboard(user=Depends(get_current_user)):
 async def daily_check_in(user=Depends(get_current_user)):
     user_id = str(user["_id"])
     result = await process_daily_checkin(user_id)
+    await touch_last_active(user_id)
     return result

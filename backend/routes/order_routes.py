@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
-from auth import get_current_user, get_admin_user
+from auth import get_current_user, get_admin_user, touch_last_active
 from models.schemas import Order, OrderCreate, OrderStatusUpdate
 from services.loyalty_service import log_cloudz_transaction, check_and_unlock_referral_reward
 from services.email_service import is_email_configured, send_email, build_order_confirmation_html
@@ -173,6 +173,9 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
             send_email(order_user.get("email", ""), "Order Confirmation - Cloud District Club", email_html)
     except Exception as e:
         logger.warning(f"Order confirmation email skipped: {e}")
+
+    # Update lastActiveAt for the customer who placed the order
+    await touch_last_active(effective_user_id)
 
     return Order(**order_dict)
 
