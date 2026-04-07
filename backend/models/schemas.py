@@ -102,6 +102,15 @@ class UserResponse(BaseModel):
     isDisabled: bool = False
 
 
+class MeResponse(BaseModel):
+    id: str
+    email: str
+    username: Optional[str] = None
+    isAdmin: bool
+    loyaltyPoints: int
+    creditBalance: float = 0.0
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str

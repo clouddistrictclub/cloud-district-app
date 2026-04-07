@@ -7,28 +7,28 @@ PRODUCT REQUIREMENTS:
 *   **Home Screen:** Featured products, shop by brand, loyalty points display, clear Order for Local Pickup CTA.
 *   **Checkout Flow:** Local pickup only, manual payment methods.
 *   **Order Status System:** Track order progress.
-*   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus.
-*   **Referral Program:** Username-based referral system (referrer gets pending rewards that unlock after referred user spends 0, plus 50% points on future orders).
+*   **Loyalty Program (Cloudz Points):** Tier-based system with a streak bonus, daily check-in rewards, and weekly leaderboard rewards.
+*   **Referral Program:** Username-based referral system.
 *   **User Accounts:** Order history, loyalty status, profile management.
-*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders. Includes user management, store credit, account notes, and account merging.
+*   **Admin Dashboard:** Full CRUD on products, brands, users, inventory, orders.
 
 **User's preferred language**: English (INSTRUCT NEXT AGENT: Please respond in English only)
 
 **what currently exists?** 
-A full-stack Expo (React Native for Web) and FastAPI/MongoDB application. The application has a strictly enforced and deeply integrated referral and loyalty (Cloudz) system. Order status update logic has been centralized so that rewards trigger consistently whether marked 'Completed' via the admin dashboard or the web user interface. The frontend is currently locked to talk to the live production backend.
+A full-stack Expo (React Native for Web) and FastAPI/MongoDB application. The system recently underwent heavy data normalization (fixing null product models/types and unmatched brand IDs) using temporary admin endpoints that have since been fully cleaned up. The  endpoint has been upgraded to properly allow admins to create orders on behalf of other users by overriding the . The frontend uses a strict production API URL constraint to avoid bleeding into preview environments.
 
 **Last working item**: 
-    - Last item agent was working: Providing the exact backend API contract details to the user for the  field during the  signup flow to ensure frontend parity.
-    - Status: COMPLETED
-    - Agent Testing Done: Y (Ran extensive bash/curl testing prior to this during the order status fix and production verification).
-    - Which testing method agent to use? manual testing by bash/curl
+    - Last item agent was working: Extracting the exact API contract for Admin Order Editing () directly from the working mobile codebase so the user can accurately implement it on their separate web frontend.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y (Confirmed via codebase reading)
+    - Which testing method agent to use? manual testing by curl
     - User Testing Done: N
 
-**All Pending/In progress Issue list**: 
-None active. The web order status reward bug and production deployment sync concerns were resolved/verified in this session.
+**All Pending/In progress Issue list**:  
+None currently active. The  bug in  was successfully fixed locally and is pending the user's Save to Github action to deploy to production.
 
 **In progress Task List**: 
-None currently in progress.
+None.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -41,30 +41,31 @@ None currently in progress.
     - P3: Social sharing integration (X, Facebook, Instagram) for referral links.
 
 **Completed work in this session**
-- **Shared Order Status Reward Logic**: Moved  out of  and into  as a shared wrapper . (DONE)
-- **Web Order Status Endpoint**: Added  to  so web frontend updates trigger rewards using the shared service. (DONE)
-- **Admin Order Status Refactor**: Updated  to use the shared service, ensuring duplicate logic is removed. (DONE)
-- **Production Deployment Verification**: Verified via curl that production was already running the latest strict referral code via auto-deploy, executing pending records, strict 500 exceptions on invalid codes, and referral unlocks properly. No deployment action was needed. (DONE)
-- **API Contract Documentation**: Provided the user with the exact strict API contract for 's  payload requirement. (DONE)
+- **Product Data Normalization**: Created, executed, and cleaned up temporary endpoints/scripts to fix null  and  values based on product names. (DONE)
+- **Brand ID Repair**: Created, executed, and cleaned up temporary endpoints to match invalid product s to the correct  in the brands collection. (DONE)
+- **Specific Unmatched Brands Repair**: Targeted 12 specific products in production that needed their brandIds pointed to VIHO, Maskking, and ExtreBar. (DONE)
+- **Security Cleanup**: Removed all temporary data-repair endpoints and script imports from . (DONE)
+- **Admin API Contract Extraction**: Provided the user with exact specs/payloads for Admin User management endpoints (Password Reset, Force Logout, User Merge, Referrer assignment). (DONE)
+- **Admin Order Creation Bug Fix**: Modified  to respect  if the authenticated user is an admin, properly logging and assigning the effective  to the MongoDB document. (DONE)
+- **Order Edit API Contract Extraction**: Provided the exact JSON payload and backend route for . (DONE)
 
 **Earlier issues found/mentioned but not fixed**
 None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: React Native  overlapping with FlatLists/ScrollViews.
+  - Issue recurrence in previous fork: Frontend environment variables defaulting to preview/localhost causing UI breakage.
   - Recurrence count: 2
-  - Status: RESOLVED
+  - Status: RESOLVED (Strictly enforced environment API URLs).
 
 **Code Architecture**
-
+OrderCreateuserId
 
 **Key Technical Concepts**
 - Frontend: React Native, Expo for Web, Zustand.
 - Backend: FastAPI, Motor (Async MongoDB).
-- Architecture Note: Reward triggers and referral logic are strictly guarded. Rewards ONLY fire when order.status == Completed globally via the new shared service.
+- Architecture Note: **Railway deployments timeout if startup takes too long.** All heavy database migrations must be done via isolated admin endpoints or manual scripts, NOT during the  startup sequence.
 
 **key DB schema**
-  - : 
   - : 
   - : 
 
@@ -72,49 +73,52 @@ None.
   - None.
 
 **All files of reference** 
-- : Centralized hub for triggering order completion rewards ().
-- : Contains the new web-facing order status update endpoint.
-- : Refactored to use the shared order service.
-- : Contains strict referral signup logic.
-- : Source of API URL routing (currently locked to prod).
+- : Cleaned up security file (no temp endpoints).
+- : Contains the fixed  logic for admin  overrides.
+- :  now explicitly supports .
+- : Several DB repair scripts are saved here but are safely disconnected from API routes.
 
 **Areas that need refactoring**: 
 -  is over 600 lines. Top priority for UI refactoring tasks.
 
 **key api endpoints**
-- : Web endpoint for updating order status.
-- : Admin endpoint for updating order status.
-- : Signup and strictly-enforced referral bonus.
+- : Core order creation endpoint (now respects admin  override).
+- : Endpoint for updating order details/stock.
 
 **Critical Info for New Agent** 
-- 🚨 **FRONTEND API LOCK WARNING**: All 24 frontend files import  from , which is currently **hardcoded to the live production backend**. To test backend changes safely via the UI, you MUST temporarily point  back to  and revert it when finished to adhere to user's strict environment isolation.
-- **Reward Triggers Centralized**: Both admin and web order status updates MUST pass through  in . Do not duplicate reward triggering logic in the route files.
-- **Referral Contract**: The backend strictly expects  in the JSON body of  to be the referrer's  string (case-insensitive). 
+- 🚨 **PRODUCTION DB SEPARATION**: The preview container's MongoDB () is distinct from Railway's production DB. To fix issues in production, the code must be deployed to Railway via Save to Github, or admin tokens must be used against the production URL via .
+- The fix for the   bug is fully implemented in the current preview environment but will not be active in production until the user triggers a Save to Github deployment. 
+- All temporary data repair endpoints were explicitly deleted from  for security. Do NOT re-add them unless explicitly requested.
 
 **documents and test reports created in this job** 
--  (Updated)
+- None explicitly meant to be preserved for docs; just one-off python repair scripts.
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. **User**: Provided handoff context and confirmed previous tasks were completed.
-2. **Agent**: Asked for confirmation to proceed with the P1/P2 tasks.
-3. **User**: Identified a critical bug: Web order status updates were not triggering rewards, only admin updates did. Demanded a shared service in  to fix this without duplicating logic. (COMPLETED)
-4. **Agent**: Implemented the shared  logic, refactored both route files, tested thoroughly via bash scripts, and provided a finish summary.
-5. **User**: Reported referral logic was failing on production. Requested the current codebase be deployed immediately to production without modifying frontend or creating new logic. (COMPLETED)
-6. **Agent**: Probed the production server directly via curl and confirmed Railway auto-deploy had already pushed the changes. Verified strict referral logic, pending ledgers, and unlocks were completely functional on production. Provided a finish summary explaining no deployment action was needed.
-7. **User**: Requested the EXACT API contract for  during  (field name, expected value, behavior, payload location) to perfectly align the frontend. (COMPLETED)
+1. **User**: CRITICAL — IDENTIFY UNMATCHED PRODUCTS requested script to list 12 bad products.
+2. **Agent**: Added script, endpoint, tested locally, gave curl commands.
+3. **User**: Provided the 12 exact IDs and mapped them to VIHO, Maskking, ExtreBar. Demanded final repair script.
+4. **Agent**: Wrote final script, wired to , gave curl command.
+5. **User**: FINAL CLEANUP demanded removal of all temp endpoints and imports from .
+6. **Agent**: Purged , confirmed clean hot reload and 200 health check.
+7. **User**: Asked for the exact API contracts of existing admin user management endpoints (Reset Password, Logout, Merge, Referrers).
+8. **Agent**: Extracted the requested API details from the backend.
+9. **User**: CRITICAL FIX reported that  ignores the  payload and assigns it to the admin making the request.
+10. **Agent**: Implemented fix in , removing redundant validations, and adding proper logging and response attributes (, ).
+11. **User**: Asked for the EXACT working API contract for editing orders () directly from the mobile app's codebase.
+12. **Agent**: Extracted the exact payload, models, and frontend function from the code and provided them to the user. (AWAITING USER).
 
 **Project Health Check:**
 - Broken: None.
-- Mocked: Email service in backend (Requires integration replacing).
+- Mocked: Email service in backend ().
 
 **3rd Party Integrations** 
 - 
 - 
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Testing was achieved efficiently via direct python/bash curl execution to strictly control logic paths and verify prod vs preview).
+  - Testing agent used after significant changes: NO (Heavy reliance on manual curl scripts directly provided to user).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
+  - Test files created: None.
   - Known regressions: None.
 
 **Credentials to test flow:**
@@ -123,4 +127,4 @@ None.
 - Admin Password: 
 
 **What agent forgot to execute**
-Nothing. The agent successfully handled the backend refactor for order statuses, correctly diagnosed the production state, and provided the exact API contract. The agent is now ready to ask the user to proceed to the P1 task (Displaying User Avatars).</analysis>
+The agent successfully fulfilled the final task of extracting the API contract for order edits. Nothing was forgotten. The agent is waiting for the user to acknowledge the extraction and either deploy the pending  fix or move on to the P1 task (Displaying User Avatars).</analysis>

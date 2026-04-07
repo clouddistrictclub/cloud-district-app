@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user, verify_password, get_password_hash, create_access_token, build_user_response
-from models.schemas import UserRegister, UserLogin, Token, UserResponse
+from models.schemas import UserRegister, UserLogin, Token, UserResponse, MeResponse
 from services.loyalty_service import log_cloudz_transaction, issue_referral_signup_rewards
 from limiter import limiter
 from datetime import datetime
@@ -183,6 +183,13 @@ async def login(request: Request, user_data: UserLogin):
     return Token(access_token=access_token, token_type="bearer", user=user_response)
 
 
-@router.get("/auth/me", response_model=UserResponse)
+@router.get("/auth/me", response_model=MeResponse)
 async def get_me(user=Depends(get_current_user)):
-    return build_user_response(user)
+    return MeResponse(
+        id=str(user["_id"]),
+        email=user["email"],
+        username=user.get("username"),
+        isAdmin=user.get("isAdmin", False),
+        loyaltyPoints=user.get("loyaltyPoints", 0),
+        creditBalance=user.get("creditBalance", 0.0),
+    )
