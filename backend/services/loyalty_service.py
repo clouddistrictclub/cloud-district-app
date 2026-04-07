@@ -169,11 +169,11 @@ async def issue_referral_signup_rewards(
             {"_id": referrer_obj_id},
             {"$inc": {"referralCount": 1}},
         )
-        print("REFERRAL: creating pending 1500 for referrer")
+        print("REFERRAL: creating pending 1000 for referrer")
         await db.cloudz_ledger.insert_one({
             "userId": referrer_id_str,
             "type": "referral_pending",
-            "amount": 1500,
+            "amount": 1000,
             "status": "pending",
             "description": f"Pending referral reward — {new_user_first_name} joined (unlocks at $50 spend)",
             "referredUserId": new_user_id,
@@ -184,7 +184,7 @@ async def issue_referral_signup_rewards(
             },
             "createdAt": datetime.utcnow(),
         })
-        result["referrer_bonus"] = 1500  # pending — not yet in balance
+        result["referrer_bonus"] = 1000  # pending — not yet in balance
         logger.info(
             f"[referral_signup] pending reward created for referrer {referrer_id_str} "
             f"(referred user {new_user_id}, unlocks at $50 spend)"
@@ -287,11 +287,11 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
             {"$set": {"type": "referral_reward", "status": "completed"}},
         )
 
-    # Credit +1500 to referrer balance
-    print("REFERRAL UNLOCK: unlocking 1500")
+    # Credit +1000 to referrer balance
+    print("REFERRAL UNLOCK: unlocking 1000")
     update_result = await db.users.update_one(
         {"_id": referrer_obj_id},
-        {"$inc": {"loyaltyPoints": 1500, "referralRewardsEarned": 1500}},
+        {"$inc": {"loyaltyPoints": 1000, "referralRewardsEarned": 1000}},
     )
     print(f"DB UPDATE referral_unlock: matched={update_result.matched_count} modified={update_result.modified_count} referrer_id={referrer_id_str}")
     updated_referrer = await db.users.find_one({"_id": referrer_obj_id}, {"loyaltyPoints": 1})
@@ -303,7 +303,7 @@ async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
         await db.cloudz_ledger.insert_one({
             "userId": referrer_id_str,
             "type": "referral_reward",
-            "amount": 1500,
+            "amount": 1000,
             "status": "completed",
             "balanceAfter": new_balance,
             "description": f"Referral reward unlocked — referred user reached $50 spend",

@@ -109,6 +109,66 @@ async def get_user_profile(user_id: str, admin=Depends(get_admin_user)):
 
 # ==================== ADMIN REFERRER & CLOUDZ ====================
 
+@router.post("/admin/users/{user_id}/assign-referrer")
+async def admin_assign_referrer(user_id: str, data: AdminReferrerUpdate, admin=Depends(get_admin_user)):
+    """Assign a referrer to a user. Body: { "referrerIdentifier": "username|referralCode|email" }"""
+    identifier = (data.referrerIdentifier or "").strip()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="referrerIdentifier is required")
+
+    # Lookup referrer by username, referralCode, or email
+    referrer = (
+        await db.users.find_one({"username": {"$regex": f"^{_re.escape(identifier)}$", "$options": "i"}})
+        or await db.users.find_one({"referralCode": {"$regex": f"^{_re.escape(identifier)}$", "$options": "i"}})
+        or await db.users.find_one({"email": {"$regex": f"^{_re.escape(identifier)}$", "$options": "i"}})
+    )
+    if not referrer:
+        raise HTTPException(status_code=404, detail="Referrer not found")
+
+    referrer_id = str(referrer["_id"])
+    if referrer_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot assign user as their own referrer")
+
+    target_user = await db.users.find_one({"_id": ObjectId(user_id)}, {"referredBy": 1, "firstName": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    had_referrer = bool(target_user.get("referredBy"))
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"referredBy": referrer_id}})
+
+    rewards_issued = {"user_bonus": 0, "referrer_bonus": 0}
+    if not had_referrer:
+        rewards_issued = await issue_referral_signup_rewards(
+            new_user_id=user_id,
+            referrer_identifier=referrer_id,
+            new_user_first_name=target_user.get("firstName", "A user"),
+        )
+
+    paid_orders = await db.orders.count_documents({
+        "userId": user_id,
+        "status": {"$in": ["Paid", "Ready for Pickup", "Completed"]},
+    })
+    return {
+        "message": "Referrer assigned",
+        "referrerId": referrer_id,
+        "referrerUsername": referrer.get("username"),
+        "rewardsIssued": rewards_issued,
+        "warning": f"User has {paid_orders} paid order(s) — referral earnings not retroactive" if paid_orders else None,
+    }
+
+
+@router.post("/admin/users/{user_id}/remove-referrer")
+async def admin_remove_referrer(user_id: str, admin=Depends(get_admin_user)):
+    """Remove the referrer association from a user."""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"referredBy": None}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Referrer removed"}
+
+
 @router.patch("/admin/users/{user_id}/referrer")
 async def admin_set_referrer(user_id: str, data: AdminReferrerUpdate, admin=Depends(get_admin_user)):
     if not data.referrerIdentifier or not data.referrerIdentifier.strip():

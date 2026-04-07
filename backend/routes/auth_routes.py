@@ -107,11 +107,11 @@ async def register(request: Request, user_data: UserRegister):
         user_points += 500
         print("REFERRAL: new user +500 issued, total=", user_points)
 
-        # Pending 1500 for referrer — no balance change
+        # Pending 1000 for referrer — no balance change
         pending_result = await db.cloudz_ledger.insert_one({
             "userId": referred_by,
             "type": "referral_pending",
-            "amount": 1500,
+            "amount": 1000,
             "status": "pending",
             "referredUserId": user_id,
             "description": f"Pending referral reward — {username} signed up",
@@ -121,7 +121,7 @@ async def register(request: Request, user_data: UserRegister):
             {"_id": ObjectId(referred_by)},
             {"$inc": {"referralCount": 1}}
         )
-        print("REFERRAL: pending 1500 created for referrer", referred_by, "ledger=", pending_result.inserted_id)
+        print("REFERRAL: pending 1000 created for referrer", referred_by, "ledger=", pending_result.inserted_id)
 
     access_token = create_access_token(data={"sub": user_id})
 
