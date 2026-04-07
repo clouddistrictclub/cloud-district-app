@@ -346,7 +346,8 @@ async def get_all_users(admin=Depends(get_admin_user)):
     users = await db.users.find(
         {},
         {"_id": 1, "email": 1, "firstName": 1, "lastName": 1, "username": 1,
-         "isAdmin": 1, "loyaltyPoints": 1, "creditBalance": 1, "isDisabled": 1}
+         "isAdmin": 1, "loyaltyPoints": 1, "creditBalance": 1, "isDisabled": 1,
+         "lastActiveAt": 1}
     ).to_list(1000)
     return [
         AdminUserResponse(
@@ -359,6 +360,7 @@ async def get_all_users(admin=Depends(get_admin_user)):
             loyaltyPoints=u.get("loyaltyPoints", 0),
             creditBalance=u.get("creditBalance", 0.0),
             isDisabled=u.get("isDisabled", False),
+            lastActiveAt=u.get("lastActiveAt"),
         )
         for u in users
     ]

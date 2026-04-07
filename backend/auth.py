@@ -5,6 +5,7 @@ from bson import ObjectId
 from typing import Optional
 import jwt
 import os
+import asyncio
 from datetime import datetime, timedelta
 
 from database import db
@@ -13,6 +14,9 @@ from models.schemas import UserResponse
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+# Throttle: only write lastActiveAt if older than this many seconds
+_LAST_ACTIVE_TTL = 300  # 5 minutes
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
@@ -60,6 +64,21 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
         token_iat = payload.get("iat", 0)
         if token_iat < force_logout_at:
             raise HTTPException(status_code=401, detail="Session has been invalidated")
+
+    # Fire-and-forget lastActiveAt update — throttled to once every 5 minutes
+    now = datetime.utcnow()
+    last_active = user.get("lastActiveAt")
+    if last_active is None or (now - last_active).total_seconds() > _LAST_ACTIVE_TTL:
+        async def _touch_last_active(uid: str, ts: datetime) -> None:
+            try:
+                await db.users.update_one(
+                    {"_id": ObjectId(uid)},
+                    {"$set": {"lastActiveAt": ts}},
+                )
+            except Exception:
+                pass
+        asyncio.create_task(_touch_last_active(user_id, now))
+
     return user
 
 

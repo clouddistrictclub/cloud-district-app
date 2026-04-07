@@ -121,6 +121,7 @@ class AdminUserResponse(BaseModel):
     loyaltyPoints: int
     creditBalance: float = 0.0
     isDisabled: bool = False
+    lastActiveAt: Optional[datetime] = None
 
 
 class Token(BaseModel):
