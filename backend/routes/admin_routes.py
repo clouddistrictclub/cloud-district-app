@@ -273,7 +273,16 @@ async def admin_set_user_password(user_id: str, data: AdminSetPassword, admin=De
     return {"success": True}
 
 
-@router.post("/admin/users/{user_id}/disable")
+@router.post("/dev/reset-checkin/{user_id}")
+async def dev_reset_checkin(user_id: str, admin=Depends(get_admin_user)):
+    """DEV ONLY — Reset daily check-in state so the user can check in again immediately."""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"lastCheckInDate": None, "checkInStreak": 0}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": "Check-in state reset — user can check in immediately"}
 async def admin_disable_user(user_id: str, admin=Depends(get_admin_user)):
     """Disable a user account. Blocks all authenticated actions immediately.
     Also sets forceLogoutAt to invalidate any existing tokens."""
