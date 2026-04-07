@@ -111,6 +111,18 @@ class MeResponse(BaseModel):
     creditBalance: float = 0.0
 
 
+class AdminUserResponse(BaseModel):
+    id: str
+    email: str
+    username: Optional[str] = None
+    firstName: str
+    lastName: str
+    isAdmin: bool
+    loyaltyPoints: int
+    creditBalance: float = 0.0
+    isDisabled: bool = False
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str

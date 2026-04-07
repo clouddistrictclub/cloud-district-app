@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import db
 from auth import get_admin_user, build_user_response, get_password_hash
 from models.schemas import (
-    UserResponse, AdminUserUpdate, CreditAdjust, AdminReferrerUpdate,
+    UserResponse, AdminUserResponse, AdminUserUpdate, CreditAdjust, AdminReferrerUpdate,
     CloudzAdjust, AdminSetPassword, AdminUserNotes, MergeRequest,
     Order, OrderStatusUpdate, OrderEdit, ReviewModerationUpdate,
     UserUsernameUpdate
@@ -341,10 +341,27 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, a
 
 # ==================== ADMIN USER MANAGEMENT ====================
 
-@router.get("/admin/users", response_model=List[UserResponse])
+@router.get("/admin/users", response_model=List[AdminUserResponse])
 async def get_all_users(admin=Depends(get_admin_user)):
-    users = await db.users.find().to_list(1000)
-    return [build_user_response(u) for u in users]
+    users = await db.users.find(
+        {},
+        {"_id": 1, "email": 1, "firstName": 1, "lastName": 1, "username": 1,
+         "isAdmin": 1, "loyaltyPoints": 1, "creditBalance": 1, "isDisabled": 1}
+    ).to_list(1000)
+    return [
+        AdminUserResponse(
+            id=str(u["_id"]),
+            email=u.get("email", ""),
+            username=u.get("username"),
+            firstName=u.get("firstName", ""),
+            lastName=u.get("lastName", ""),
+            isAdmin=u.get("isAdmin", False),
+            loyaltyPoints=u.get("loyaltyPoints", 0),
+            creditBalance=u.get("creditBalance", 0.0),
+            isDisabled=u.get("isDisabled", False),
+        )
+        for u in users
+    ]
 
 
 @router.get("/admin/ledger")
