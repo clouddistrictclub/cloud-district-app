@@ -255,16 +255,45 @@ async def admin_set_user_password(user_id: str, data: AdminSetPassword, admin=De
     return {"success": True}
 
 
-@router.post("/admin/users/{user_id}/force-logout")
-async def admin_force_logout(user_id: str, admin=Depends(get_admin_user)):
-    import time
+@router.post("/admin/users/{user_id}/disable")
+async def admin_disable_user(user_id: str, admin=Depends(get_admin_user)):
+    """Disable a user account. Blocks all authenticated actions immediately.
+    Also sets forceLogoutAt to invalidate any existing tokens."""
     result = await db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"forceLogoutAt": time.time()}}
+        {"$set": {"isDisabled": True, "forceLogoutAt": time.time()}},
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"success": True}
+    logger.info(f"ADMIN ACTION: user {user_id} disabled by admin {str(admin['_id'])}")
+    return {"success": True, "message": "Account disabled and all active sessions invalidated"}
+
+
+@router.post("/admin/users/{user_id}/enable")
+async def admin_enable_user(user_id: str, admin=Depends(get_admin_user)):
+    """Re-enable a disabled user account. User must log in fresh to get a new token."""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"isDisabled": False}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"ADMIN ACTION: user {user_id} enabled by admin {str(admin['_id'])}")
+    return {"success": True, "message": "Account enabled — user must log in again to get a new token"}
+
+
+@router.post("/admin/users/{user_id}/force-logout")
+async def admin_force_logout(user_id: str, admin=Depends(get_admin_user)):
+    """Invalidate all active sessions by setting forceLogoutAt to now.
+    Any token with iat < forceLogoutAt will be rejected by auth middleware."""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"forceLogoutAt": time.time()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"ADMIN ACTION: force-logout user {user_id} by admin {str(admin['_id'])}")
+    return {"success": True, "message": "All active sessions invalidated — user must log in again"}
 
 
 @router.post("/admin/users/{user_id}/clear-force-logout")
