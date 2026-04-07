@@ -13,14 +13,26 @@ from pathlib import Path
 from bson import ObjectId
 from typing import List, Optional
 import uuid
+import time
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 # Fallback image served if a product has no valid image URL
 FALLBACK_IMAGE_URL = "https://clouddistrict.club/placeholder.png"
+
+# ==================== PRODUCT CACHE ====================
+_product_cache: dict = {"data": None, "ts": 0.0}
+_PRODUCT_CACHE_TTL = 60  # seconds
+
+
+def _invalidate_product_cache() -> None:
+    _product_cache["data"] = None
+    _product_cache["ts"] = 0.0
 
 
 def resolve_image(image: str | None) -> str:
@@ -122,6 +134,15 @@ async def get_products(
     active_only: bool = True,
     in_stock_only: bool = False
 ):
+    # Cache only the default unfiltered call (active products, no category/brand filter)
+    is_unfiltered = (category is None and brand_id is None and active_only and not in_stock_only)
+
+    if is_unfiltered:
+        cached = _product_cache["data"]
+        if cached is not None and (time.monotonic() - _product_cache["ts"]) < _PRODUCT_CACHE_TTL:
+            logger.info("[products] cache hit")
+            return cached
+
     query = {}
     if active_only:
         query["isActive"] = True
@@ -131,8 +152,15 @@ async def get_products(
         query["category"] = category
     if brand_id:
         query["brandId"] = brand_id
+
     products = await db.products.find(query).to_list(1000)
-    return [Product(id=str(p["_id"]), **_build_product(p)) for p in products]
+    result = [Product(id=str(p["_id"]), **_build_product(p)) for p in products]
+
+    if is_unfiltered:
+        _product_cache["data"] = result
+        _product_cache["ts"] = time.monotonic()
+
+    return result
 
 
 @router.get("/products/{product_id}", response_model=Product)
@@ -155,6 +183,7 @@ async def create_product(product: ProductCreate, admin=Depends(get_admin_user)):
     product_dict["createdAt"] = datetime.utcnow()
     result = await db.products.insert_one(product_dict)
     product_dict["id"] = str(result.inserted_id)
+    _invalidate_product_cache()
     return Product(**product_dict)
 
 
@@ -173,6 +202,7 @@ async def update_product(product_id: str, product_data: ProductUpdate, admin=Dep
     result = await db.products.update_one({"_id": ObjectId(product_id)}, {"$set": update_dict})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
+    _invalidate_product_cache()
     product = await db.products.find_one({"_id": ObjectId(product_id)})
     return Product(id=str(product["_id"]), **{k: v for k, v in product.items() if k not in ("_id", "id")})
 
@@ -205,6 +235,7 @@ async def adjust_product_stock(product_id: str, adjustment: StockAdjustment, adm
         "timestamp": datetime.utcnow()
     }
     await db.inventory_logs.insert_one(log_entry)
+    _invalidate_product_cache()
     return {
         "message": "Stock adjusted successfully",
         "previousStock": product["stock"],
