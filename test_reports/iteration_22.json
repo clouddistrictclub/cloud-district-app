@@ -59,7 +59,7 @@
     "reproduction_steps": [
       "1. Set localStorage.setItem('cloud-district-cart', JSON.stringify({state:{items:[{productId:'698f61dc072c07937d8c460e',name:'Test',price:24.99,image:'',quantity:2}]},version:0}))",
       "2. Set localStorage.setItem('ageVerified', 'true')",
-      "3. Navigate to https://cloudz-loyalty-hub.preview.emergentagent.com",
+      "3. Navigate to https://cloudz-loyalty-dev.preview.emergentagent.com",
       "4. Page loads, _layout.tsx useEffect calls useCartStore.persist.rehydrate()",
       "5. Navigate to /cart page",
       "6. EXPECTED: Cart shows 'Test' item with quantity 2",

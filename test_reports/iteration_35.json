@@ -102,5 +102,5 @@
 
   "should_main_agent_self_test": false,
 
-  "context_for_next_testing_agent": "Iteration 35: Catalog repair fully verified. All 44 backend tests pass. 162 products, 0 empty images, CLIO Kit/Pod differentiated correctly, CLR 50K all have CDN images, all new products exist, fallback image works. DB_NAME=test_database, backend URL=https://cloudz-loyalty-hub.preview.emergentagent.com. Auth uses 'identifier' field (not 'email'). 25 legacy /api/uploads/ images remain (acceptable). Test file: /app/backend/tests/test_catalog_repair.py."
+  "context_for_next_testing_agent": "Iteration 35: Catalog repair fully verified. All 44 backend tests pass. 162 products, 0 empty images, CLIO Kit/Pod differentiated correctly, CLR 50K all have CDN images, all new products exist, fallback image works. DB_NAME=test_database, backend URL=https://cloudz-loyalty-dev.preview.emergentagent.com. Auth uses 'identifier' field (not 'email'). 25 legacy /api/uploads/ images remain (acceptable). Test file: /app/backend/tests/test_catalog_repair.py."
 }
