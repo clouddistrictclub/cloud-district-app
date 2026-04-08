@@ -7,6 +7,7 @@ from models.schemas import (
     ReviewCreate, ReviewResponse
 )
 from services.order_service import _save_base64_image
+from services.loyalty_service import log_cloudz_transaction
 from limiter import limiter, get_user_id_or_ip
 from datetime import datetime
 from pathlib import Path
@@ -304,7 +305,37 @@ async def create_review(request: Request, review_data: ReviewCreate, user=Depend
         "userName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
     }
     result = await db.reviews.insert_one(doc)
-    return ReviewResponse(id=str(result.inserted_id), **{k: v for k, v in doc.items()})
+    review_id = str(result.inserted_id)
+
+    # ── Review reward: 5 Cloudz for first review of this product ─────────────
+    # Idempotency: the `if existing: raise 400` block above already prevents
+    # duplicate reviews, so we only reach here on a brand-new review.
+    await log_cloudz_transaction(
+        user_id,
+        "review_reward",
+        5,
+        f"Review reward — {review_data.productId}",
+        metadata={"productId": review_data.productId, "reviewId": review_id},
+    )
+
+    # ── Milestone: 50 Cloudz bonus on 10th rewarded review ───────────────────
+    rewarded_count = await db.cloudz_ledger.count_documents(
+        {"userId": user_id, "type": "review_reward"}
+    )
+    if rewarded_count == 10:
+        already_milestone = await db.cloudz_ledger.find_one(
+            {"userId": user_id, "type": "review_milestone"}
+        )
+        if not already_milestone:
+            await log_cloudz_transaction(
+                user_id,
+                "review_milestone",
+                50,
+                "Review milestone — 10 reviews reached",
+                metadata={"milestone": 10},
+            )
+
+    return ReviewResponse(id=review_id, **{k: v for k, v in doc.items()})
 
 
 @router.get("/reviews/product/{product_id}", response_model=List[ReviewResponse])
