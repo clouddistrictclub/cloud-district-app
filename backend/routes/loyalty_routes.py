@@ -141,7 +141,7 @@ async def get_user_streak(user=Depends(get_current_user)):
 
 @router.get("/leaderboard")
 async def get_leaderboard(user=Depends(get_current_user)):
-    projection = {"_id": 1, "firstName": 1, "lastName": 1, "loyaltyPoints": 1, "referralCount": 1}
+    projection = {"_id": 1, "firstName": 1, "lastName": 1, "username": 1, "loyaltyPoints": 1, "referralCount": 1}
 
     # ── DIAGNOSTIC BLOCK ─────────────────────────────────────────────────────
     raw_id   = user["_id"]
@@ -191,6 +191,7 @@ async def get_leaderboard(user=Depends(get_current_user)):
         return {
             "rank":          rank,
             "displayName":   display,
+            "username":      doc.get("username") or None,
             "points":        pts,
             "referralCount": doc.get("referralCount", 0) or 0,
             "tier":          tier_name,
