@@ -423,6 +423,63 @@ async def admin_edit_order(order_id: str, edit: OrderEdit, admin=Depends(get_adm
 
 # ==================== ADMIN ORDER ENDPOINTS ====================
 
+# Statuses where stock has already been restored (safe to delete without touching inventory)
+_STOCK_ALREADY_RESTORED = {"Cancelled", "Expired"}
+# Pending Payment stock is still held — must restore before deleting
+_ALLOW_DELETE_STATUSES   = {"Cancelled", "Expired", "Pending Payment"}
+
+
+@router.delete("/admin/orders/{order_id}")
+async def admin_delete_order(order_id: str, admin=Depends(get_admin_user)):
+    """
+    Permanently delete an order. Restricted to safe statuses only.
+
+    Allowed:  Cancelled, Expired, Pending Payment
+    Blocked:  Paid, Preparing, Ready for Pickup, Completed  (financial / fulfillment risk)
+
+    Inventory safety:
+    - Cancelled / Expired  → stock already restored; deletion touches nothing.
+    - Pending Payment      → stock is still reserved; restored here before deletion.
+
+    Ledger: cloudz_ledger entries are intentionally preserved for audit integrity.
+    Loyalty rewards cannot have been issued for these statuses (rewards fire only on Completed).
+    """
+    try:
+        oid = ObjectId(order_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid order ID")
+
+    order = await db.orders.find_one({"_id": oid})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    current_status = order.get("status", "")
+    if current_status not in _ALLOW_DELETE_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot delete order with status '{current_status}'. "
+                f"Only {sorted(_ALLOW_DELETE_STATUSES)} orders may be deleted."
+            ),
+        )
+
+    stock_restored = False
+    if current_status == "Pending Payment":
+        # Stock is still reserved — restore it before removing the record
+        for item in order.get("items", []):
+            try:
+                await db.products.update_one(
+                    {"_id": ObjectId(item["productId"])},
+                    {"$inc": {"stock": item["quantity"]}},
+                )
+            except Exception:
+                pass
+        stock_restored = True
+
+    await db.orders.delete_one({"_id": oid})
+    return {"message": "Order deleted", "orderId": order_id, "stockRestored": stock_restored}
+
+
 @router.get("/admin/orders", response_model=List[Order])
 async def get_all_orders(admin=Depends(get_admin_user)):
     orders = await db.orders.find().sort("createdAt", -1).to_list(1000)
