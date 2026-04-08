@@ -180,9 +180,46 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     return Order(**order_dict)
 
 
+async def _enrich_orders_with_review_state(orders: list, user_id: str) -> list:
+    """
+    Inject reviewPromptEligible + reviewedProductIds into Completed order dicts.
+    One batch reviews query covers all orders — O(1) extra round-trips.
+    """
+    completed = [o for o in orders if o.get("status") == "Completed"]
+    if not completed:
+        return orders
+
+    # Collect every productId from completed orders
+    all_product_ids = {
+        item["productId"]
+        for o in completed
+        for item in o.get("items", [])
+    }
+
+    # Single batch lookup: which of these products has this user already reviewed?
+    reviewed_docs = await db.reviews.find(
+        {"userId": user_id, "productId": {"$in": list(all_product_ids)}},
+        {"productId": 1, "_id": 0},
+    ).to_list(1000)
+    reviewed_set = {r["productId"] for r in reviewed_docs}
+
+    for o in orders:
+        if o.get("status") == "Completed":
+            order_product_ids = [item["productId"] for item in o.get("items", [])]
+            reviewed_in_order = [pid for pid in order_product_ids if pid in reviewed_set]
+            o["reviewedProductIds"] = reviewed_in_order
+            o["reviewPromptEligible"] = any(pid not in reviewed_set for pid in order_product_ids)
+        else:
+            o["reviewPromptEligible"] = False
+            o["reviewedProductIds"] = []
+    return orders
+
+
 @router.get("/orders", response_model=List[Order])
 async def get_orders(user=Depends(get_current_user)):
-    orders = await db.orders.find({"userId": str(user["_id"])}).sort("createdAt", -1).to_list(1000)
+    user_id = str(user["_id"])
+    orders = await db.orders.find({"userId": user_id}).sort("createdAt", -1).to_list(1000)
+    orders = await _enrich_orders_with_review_state(orders, user_id)
     return [Order(id=str(o["_id"]), **{k: v for k, v in o.items() if k != "_id"}) for o in orders]
 
 
@@ -193,6 +230,7 @@ async def get_order(order_id: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Order not found")
     if order["userId"] != str(user["_id"]) and not user.get("isAdmin", False):
         raise HTTPException(status_code=403, detail="Access denied")
+    await _enrich_orders_with_review_state([order], str(user["_id"]))
     return Order(id=str(order["_id"]), **{k: v for k, v in order.items() if k != "_id"})
 
 
