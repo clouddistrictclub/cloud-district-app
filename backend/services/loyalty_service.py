@@ -397,6 +397,10 @@ async def maybe_award_streak_bonus(user_id: str, order_id: str):
 
 import random as _random
 
+# ── Paid re-spin constants ────────────────────────────────────────────────────
+RESPIN_COSTS = [15, 25, 50]   # index 0 → 1st respin, 1 → 2nd, 2 → 3rd
+MAX_RESPINS_PER_DAY = 3
+
 # Slot machine outcomes: (label, weight, multiplier_or_fn)
 # Weights sum to 1.0 — used with random.choices
 _SLOT_OUTCOMES = [
@@ -432,16 +436,26 @@ async def process_daily_checkin(user_id: str) -> dict:
     - One reward per UTC calendar day.
     - Consecutive days increment checkInStreak; any gap resets to 1.
     - Streak cycles through CHECKIN_REWARDS on a 7-day loop.
+    - Response always includes respin state for the day.
     """
     user = await db.users.find_one(
         {"_id": ObjectId(user_id)},
-        {"lastCheckInDate": 1, "checkInStreak": 1},
+        {"lastCheckInDate": 1, "checkInStreak": 1, "lastRespinDate": 1, "respinsUsedToday": 1},
     )
 
     today_str     = datetime.utcnow().strftime("%Y-%m-%d")
     yesterday_str = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     last_date     = user.get("lastCheckInDate") if user else None
     cur_streak    = (user.get("checkInStreak") or 0) if user else 0
+
+    def _respin_state(checked_in_today: bool):
+        if not checked_in_today:
+            return {"respinsUsedToday": 0, "respinsRemaining": 0, "nextRespinCost": None}
+        last_rd = (user or {}).get("lastRespinDate")
+        used = (user or {}).get("respinsUsedToday", 0) if last_rd == today_str else 0
+        remaining = max(0, MAX_RESPINS_PER_DAY - used)
+        next_cost = RESPIN_COSTS[used] if remaining > 0 else None
+        return {"respinsUsedToday": used, "respinsRemaining": remaining, "nextRespinCost": next_cost}
 
     # Already checked in today — return current state without writing anything
     if last_date == today_str:
@@ -457,6 +471,7 @@ async def process_daily_checkin(user_id: str) -> dict:
             "finalPoints":      0,
             "slotResult":       "none",
             "multiplier":       1.0,
+            **_respin_state(True),
         }
 
     # Compute new streak
@@ -498,6 +513,7 @@ async def process_daily_checkin(user_id: str) -> dict:
             "finalPoints":      0,
             "slotResult":       "none",
             "multiplier":       1.0,
+            **_respin_state(True),
         }
 
     balance_after = result["loyaltyPoints"]
@@ -528,6 +544,142 @@ async def process_daily_checkin(user_id: str) -> dict:
         "finalPoints":      final_reward,
         "slotResult":       slot_result,
         "multiplier":       multiplier,
+        "respinsUsedToday": 0,
+        "respinsRemaining": MAX_RESPINS_PER_DAY,
+        "nextRespinCost":   RESPIN_COSTS[0],
+    }
+
+
+async def process_paid_respin(user_id: str) -> dict:
+    """
+    Execute one paid re-spin for the day.
+
+    Safety guarantees:
+    - User must have completed today's free spin first.
+    - Max MAX_RESPINS_PER_DAY (3) paid re-spins per UTC day.
+    - Atomic find_one_and_update with exact respin-count match prevents concurrent
+      double-spend and replay attacks.
+    - Cloudz deducted and re-spin state updated in one DB round-trip.
+    - Ledger entries written for both cost deduction and spin reward.
+    """
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    user = await db.users.find_one(
+        {"_id": ObjectId(user_id)},
+        {"loyaltyPoints": 1, "lastCheckInDate": 1, "lastRespinDate": 1, "respinsUsedToday": 1},
+    )
+
+    if not user or user.get("lastCheckInDate") != today_str:
+        raise ValueError("free_spin_required")
+
+    last_rd        = user.get("lastRespinDate")
+    effective_used = user.get("respinsUsedToday", 0) if last_rd == today_str else 0
+
+    if effective_used >= MAX_RESPINS_PER_DAY:
+        raise ValueError("max_respins_reached")
+
+    cost    = RESPIN_COSTS[effective_used]
+    balance = user.get("loyaltyPoints", 0)
+
+    if balance < cost:
+        raise ValueError("insufficient_cloudz")
+
+    # ── Atomic deduction + respin-counter update ──────────────────────────────
+    # Filter matches the exact expected state — concurrent or replayed requests
+    # will see a different respin count / balance and get None back.
+    if last_rd == today_str:
+        atomic_filter = {
+            "_id":              ObjectId(user_id),
+            "loyaltyPoints":    {"$gte": cost},
+            "lastRespinDate":   today_str,
+            "respinsUsedToday": effective_used,       # exact count — race-proof
+        }
+        atomic_update = {"$inc": {"loyaltyPoints": -cost, "respinsUsedToday": 1}}
+    else:
+        # First respin of the day — set tracking fields from scratch
+        atomic_filter = {
+            "_id":           ObjectId(user_id),
+            "loyaltyPoints": {"$gte": cost},
+            "$or": [
+                {"lastRespinDate": {"$ne": today_str}},
+                {"lastRespinDate": {"$exists": False}},
+            ],
+        }
+        atomic_update = {
+            "$inc": {"loyaltyPoints": -cost},
+            "$set": {"lastRespinDate": today_str, "respinsUsedToday": 1},
+        }
+
+    deducted = await db.users.find_one_and_update(
+        atomic_filter, atomic_update, return_document=True,
+    )
+
+    if deducted is None:
+        # Concurrent request won the race or balance changed between read and write
+        raise ValueError("concurrent_conflict")
+
+    new_respin_count = deducted.get("respinsUsedToday", 1)
+    balance_after_deduction = deducted["loyaltyPoints"]
+
+    # Log the cost deduction
+    await db.cloudz_ledger.insert_one({
+        "userId":       user_id,
+        "type":         "respin_cost",
+        "amount":       -cost,
+        "balanceAfter": balance_after_deduction,
+        "reference":    f"Re-spin #{new_respin_count} cost",
+        "description":  f"Paid re-spin #{new_respin_count} — {cost} Cloudz",
+        "isoDate":      today_str,
+        "createdAt":    datetime.utcnow(),
+        "metadata":     {"respinNumber": new_respin_count, "cost": cost},
+    })
+
+    # ── Spin the slot ─────────────────────────────────────────────────────────
+    slot_result              = _random.choices(_SLOT_LABELS, weights=_SLOT_WEIGHTS, k=1)[0]
+    base_reward              = CHECKIN_REWARDS[1]          # fixed 50-pt base for all respins
+    final_reward, multiplier = _apply_slot(base_reward, slot_result)
+
+    # Credit the reward
+    rewarded = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id)},
+        {"$inc": {"loyaltyPoints": final_reward}},
+        return_document=True,
+    )
+    balance_after_reward = rewarded["loyaltyPoints"] if rewarded else balance_after_deduction + final_reward
+
+    # Log the reward
+    await db.cloudz_ledger.insert_one({
+        "userId":       user_id,
+        "type":         "respin_reward",
+        "amount":       final_reward,
+        "balanceAfter": balance_after_reward,
+        "reference":    f"Re-spin #{new_respin_count} reward",
+        "description":  f"Paid re-spin #{new_respin_count} — {slot_result}",
+        "isoDate":      today_str,
+        "createdAt":    datetime.utcnow(),
+        "metadata": {
+            "respinNumber": new_respin_count,
+            "basePoints":   base_reward,
+            "slotResult":   slot_result,
+            "multiplier":   multiplier,
+            "cost":         cost,
+        },
+    })
+
+    remaining_after = MAX_RESPINS_PER_DAY - new_respin_count
+    next_cost       = RESPIN_COSTS[new_respin_count] if remaining_after > 0 else None
+
+    return {
+        "success":          True,
+        "respinNumber":     new_respin_count,
+        "cost":             cost,
+        "basePoints":       base_reward,
+        "finalPoints":      final_reward,
+        "slotResult":       slot_result,
+        "multiplier":       multiplier,
+        "respinsUsedToday": new_respin_count,
+        "respinsRemaining": remaining_after,
+        "nextRespinCost":   next_cost,
     }
 
 

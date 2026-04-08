@@ -4,7 +4,7 @@ from auth import get_current_user, touch_last_active
 from models.schemas import TierRedeemRequest, LOYALTY_TIERS
 from services.loyalty_service import (
     log_cloudz_transaction, calculate_streak, get_streak_bonus, resolve_tier,
-    process_daily_checkin, issue_weekly_leaderboard_rewards,
+    process_daily_checkin, process_paid_respin, issue_weekly_leaderboard_rewards,
 )
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -285,5 +285,23 @@ async def get_leaderboard(user=Depends(get_current_user)):
 async def daily_check_in(user=Depends(get_current_user)):
     user_id = str(user["_id"])
     result = await process_daily_checkin(user_id)
+    await touch_last_active(user_id)
+    return result
+
+
+@router.post("/loyalty/check-in/respin")
+async def paid_respin(user=Depends(get_current_user)):
+    user_id = str(user["_id"])
+    try:
+        result = await process_paid_respin(user_id)
+    except ValueError as e:
+        code = str(e)
+        messages = {
+            "free_spin_required":  "Complete today's free check-in before purchasing re-spins.",
+            "max_respins_reached": "You have used all 3 paid re-spins for today.",
+            "insufficient_cloudz": "Not enough Cloudz for this re-spin.",
+            "concurrent_conflict": "Request conflict — please try again.",
+        }
+        raise HTTPException(status_code=400, detail=messages.get(code, code))
     await touch_last_active(user_id)
     return result
