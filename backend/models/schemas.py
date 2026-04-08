@@ -39,7 +39,7 @@ CHECKIN_REWARDS = {1: 10, 2: 15, 3: 20, 4: 25, 5: 30, 6: 40, 7: 50}
 LEADERBOARD_REWARDS = {1: 1000, 2: 500, 3: 250}
 
 # Referral milestone bonuses — awarded once when referralCount first reaches each threshold
-REFERRAL_MILESTONES = {1: 1000, 3: 500, 5: 750, 10: 1500}
+REFERRAL_MILESTONES = {1: 500, 3: 750, 5: 1000, 10: 1500}
 
 
 # ==================== USER MODELS ====================
