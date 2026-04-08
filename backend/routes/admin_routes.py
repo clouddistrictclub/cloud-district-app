@@ -641,8 +641,9 @@ async def get_admin_chats(admin=Depends(get_admin_user)):
         uid = s.get("userId")
         if uid:
             try:
-                u = await db.users.find_one({"_id": ObjectId(uid)}, {"name": 1, "email": 1})
-                s["userName"] = u.get("name", u.get("email", "Unknown")) if u else "Unknown"
+                u = await db.users.find_one({"_id": ObjectId(uid)}, {"firstName": 1, "lastName": 1, "username": 1, "email": 1})
+                s["userName"] = " ".join(filter(None, [u.get("firstName"), u.get("lastName")])) \
+                    or u.get("username") or u.get("email", "Unknown") if u else "Unknown"
             except Exception:
                 s["userName"] = "Unknown"
     return sessions

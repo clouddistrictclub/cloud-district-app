@@ -156,11 +156,14 @@ async def websocket_chat(websocket: WebSocket, chat_id: str, token: str = ""):
             msg_text = data.get("message", "").strip()
             if not msg_text:
                 continue
+            sender_name = " ".join(filter(None, [
+                user.get("firstName"), user.get("lastName")
+            ])) or user.get("username") or user.get("email", "User")
             msg_doc = {
                 "type": "message",
                 "chatId": chat_id,
                 "senderId": user_id,
-                "senderName": user.get("name", user.get("email", "User")),
+                "senderName": sender_name,
                 "isAdmin": user.get("isAdmin", False),
                 "message": msg_text,
                 "createdAt": datetime.utcnow().isoformat(),
