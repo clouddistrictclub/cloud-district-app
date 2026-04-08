@@ -55,6 +55,12 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     # Final total after discount
     final_total = round(order_data.total - bulk_discount, 2)
 
+    # Apple Pay processing fee — server-calculated only, never trusted from client
+    processing_fee = 0.0
+    if order_data.paymentMethod == "apple_pay":
+        processing_fee = round(final_total * 0.0175, 2)
+        final_total = round(final_total + processing_fee, 2)
+
     points_earned = int(final_total) * 3
     reward_discount = 0.0
     reward_points_used = 0
@@ -116,6 +122,7 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
         "total": final_total,
         "pickupTime": order_data.pickupTime,
         "paymentMethod": order_data.paymentMethod,
+        "processingFee": processing_fee,
         "status": "Awaiting Pickup (Cash)" if order_data.paymentMethod == "Cash on Pickup" else "Pending Payment",
         "loyaltyPointsEarned": points_earned,
         "loyaltyPointsUsed": reward_points_used,

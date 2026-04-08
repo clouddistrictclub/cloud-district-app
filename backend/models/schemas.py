@@ -299,6 +299,7 @@ class Order(BaseModel):
     adminNotes: Optional[str] = None
     discountApplied: float = 0.0
     storeCreditApplied: float = 0.0
+    processingFee: float = 0.0
     # Review prompt support — computed at read-time, never stored in DB
     reviewPromptEligible: bool = False
     reviewedProductIds: List[str] = Field(default_factory=list)
