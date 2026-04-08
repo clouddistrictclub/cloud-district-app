@@ -197,4 +197,5 @@ async def get_me(user=Depends(get_current_user)):
         isAdmin=user.get("isAdmin", False),
         loyaltyPoints=user.get("loyaltyPoints", 0),
         creditBalance=user.get("creditBalance", 0.0),
+        phone=user.get("phone"),
     )

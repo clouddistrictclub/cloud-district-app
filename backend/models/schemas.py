@@ -112,6 +112,7 @@ class MeResponse(BaseModel):
     isAdmin: bool
     loyaltyPoints: int
     creditBalance: float = 0.0
+    phone: Optional[str] = None
 
 
 class AdminUserResponse(BaseModel):
