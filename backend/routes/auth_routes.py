@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from database import db
 from auth import get_current_user, verify_password, get_password_hash, create_access_token, build_user_response
 from models.schemas import UserRegister, UserLogin, Token, UserResponse, MeResponse
-from services.loyalty_service import log_cloudz_transaction, issue_referral_signup_rewards
+from services.loyalty_service import log_cloudz_transaction, issue_referral_signup_rewards, check_and_award_referral_milestones
 from limiter import limiter
 from datetime import datetime
 from bson import ObjectId
@@ -117,11 +117,16 @@ async def register(request: Request, user_data: UserRegister):
             "description": f"Pending referral reward — {username} signed up",
             "createdAt": datetime.utcnow(),
         })
-        await db.users.update_one(
+        updated_referrer = await db.users.find_one_and_update(
             {"_id": ObjectId(referred_by)},
-            {"$inc": {"referralCount": 1}}
+            {"$inc": {"referralCount": 1}},
+            return_document=True,
+            projection={"referralCount": 1},
         )
+        new_referral_count = updated_referrer.get("referralCount", 0) if updated_referrer else 0
         print("REFERRAL: pending 1000 created for referrer", referred_by, "ledger=", pending_result.inserted_id)
+        # Award milestone bonus if this referral count hits a threshold
+        await check_and_award_referral_milestones(referred_by, new_referral_count)
 
     access_token = create_access_token(data={"sub": user_id})
 

@@ -1,7 +1,7 @@
 from database import db
 from bson import ObjectId
 from datetime import datetime, timedelta
-from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS, CHECKIN_REWARDS, LEADERBOARD_REWARDS
+from models.schemas import LOYALTY_TIERS, TIER_COLORS, STREAK_BONUS, CHECKIN_REWARDS, LEADERBOARD_REWARDS, REFERRAL_MILESTONES
 import logging
 import math
 
@@ -200,6 +200,38 @@ async def issue_referral_signup_rewards(
     )
 
     return result
+
+
+async def check_and_award_referral_milestones(user_id: str, new_referral_count: int) -> int:
+    """
+    Award a one-time Cloudz bonus when a referrer's referralCount first reaches a milestone.
+    Milestones: 1 → 1000, 3 → 500, 5 → 750, 10 → 1500 Cloudz.
+    Idempotent: gated by a ledger check on (userId, type=referral_milestone, metadata.milestone=N).
+    Returns Cloudz awarded (0 if no milestone hit or already awarded).
+    """
+    bonus = REFERRAL_MILESTONES.get(new_referral_count)
+    if not bonus:
+        return 0
+
+    # Idempotency — check whether this milestone was already awarded
+    existing = await db.cloudz_ledger.find_one({
+        "userId": user_id,
+        "type": "referral_milestone",
+        "metadata.milestone": new_referral_count,
+    })
+    if existing:
+        logger.info(f"[referral_milestone] milestone {new_referral_count} already awarded to {user_id}, skipping")
+        return 0
+
+    await log_cloudz_transaction(
+        user_id,
+        "referral_milestone",
+        bonus,
+        f"Referral milestone — {new_referral_count} referral{'s' if new_referral_count > 1 else ''} reached",
+        metadata={"milestone": new_referral_count},
+    )
+    logger.info(f"[referral_milestone] +{bonus} Cloudz awarded to {user_id} for reaching {new_referral_count} referrals")
+    return bonus
 
 
 async def check_and_unlock_referral_reward(buyer_user_id: str) -> bool:
