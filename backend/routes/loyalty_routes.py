@@ -113,9 +113,47 @@ async def get_cloudz_ledger(user=Depends(get_current_user)):
     entries = await db.cloudz_ledger.find(
         {"userId": str(user["_id"])}, {"_id": 0}
     ).sort("createdAt", -1).to_list(200)
+
+    # ── Referral username enrichment (read-time only, no DB writes) ──────────
+    # Collect every referredUserId present across all entries (top-level or in metadata)
+    referred_ids: set[str] = set()
     for e in entries:
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            referred_ids.add(str(rid))
+
+    # One batch lookup → {userId_str: username_or_None}
+    username_map: dict[str, str | None] = {}
+    if referred_ids:
+        cursor = db.users.find(
+            {"_id": {"$in": [ObjectId(r) for r in referred_ids if r]}},
+            {"_id": 1, "username": 1},
+        )
+        async for u in cursor:
+            username_map[str(u["_id"])] = u.get("username") or None
+
+    # ── Per-entry normalisation pass ─────────────────────────────────────────
+    for e in entries:
+        # Serialise datetime
         if isinstance(e.get("createdAt"), datetime):
             e["createdAt"] = e["createdAt"].isoformat()
+
+        # Resolve referredUserId → referredUsername (top-level, normalised)
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            rid = str(rid)
+            # Prefer live DB lookup; fall back to whatever was stored in metadata
+            resolved = (
+                username_map.get(rid)
+                or e.get("metadata", {}).get("referredUsername")
+                or e.get("metadata", {}).get("referredUser")
+                or None
+            )
+            e["referredUsername"] = resolved
+        else:
+            # No referred user for this entry type — omit the key entirely
+            pass
+
     return entries
 
 
