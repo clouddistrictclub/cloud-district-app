@@ -208,6 +208,12 @@ async def startup_migrate():
     print(f"STARTUP: DB_NAME = {db.name}")
     logger.info(f"STARTUP: MONGO_URI = {mongo_uri}")
     logger.info(f"STARTUP: DB_NAME = {db.name}")
+
+    # Ensure VAPID keys are loaded (env → MongoDB → auto-generate)
+    from services.vapid_bootstrap import ensure_vapid_keys
+    pub, _ = await ensure_vapid_keys()
+    logger.info(f"STARTUP: VAPID public key ready ({len(pub)} chars)")
+
     # MIGRATIONS TEMPORARILY DISABLED — re-enable after healthcheck is stable
     # await migrate_base64_images()
     # await migrate_catalog_images()

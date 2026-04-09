@@ -23,8 +23,11 @@ class PushSubscriptionBody(BaseModel):
 
 @router.get("/push/vapid-public-key")
 async def get_vapid_public_key():
-    """Return the VAPID public key so the browser can subscribe."""
-    return {"vapidPublicKey": VAPID_PUBLIC_KEY}
+    """Return the VAPID public key so the browser can subscribe.
+    Reads from os.environ at request time — always reflects the bootstrapped value."""
+    key = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
+    print("VAPID KEY (request-time):", key[:20] + "..." if key else "EMPTY")
+    return {"vapidPublicKey": key}
 
 
 @router.post("/push/subscribe")
