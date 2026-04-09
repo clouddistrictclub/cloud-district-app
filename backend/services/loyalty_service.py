@@ -669,6 +669,17 @@ async def process_paid_respin(user_id: str) -> dict:
     remaining_after = MAX_RESPINS_PER_DAY - new_respin_count
     next_cost       = RESPIN_COSTS[new_respin_count] if remaining_after > 0 else None
 
+    # Web push for big wins (multiplier >= 1.5) — fire-and-forget
+    if multiplier >= 1.5:
+        import asyncio as _asyncio
+        from services.web_push_service import send_web_push as _web_push
+        _asyncio.create_task(_web_push(user_id, {
+            "title": "Nice win \U0001f525",
+            "body":  f"You just hit a {multiplier}x boosted reward \u2014 +{final_reward} Cloudz!",
+            "icon":  "/android-chrome-192x192.png",
+            "url":   "/cloudz",
+        }))
+
     return {
         "success":          True,
         "respinNumber":     new_respin_count,

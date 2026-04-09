@@ -19,6 +19,7 @@ from routes.product_routes import router as product_router
 from routes.order_routes import router as order_router
 from routes.loyalty_routes import router as loyalty_router
 from routes.admin_routes import router as admin_router
+from routes.push_routes import router as push_router
 
 import jwt
 from bson import ObjectId
@@ -59,6 +60,7 @@ app.include_router(product_router, prefix=api_prefix)
 app.include_router(order_router,   prefix=api_prefix)
 app.include_router(loyalty_router, prefix=api_prefix)
 app.include_router(admin_router,   prefix=api_prefix)
+app.include_router(push_router,    prefix=api_prefix)
 
 
 # ==================== STATIC FILES ====================

@@ -334,6 +334,15 @@ async def create_review(request: Request, review_data: ReviewCreate, user=Depend
                 "Review milestone — 10 reviews reached",
                 metadata={"milestone": 10},
             )
+            # Web push for review milestone
+            import asyncio as _asyncio
+            from services.web_push_service import send_web_push as _web_push
+            _asyncio.create_task(_web_push(user_id, {
+                "title": "+50 Cloudz unlocked",
+                "body":  "You hit the 10-review milestone. Bonus Cloudz added!",
+                "icon":  "/android-chrome-192x192.png",
+                "url":   "/cloudz",
+            }))
 
     return ReviewResponse(id=review_id, **{k: v for k, v in doc.items()})
 

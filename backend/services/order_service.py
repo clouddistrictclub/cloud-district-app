@@ -760,6 +760,15 @@ async def update_order_status_shared(order_id: str, new_status: str, source: str
         order["userId"], "Order Update",
         f"Order #{order_id[-6:].upper()} is now: {new_status}",
     ))
+    # Web push for "Ready for Pickup"
+    if new_status == "Ready for Pickup":
+        from services.web_push_service import send_web_push as _web_push
+        asyncio.create_task(_web_push(order["userId"], {
+            "title": "Order ready for pickup",
+            "body":  f"Order #{order_id[-6:].upper()} is ready. Come grab it!",
+            "icon":  "/android-chrome-192x192.png",
+            "url":   "/orders",
+        }))
     response = {"message": "Order status updated"}
     if streak_data:
         response["weeklyOrderStreak"] = streak_data.get("weeklyOrderStreak", 0)

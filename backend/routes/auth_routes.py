@@ -169,6 +169,18 @@ async def login(request: Request, user_data: UserLogin):
     user_id = str(user["_id"])
     access_token = create_access_token(data={"sub": user_id})
 
+    # Fire-and-forget: web push if user hasn't checked in today
+    from datetime import datetime as _dt
+    import asyncio as _asyncio
+    if user.get("lastCheckInDate") != _dt.utcnow().strftime("%Y-%m-%d"):
+        from services.web_push_service import send_web_push as _web_push
+        _asyncio.create_task(_web_push(user_id, {
+            "title": "Your daily spin is ready \U0001f3b0",
+            "body":  "Come spin and earn Cloudz",
+            "icon":  "/android-chrome-192x192.png",
+            "url":   "/cloudz",
+        }))
+
     user_response = UserResponse(
         id=user_id,
         email=user["email"],
