@@ -12,6 +12,7 @@ from auth import get_current_user
 router = APIRouter()
 
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+print("VAPID KEY:", VAPID_PUBLIC_KEY)
 
 
 class PushSubscriptionBody(BaseModel):
