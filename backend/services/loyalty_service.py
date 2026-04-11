@@ -636,7 +636,7 @@ async def process_paid_respin(user_id: str) -> dict:
 
     # ── Spin the slot ─────────────────────────────────────────────────────────
     slot_result              = _random.choices(_SLOT_LABELS, weights=_SLOT_WEIGHTS, k=1)[0]
-    base_reward              = CHECKIN_REWARDS[1]          # fixed 50-pt base for all respins
+    base_reward              = cost                        # reward base = Cloudz spent on THIS respin
     final_reward, multiplier = _apply_slot(base_reward, slot_result)
 
     # Credit the reward
@@ -653,8 +653,8 @@ async def process_paid_respin(user_id: str) -> dict:
         "type":         "respin_reward",
         "amount":       final_reward,
         "balanceAfter": balance_after_reward,
-        "reference":    f"Re-spin #{new_respin_count} reward",
-        "description":  f"Paid re-spin #{new_respin_count} — {slot_result}",
+        "reference":    f"Re-spin #{new_respin_count} — {slot_result}",
+        "description":  f"Paid re-spin #{new_respin_count} — {multiplier}x on {cost} Cloudz → +{final_reward} Cloudz",
         "isoDate":      today_str,
         "createdAt":    datetime.utcnow(),
         "metadata": {
