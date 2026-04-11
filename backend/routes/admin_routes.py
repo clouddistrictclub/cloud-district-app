@@ -229,9 +229,34 @@ async def admin_get_cloudz_ledger(user_id: str, admin=Depends(get_admin_user)):
     entries = await db.cloudz_ledger.find(
         {"userId": user_id}, {"_id": 0}
     ).sort("createdAt", -1).to_list(500)
+
+    # Batch-resolve referredUserId → referredUsername (same enrichment as user-facing ledger)
+    referred_ids: set = set()
+    for e in entries:
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            referred_ids.add(str(rid))
+    username_map: dict = {}
+    if referred_ids:
+        cursor = db.users.find(
+            {"_id": {"$in": [ObjectId(r) for r in referred_ids if r]}},
+            {"_id": 1, "username": 1},
+        )
+        async for u in cursor:
+            username_map[str(u["_id"])] = u.get("username") or None
+
     for e in entries:
         if isinstance(e.get("createdAt"), datetime):
             e["createdAt"] = e["createdAt"].isoformat()
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            rid = str(rid)
+            e["referredUsername"] = (
+                username_map.get(rid)
+                or e.get("metadata", {}).get("referredUsername")
+                or e.get("metadata", {}).get("referredUser")
+                or None
+            )
     return entries
 
 

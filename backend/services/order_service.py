@@ -678,6 +678,7 @@ async def handle_order_completed(order: dict) -> dict:
                         "balanceAfter": new_ref_bal,
                         "description": f"Referral order reward from order #{order_id}",
                         "orderId": order_id,
+                        "referredUserId": buyer_user_id,
                         "createdAt": datetime.utcnow(),
                     })
                     print("LEDGER INSERTED (referral_order_reward):", ledger_r.inserted_id)
