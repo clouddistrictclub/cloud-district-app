@@ -579,16 +579,72 @@ async def get_admin_ledger(
         query["type"] = type
     entries = await db.cloudz_ledger.find(query, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.cloudz_ledger.count_documents(query)
-    user_ids = list({e["userId"] for e in entries})
-    users_map = {}
+
+    # ── Batch-resolve affected users (userId on each entry) ──────────────────
+    user_ids = list({e["userId"] for e in entries if e.get("userId")})
+    users_map: dict = {}  # userId_str → {email, username, firstName, lastName}
     if user_ids:
-        users_cursor = db.users.find({"_id": {"$in": [ObjectId(uid) for uid in user_ids]}}, {"_id": 1, "email": 1})
+        users_cursor = db.users.find(
+            {"_id": {"$in": [ObjectId(uid) for uid in user_ids]}},
+            {"_id": 1, "email": 1, "username": 1, "firstName": 1, "lastName": 1},
+        )
         async for u in users_cursor:
-            users_map[str(u["_id"])] = u.get("email", "unknown")
+            users_map[str(u["_id"])] = {
+                "email":     u.get("email", "unknown"),
+                "username":  u.get("username") or None,
+                "firstName": u.get("firstName") or "",
+                "lastName":  u.get("lastName") or "",
+            }
+
+    # ── Batch-resolve referredUserId → referredUsername ──────────────────────
+    referred_ids: set = set()
     for e in entries:
-        e["userEmail"] = users_map.get(e["userId"], "unknown")
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            referred_ids.add(str(rid))
+    ref_username_map: dict = {}
+    if referred_ids:
+        ref_cursor = db.users.find(
+            {"_id": {"$in": [ObjectId(r) for r in referred_ids if r]}},
+            {"_id": 1, "username": 1},
+        )
+        async for u in ref_cursor:
+            ref_username_map[str(u["_id"])] = u.get("username") or None
+
+    # ── Per-entry enrichment ──────────────────────────────────────────────────
+    for e in entries:
         if isinstance(e.get("createdAt"), datetime):
             e["createdAt"] = e["createdAt"].isoformat()
+
+        ud = users_map.get(e.get("userId", ""), {})
+        email     = ud.get("email", "unknown")
+        username  = ud.get("username") or None
+        first     = ud.get("firstName", "")
+        last      = ud.get("lastName", "")
+        full_name = " ".join(filter(None, [first, last])) or None
+
+        # Existing field — preserved unchanged
+        e["userEmail"] = email
+
+        # New: username of user whose balance was changed
+        e["affectedUsername"] = username or full_name or email
+
+        # New: friendly display string (username preferred, then full name, then email)
+        e["affectedDisplayName"] = (
+            f"@{username}" if username else (full_name or email)
+        )
+
+        # New: referredUsername enrichment
+        rid = e.get("referredUserId") or e.get("metadata", {}).get("referredUserId")
+        if rid:
+            rid = str(rid)
+            e["referredUsername"] = (
+                ref_username_map.get(rid)
+                or e.get("metadata", {}).get("referredUsername")
+                or e.get("metadata", {}).get("referredUser")
+                or None
+            )
+
     return {"entries": entries, "total": total, "skip": skip, "limit": limit}
 
 
