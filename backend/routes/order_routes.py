@@ -55,9 +55,10 @@ async def create_order(request: Request, order_data: OrderCreate, user=Depends(g
     # Final total after discount
     final_total = round(order_data.total - bulk_discount, 2)
 
-    # Apple Pay processing fee — server-calculated only, never trusted from client
+    # 1.75% processing fee for Apple Pay, Cash App, Chime — server-calculated only
+    FEE_METHODS = {"Apple Pay", "Cash App", "Chime"}
     processing_fee = 0.0
-    if order_data.paymentMethod == "apple_pay":
+    if order_data.paymentMethod in FEE_METHODS:
         processing_fee = round(final_total * 0.0175, 2)
         final_total = round(final_total + processing_fee, 2)
 

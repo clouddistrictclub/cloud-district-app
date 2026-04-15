@@ -47,31 +47,46 @@ export default function PaymentInstructions() {
   const paymentInfo: any = {
     zelle: {
       title: 'Pay with Zelle',
-      username: '6084179336',
+      username: '(608) 417-9336',
       icon: 'flash',
       color: '#6d1ed4',
       instructions: [
         'Open your banking app',
         'Select Zelle',
-        'Send to: 6084179336',
+        'Send to: (608) 417-9336',
         `Add memo: Order #${shortOrderId}`
       ],
-      deepLink: null, // Zelle is bank-dependent, no universal deep link
+      deepLink: null,
       canDeepLink: false,
     },
-    venmo: {
-      title: 'Pay with Venmo',
-      username: '@CloudDistrictClub',
-      icon: 'logo-venmo',
-      color: '#008CFF',
-      instructions: [
-        'Tap "Open Venmo" below',
-        'Confirm pre-filled amount',
-        'Verify order number in note',
-        'Complete payment'
+    apple_pay: {
+      title: 'Pay with Apple Pay',
+      username: '(608) 417-9336',
+      icon: 'phone-portrait',
+      color: '#007AFF',
+      sections: [
+        {
+          heading: 'Option 1 — Via Messages',
+          steps: [
+            'Open Messages and start or open a chat with (608) 417-9336',
+            'Tap the plus (+) button and choose Apple Cash',
+            'Enter the amount and tap Send',
+            'Confirm with Face ID, Touch ID, or passcode',
+          ],
+        },
+        {
+          heading: 'Option 2 — Via Wallet',
+          steps: [
+            'Open Wallet and select Apple Cash',
+            'Tap Send',
+            'Enter the amount',
+            'Send to (608) 417-9336',
+            'Confirm with Face ID, Touch ID, or passcode',
+          ],
+        },
       ],
-      deepLink: `https://venmo.com/CloudDistrictClub?txn=pay&amount=${amountStr}&note=Order%20%23${shortOrderId}`,
-      canDeepLink: true,
+      deepLink: null,
+      canDeepLink: false,
     },
     cashapp: {
       title: 'Pay with Cash App',
@@ -98,7 +113,7 @@ export default function PaymentInstructions() {
         'Send to: $CloudDistrictClub',
         'Copy amount and order # below'
       ],
-      deepLink: null, // Chime doesn't support deep linking
+      deepLink: null,
       canDeepLink: false,
     },
   };
@@ -209,17 +224,36 @@ export default function PaymentInstructions() {
             </TouchableOpacity>
           )}
 
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructionsTitle}>Payment Steps</Text>
-            {info.instructions.map((instruction: string, index: number) => (
-              <View key={index} style={styles.instructionRow}>
-                <View style={styles.stepCircle}>
-                  <Text style={styles.stepNumber}>{index + 1}</Text>
+          {info.sections ? (
+            <View style={styles.instructionsContainer}>
+              <Text style={styles.instructionsTitle}>Payment Steps</Text>
+              {info.sections.map((section: any, si: number) => (
+                <View key={si} style={{ marginBottom: si < info.sections.length - 1 ? 24 : 0 }}>
+                  <Text style={styles.sectionHeading}>{section.heading}</Text>
+                  {section.steps.map((step: string, idx: number) => (
+                    <View key={idx} style={styles.instructionRow}>
+                      <View style={styles.stepCircle}>
+                        <Text style={styles.stepNumber}>{idx + 1}</Text>
+                      </View>
+                      <Text style={styles.instructionText}>{step}</Text>
+                    </View>
+                  ))}
                 </View>
-                <Text style={styles.instructionText}>{instruction}</Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.instructionsContainer}>
+              <Text style={styles.instructionsTitle}>Payment Steps</Text>
+              {info.instructions.map((instruction: string, index: number) => (
+                <View key={index} style={styles.instructionRow}>
+                  <View style={styles.stepCircle}>
+                    <Text style={styles.stepNumber}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.instructionText}>{instruction}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.importantNote}>
             <Ionicons name="warning" size={20} color="#fbbf24" />
@@ -463,6 +497,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
+  },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#007AFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
   },
   instructionRow: {
     flexDirection: 'row',

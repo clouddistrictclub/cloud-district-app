@@ -18,10 +18,12 @@ interface ActiveReward {
 }
 
 const paymentMethods = [
-  { id: 'cash_on_pickup', name: 'Cash on Pickup', fee: 0, icon: 'wallet' },
-  { id: 'zelle', name: 'Zelle', fee: 0, icon: 'flash' },
-  { id: 'cashapp', name: 'Cash App', fee: 0.03, icon: 'cash' },
-  { id: 'chime', name: 'Chime', fee: 0.03, icon: 'card' },
+  { id: 'zelle',          name: 'Zelle',           fee: 0,      icon: 'flash',            disabled: false },
+  { id: 'cash_on_pickup', name: 'Cash on Pickup',  fee: 0,      icon: 'wallet',           disabled: false },
+  { id: 'apple_pay',      name: 'Apple Pay',       fee: 0.0175, icon: 'phone-portrait',   disabled: false },
+  { id: 'cashapp',        name: 'Cash App',        fee: 0.0175, icon: 'cash',             disabled: false },
+  { id: 'chime',          name: 'Chime',           fee: 0.0175, icon: 'card',             disabled: false },
+  { id: 'card',           name: 'Card',            fee: 0,      icon: 'card-outline',     disabled: true  },
 ];
 
 const pickupTimes = [
@@ -173,23 +175,39 @@ export default function Checkout() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
           <Text style={styles.sectionSubtitle}>Manual confirmation required</Text>
-          {paymentMethods.map((method) => (
-            <TouchableOpacity
-              key={method.id}
-              style={[styles.optionCard, selectedPayment === method.id && styles.optionCardSelected]}
-              onPress={() => setSelectedPayment(method.id)}
-              data-testid={`payment-method-${method.id}`}
-            >
-              <View style={styles.radioOuter}>
-                {selectedPayment === method.id && <View style={styles.radioInner} />}
-              </View>
-              <Ionicons name={method.icon as any} size={20} color={theme.colors.primary} />
-              <Text style={styles.optionText}>{method.name}</Text>
-              {method.fee > 0 && (
-                <Text style={styles.feeText}>+{(method.fee * 100).toFixed(0)}% fee</Text>
-              )}
-            </TouchableOpacity>
-          ))}
+          {paymentMethods.map((method) => {
+            if (method.disabled) {
+              return (
+                <View
+                  key={method.id}
+                  style={[styles.optionCard, styles.optionCardDisabled]}
+                  data-testid={`payment-method-${method.id}`}
+                >
+                  <View style={[styles.radioOuter, { borderColor: '#444' }]} />
+                  <Ionicons name={method.icon as any} size={20} color="#555" />
+                  <Text style={[styles.optionText, { color: '#555' }]}>{method.name}</Text>
+                  <Text style={styles.comingSoonText}>Coming Soon</Text>
+                </View>
+              );
+            }
+            return (
+              <TouchableOpacity
+                key={method.id}
+                style={[styles.optionCard, selectedPayment === method.id && styles.optionCardSelected]}
+                onPress={() => setSelectedPayment(method.id)}
+                data-testid={`payment-method-${method.id}`}
+              >
+                <View style={styles.radioOuter}>
+                  {selectedPayment === method.id && <View style={styles.radioInner} />}
+                </View>
+                <Ionicons name={method.icon as any} size={20} color={theme.colors.primary} />
+                <Text style={styles.optionText}>{method.name}</Text>
+                {method.fee > 0 && (
+                  <Text style={styles.feeText}>+{parseFloat((method.fee * 100).toFixed(2))}% fee</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Cloudz Tier Rewards */}
@@ -530,6 +548,14 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  optionCardDisabled: {
+    opacity: 0.45,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    color: '#888',
+    fontStyle: 'italic',
   },
   placeOrderText: {
     color: '#fff',
