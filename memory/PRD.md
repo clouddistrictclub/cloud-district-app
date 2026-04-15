@@ -103,6 +103,12 @@ Building a mobile-first web app called "Cloud District Club" for local pickup of
 - Streak calculation: counts both "Paid" and "Completed" orders
 - `isCurrentUser` fix on leaderboard for users outside top 20
 
+### Phase 3b – Payment Methods Standardization (Complete — 2026-04)
+- **6-method checkout**: Zelle (0%), Cash on Pickup (0%), Apple Pay (1.75%), Cash App (1.75%), Chime (1.75%), Card (disabled + "Coming Soon")
+- **Backend fee enforcement**: `FEE_METHODS = {"Apple Pay", "Cash App", "Chime"}` in `order_routes.py` — server-side 1.75% fee, never trusted from client. Fixed prior bug where old `"apple_pay"` ID check never fired.
+- **Apple Pay payment instructions**: Pre-payment flow via Apple Cash to (608) 417-9336 with two sections — "Via Messages" (4 steps) and "Via Wallet" (5 steps)
+- **Removed**: Venmo from payment-instructions (not in active methods). Old 3% fee logic removed entirely.
+
 ### Phase 3 – Order Status Reward Centralization (Complete)
 - `update_order_status_shared()` in `order_service.py` as single truth for reward triggers
 - Web order status endpoint (`PATCH /api/orders/{id}/status`) added
